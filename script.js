@@ -3,6 +3,10 @@ const supabaseUrl = 'https://tgwiazgovhecxquvzzhn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnd2lhemdvdmhlY3hxdXZ6emhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTA2NjcsImV4cCI6MjA5MDU2NjY2N30.srb3N0_csi4qBFBFyVeUMWueIWWidwV7vVcOLg0LJs8';
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+// --- LISTA EMAIL AMMINISTRATORI ---
+// Inserisci qui la tua email tra le virgolette per avere i poteri di modifica
+const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
+
 // --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
 let sermonsDB = []; 
