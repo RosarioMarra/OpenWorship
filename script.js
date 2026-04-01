@@ -4,7 +4,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- LISTA EMAIL AMMINISTRATORI ---
-// Inserisci qui la tua email tra le virgolette per avere i poteri di modifica
+// Solo queste email vedranno i tasti di modifica/caricamento/eliminazione
 const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
@@ -12,6 +12,8 @@ let hymnsDB = [];
 let sermonsDB = []; 
 let avvisiDB = [];
 let highlightsDB = [];
+let isAdmin = false; // Stato globale admin
+
 try { 
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
 } catch(e) { 
@@ -54,12 +56,32 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
-function showApp() {
+async function showApp() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // Controllo permessi
+    isAdmin = adminEmails.includes(user.email);
+    
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
-        document.body.classList.add('admin-mode-active');
+        
+        // Attiva i controlli admin se l'email è autorizzata
+        if (isAdmin) {
+            document.body.classList.add('admin-mode-active');
+        }
+
+        // Imposta Foto Profilo e Nome dall'account Google
+        const profileImg = document.getElementById('userProfileImg');
+        const profileName = document.getElementById('userProfileName');
+        
+        if (user.user_metadata.avatar_url) {
+            profileImg.src = user.user_metadata.avatar_url;
+            profileImg.classList.remove('hidden');
+        }
+        profileName.textContent = user.user_metadata.full_name || user.email;
+
         await loadCloudData();
         updateDashboard();
         renderHighlights();
@@ -163,6 +185,7 @@ function renderAvvisi() {
 }
 
 function openAvvisoModal(id = null) {
+    if(!isAdmin) return; // Blocco sicurezza JS
     if(id) {
         editingAvvisoId = id;
         const avv = avvisiDB.find(a => a.id === id);
@@ -183,6 +206,7 @@ function openAvvisoModal(id = null) {
 function closeAvvisoModal() { document.getElementById('avvisoModal').classList.add('hidden'); }
 
 document.getElementById('saveAvvisoBtn').onclick = async () => {
+    if(!isAdmin) return;
     const title = document.getElementById('avvisoTitle').value.trim();
     const date = document.getElementById('avvisoDate').value;
     const desc = document.getElementById('avvisoDesc').value.trim();
@@ -207,6 +231,7 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
 };
 
 async function deleteAvviso(id) {
+    if(!isAdmin) return;
     if(confirm("Sicuro di voler eliminare questo avviso?")) {
         try {
             const { error } = await supabaseClient.from('avvisi').delete().eq('id', id);
@@ -222,6 +247,7 @@ async function deleteAvviso(id) {
 
 // --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
+    if(!isAdmin) return;
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
     if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
         try {
@@ -237,6 +263,7 @@ document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () 
 });
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
+    if(!isAdmin) return;
     const files = Array.from(event.target.files);
     document.getElementById('hymnSearch').placeholder = "Caricamento in Cloud in corso...";
     
@@ -331,6 +358,7 @@ document.getElementById('hymnSearch').addEventListener('input', (e) => {
 
 let editHymnId = null;
 async function deleteHymn(id) { 
+    if(!isAdmin) return;
     if(confirm("Eliminare cantico?")) { 
         try {
             const { error } = await supabaseClient.from('cantici').delete().eq('id', id);
@@ -342,9 +370,20 @@ async function deleteHymn(id) {
         }
     } 
 }
-function openEditModal(id) { editHymnId = id; const hymn = hymnsDB.find(h => h.id === id); document.getElementById('editHymnTitle').value = hymn.title; document.getElementById('editHymnBody').value = hymn.content; document.getElementById('editModal').classList.remove('hidden'); }
+
+function openEditModal(id) { 
+    if(!isAdmin) return;
+    editHymnId = id; 
+    const hymn = hymnsDB.find(h => h.id === id); 
+    document.getElementById('editHymnTitle').value = hymn.title; 
+    document.getElementById('editHymnBody').value = hymn.content; 
+    document.getElementById('editModal').classList.remove('hidden'); 
+}
+
 function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+
 document.getElementById('saveEditHymnBtn').onclick = async () => { 
+    if(!isAdmin) return;
     try {
         const i = hymnsDB.findIndex(h => h.id === editHymnId); 
         const updatedTitle = document.getElementById('editHymnTitle').value; 
