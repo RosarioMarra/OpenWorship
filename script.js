@@ -1,21 +1,23 @@
 // --- CONNESSIONE SUPABASE CLOUD ---
 const supabaseUrl = 'https://tgwiazgovhecxquvzzhn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnd2lhemdvdmhlY3hxdXZ6emhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTA2NjcsImV4cCI6MjA5MDU2NjY2N30.srb3N0_csi4qBFBFyVeUMWueIWWidwV7vVcOLg0LJs8';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// --- DATABASE IN TEMPO REALE ---
+// ABBIAMO CAMBIATO IL NOME QUI IN "supabaseClient" PER NON ANDARE IN CONFLITTO!
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
 let sermonsDB = []; 
 let avvisiDB = [];
-let highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; // Questo resta locale per l'utente
+let highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
 
-// --- LOGIN CON GOOGLE & SUPABASE ---
+// --- LOGIN LOGIC CON SUPABASE ---
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 
-// Controlla se l'utente è già loggato all'apertura
+// Controlla se l'utente è già loggato
 async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         showApp();
     } else {
@@ -24,17 +26,26 @@ async function checkUser() {
 }
 checkUser();
 
-// Tasto Login Google
+// Tasto Login Google con Debug
 document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-    });
-    if (error) alert("Errore durante il login: " + error.message);
+    console.log("Bottone cliccato! Tento il login con Supabase...");
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+        });
+        if (error) {
+            console.error("Errore da Supabase:", error);
+            alert("Errore durante il login: " + error.message);
+        }
+    } catch (err) {
+        console.error("Errore critico di connessione:", err);
+        alert("Errore di connessione. Controlla la Console!");
+    }
 });
 
 // Logout
 async function handleLogout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     setTimeout(() => loginScreen.style.opacity = '1', 50);
@@ -42,14 +53,14 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
-// --- FUNZIONE DI AVVIO E CARICAMENTO DATI DAL CLOUD ---
-async function showApp() {
+// --- AVVIO E CARICAMENTO DAL CLOUD ---
+function showApp() {
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
         
-        // Scarica i dati dal Cloud!
+        // Scarica i dati dal Cloud
         await loadCloudData();
         
         updateDashboard();
@@ -58,20 +69,24 @@ async function showApp() {
 }
 
 async function loadCloudData() {
-    // Scarica Cantici
-    const { data: cantici } = await supabase.from('cantici').select('*');
-    if(cantici) hymnsDB = cantici;
-    renderHymns();
+    try {
+        // Scarica Cantici
+        const { data: cantici } = await supabaseClient.from('cantici').select('*');
+        if(cantici) hymnsDB = cantici;
+        renderHymns();
 
-    // Scarica Avvisi
-    const { data: avvisi } = await supabase.from('avvisi').select('*');
-    if(avvisi) avvisiDB = avvisi;
-    renderAvvisi();
+        // Scarica Avvisi
+        const { data: avvisi } = await supabaseClient.from('avvisi').select('*');
+        if(avvisi) avvisiDB = avvisi;
+        renderAvvisi();
 
-    // Scarica Sermoni
-    const { data: sermoni } = await supabase.from('sermoni').select('*');
-    if(sermoni) sermonsDB = sermoni;
-    renderSermons();
+        // Scarica Sermoni
+        const { data: sermoni } = await supabaseClient.from('sermoni').select('*');
+        if(sermoni) sermonsDB = sermoni;
+        renderSermons();
+    } catch (err) {
+        console.error("Errore nel caricamento dal Cloud: ", err);
+    }
 }
 
 // --- NAVIGAZIONE TABS E ADMIN MODE ---
@@ -95,7 +110,7 @@ document.getElementById('adminToggle').addEventListener('change', (e) => {
     else document.body.classList.remove('admin-mode-active');
 });
 
-// --- DASHBOARD ---
+// --- DASHBOARD E AVVISI ---
 const dailyVerses = [
     { text: "Poiché Dio ha tanto amato il mondo...", ref: "Giovanni 3:16" },
     { text: "Io posso ogni cosa in colui che mi fortifica.", ref: "Filippesi 4:13" },
@@ -128,7 +143,6 @@ function updateDashboard() {
     }
 }
 
-// --- AVVISI (Sincronizzati in Cloud) ---
 let editingAvvisoId = null;
 
 function renderAvvisi() {
@@ -188,8 +202,8 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
     
     const newAvviso = { id: editingAvvisoId || Date.now().toString(), date, title, desc };
     
-    // Salva su Supabase
-    await supabase.from('avvisi').upsert([newAvviso]);
+    // Salva l'avviso su Supabase Cloud
+    await supabaseClient.from('avvisi').upsert([newAvviso]);
     
     if(editingAvvisoId) {
         const index = avvisiDB.findIndex(a => a.id === editingAvvisoId);
@@ -202,19 +216,20 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
 
 async function deleteAvviso(id) {
     if(confirm("Sicuro di voler eliminare questo avviso?")) {
-        await supabase.from('avvisi').delete().eq('id', id);
+        await supabaseClient.from('avvisi').delete().eq('id', id);
         avvisiDB = avvisiDB.filter(a => a.id !== id);
         closeAvvisoModal(); renderAvvisi(); updateDashboard();
     }
 }
 
+
 // --- CANTICI: XML PARSER E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
-    if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal database globale?")) {
-        // Svuota Supabase
+    if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?\nQuesta azione è irreversibile.")) {
+        // Rimuove tutti i cantici dal database Cloud
         for (let hymn of hymnsDB) {
-            await supabase.from('cantici').delete().eq('id', hymn.id);
+            await supabaseClient.from('cantici').delete().eq('id', hymn.id);
         }
         hymnsDB = [];
         renderHymns(); updateDashboard();
@@ -223,9 +238,7 @@ document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () 
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
     const files = Array.from(event.target.files);
-    
-    // Mostriamo un caricamento testuale
-    document.getElementById('hymnSearch').placeholder = "Caricamento in corso nel Cloud...";
+    document.getElementById('hymnSearch').placeholder = "Caricamento nel Cloud in corso...";
     
     for (let file of files) {
         let text = await file.text();
@@ -276,8 +289,8 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
         
         const newHymn = { id: Date.now().toString() + Math.random().toString().slice(2,8), title: title, content: content };
         
-        // Salva in Cloud
-        await supabase.from('cantici').insert([newHymn]);
+        // Salva in Cloud su Supabase
+        await supabaseClient.from('cantici').insert([newHymn]);
         hymnsDB.push(newHymn);
     }
     
@@ -287,8 +300,6 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
 
 function renderHymns(hymnsArray = hymnsDB) {
     const list = document.getElementById('hymnsList'); list.innerHTML = '';
-    
-    // Ordine Alfabetico
     const sorted = [...hymnsArray].sort((a, b) => a.title.localeCompare(b.title));
     
     sorted.forEach((hymn) => {
@@ -315,7 +326,7 @@ document.getElementById('hymnSearch').addEventListener('input', (e) => {
 let editHymnId = null;
 async function deleteHymn(id) { 
     if(confirm("Eliminare cantico?")) { 
-        await supabase.from('cantici').delete().eq('id', id);
+        await supabaseClient.from('cantici').delete().eq('id', id);
         hymnsDB = hymnsDB.filter(h => h.id !== id); 
         renderHymns(); updateDashboard();
     } 
@@ -327,13 +338,13 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     hymnsDB[i].title = document.getElementById('editHymnTitle').value; 
     hymnsDB[i].content = document.getElementById('editHymnBody').value; 
     
-    await supabase.from('cantici').update({ title: hymnsDB[i].title, content: hymnsDB[i].content }).eq('id', editHymnId);
+    await supabaseClient.from('cantici').update({ title: hymnsDB[i].title, content: hymnsDB[i].content }).eq('id', editHymnId);
     
     renderHymns(); closeEditModal(); 
 };
 
 
-// --- LETTORE SLIDE CANTICI ---
+// --- LETTORE SLIDE CANTICI (AUTO-FIT MATEMATICO) ---
 let currentHymnFontSize = 40; 
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
@@ -495,7 +506,7 @@ slidesContainer.addEventListener('scroll', () => {
 document.getElementById('backToHymns').onclick = () => { document.getElementById('hymnReaderView').classList.add('hidden'); document.getElementById('hymnsListView').classList.remove('hidden'); };
 
 
-// --- BIBBIA ---
+// --- BIBBIA E EVIDENZIATURA ---
 const bibleBooks = [
     {id: 1, name: "Genesi", ch: 50}, {id: 2, name: "Esodo", ch: 40}, {id: 3, name: "Levitico", ch: 27}, {id: 4, name: "Numeri", ch: 36}, {id: 5, name: "Deuteronomio", ch: 34},
     {id: 6, name: "Giosuè", ch: 24}, {id: 7, name: "Giudici", ch: 21}, {id: 8, name: "Rut", ch: 4}, {id: 9, name: "1 Samuele", ch: 31}, {id: 10, name: "2 Samuele", ch: 24},
@@ -649,7 +660,7 @@ document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontS
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
 
-// --- SERMONI E CLOUD SYNC ---
+// --- SERMONI ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -716,7 +727,8 @@ document.getElementById('saveSermonBtn').onclick = async () => {
     if(!sTitle.value && !sBody.value) return;
     const data = { id: activeSermonId || Date.now().toString(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
     
-    await supabase.from('sermoni').upsert([data]);
+    // Salva su Supabase Cloud
+    await supabaseClient.from('sermoni').upsert([data]);
     
     if(activeSermonId) {
         const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
@@ -735,7 +747,7 @@ document.getElementById('saveSermonBtn').onclick = async () => {
 
 document.getElementById('deleteSermonBtn').onclick = async () => {
     if(confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        await supabase.from('sermoni').delete().eq('id', activeSermonId);
+        await supabaseClient.from('sermoni').delete().eq('id', activeSermonId);
         sermonsDB = sermonsDB.filter(s => s.id !== activeSermonId);
         newSermon(); renderSermons(); updateDashboard();
     }
