@@ -184,7 +184,6 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
     const desc = document.getElementById('avvisoDesc').value.trim();
     if(!title || !date) return;
     
-    // FIX UUID: Generiamo un UUID valido e ufficiale!
     const newAvviso = { id: editingAvvisoId || crypto.randomUUID(), date, title, desc };
     
     try {
@@ -283,7 +282,6 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                 }
             }
             
-            // FIX UUID: Generiamo un ID in formato UUID per Supabase!
             const newHymn = { id: crypto.randomUUID(), title: title, content: content };
             
             const { error } = await supabaseClient.from('cantici').insert([newHymn]);
@@ -365,18 +363,18 @@ let currentHymnFontSize = 40;
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
 const gridContainer = document.getElementById('hymnGridContainer');
-const dotsContainer = document.getElementById('slideDots');
+const hymnBottomControls = document.getElementById('hymnBottomControls');
 
 document.getElementById('toggleGridViewBtn').onclick = () => {
     isGridView = !isGridView;
     if(isGridView) {
         document.getElementById('slidesWrapperView').classList.add('hidden');
-        dotsContainer.classList.add('hidden');
+        hymnBottomControls.classList.add('hidden');
         gridContainer.classList.remove('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
     } else {
         document.getElementById('slidesWrapperView').classList.remove('hidden');
-        dotsContainer.classList.remove('hidden');
+        hymnBottomControls.classList.remove('hidden');
         gridContainer.classList.add('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
         setTimeout(autoFitHymn, 50);
@@ -391,11 +389,11 @@ function openHymnSlides(id) {
     
     isGridView = false;
     document.getElementById('slidesWrapperView').classList.remove('hidden');
-    dotsContainer.classList.remove('hidden');
+    hymnBottomControls.classList.remove('hidden');
     gridContainer.classList.add('hidden');
     document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
 
-    slidesContainer.innerHTML = ''; dotsContainer.innerHTML = ''; gridContainer.innerHTML = '';
+    slidesContainer.innerHTML = ''; document.getElementById('slideDots').innerHTML = ''; gridContainer.innerHTML = '';
     
     const blocks = hymn.content.split(/\n\s*\n/);
     
@@ -424,7 +422,7 @@ function openHymnSlides(id) {
         
         const dot = document.createElement('div');
         dot.className = `slide-dot ${index === 0 ? 'active' : ''}`;
-        dotsContainer.appendChild(dot);
+        document.getElementById('slideDots').appendChild(dot);
     });
     
     slidesContainer.scrollLeft = 0;
@@ -574,11 +572,10 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         const data = await fetchBibleData(version, bookId, chapter);
         
         let html = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
-                <button class="btn-icon-small" onclick="changeChapter(-1)"><i class="ri-arrow-left-s-line"></i></button>
+            <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${bookName} ${chapter}</h2>
-                <button class="btn-icon-small" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
             </div>
+            <div style="margin-bottom: 20px;">
         `;
         
         data.forEach(v => {
@@ -590,6 +587,14 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
                         ${cleanText}
                      </span>`;
         });
+        
+        html += `</div>
+            <div class="hymn-bottom-controls" style="border-radius: 12px; background: #fafafa; margin-top: 10px;">
+                <button class="slide-nav-btn" onclick="changeChapter(-1)"><i class="ri-arrow-left-s-line"></i></button>
+                <span style="font-weight: 700; color: var(--text-muted); font-size: 16px; padding: 0 10px;">Capitolo ${chapter}</span>
+                <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+        `;
         
         reader.innerHTML = html;
         updateBibleFontSize();
@@ -709,7 +714,6 @@ function newSermon() {
 document.getElementById('saveSermonBtn').onclick = async () => {
     if(!sTitle.value && !sBody.value) return;
     
-    // FIX UUID: Generiamo l'ID in formato UUID anche qui!
     const data = { id: activeSermonId || crypto.randomUUID(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
     
     try {
