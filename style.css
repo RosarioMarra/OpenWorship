@@ -284,4 +284,3 @@ body.is-admin #addHymnBtn,
 body.is-admin #addNoticeBtn {
     display: flex !important; /* o block, a seconda dell'elemento */
 }
-
