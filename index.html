@@ -4,11 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Open Worship</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007aff">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body class="">
     <div id="loginScreen" class="login-container">
+        
+        <div class="login-video-wrapper">
+            <video autoplay muted loop playsinline id="loginVideo">
+                <source src="https://cdn.pixabay.com/video/2022/04/17/114251-699946890_large.mp4" type="video/mp4">
+            </video>
+            <div class="login-overlay"></div>
+        </div>
+
         <div class="login-card">
             <div class="login-icon"><i class="ri-book-open-fill"></i></div>
             <h1>Open Worship</h1>
@@ -18,7 +31,7 @@
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
                 Continua con Google
             </button>
-            <p class="login-footer-text">Versione 2.0 - Open Worship Pro</p>
+            <p class="login-footer-text">Versione 2.1 - Open Worship Pro</p>
         </div>
     </div>
 
@@ -36,9 +49,6 @@
                 <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Sermoni</button>
             </nav>
             <div class="sidebar-footer">
-                <label class="admin-toggle">
-                    <input type="checkbox" id="adminToggle"> <i class="ri-settings-4-line"></i> Admin Mode
-                </label>
                 <button id="logoutBtn" class="btn-logout-desktop">
                     <i class="ri-logout-box-r-line"></i> <span>Esci</span>
                 </button>
@@ -295,7 +305,20 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="script.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registrato con successo: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('Registrazione ServiceWorker fallita: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
