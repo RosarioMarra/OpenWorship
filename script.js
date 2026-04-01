@@ -7,13 +7,17 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 let hymnsDB = [];
 let sermonsDB = []; 
 let avvisiDB = [];
-let highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
+let highlightsDB = [];
+try { 
+    highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
+} catch(e) { 
+    highlightsDB = []; 
+}
 
 // --- LOGIN LOGIC CON SUPABASE ---
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 
-// Controlla se l'utente è già loggato all'apertura dell'app
 async function checkUser() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -24,29 +28,21 @@ async function checkUser() {
 }
 checkUser();
 
-// Tasto Login Google (FORZATO SULLA CARTELLA CORRETTA DI GITHUB)
 document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-    console.log("Bottone cliccato! Tento il login con Supabase...");
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: 'https://rosariomarra.github.io/OpenWorship/'
-            }
+            options: { redirectTo: 'https://rosariomarra.github.io/OpenWorship/' }
         });
-        if (error) {
-            console.error("Errore da Supabase:", error);
-            alert("Errore durante il login: " + error.message);
-        }
+        if (error) alert("Errore durante il login: " + error.message);
     } catch (err) {
-        console.error("Errore critico di connessione:", err);
-        alert("Errore di connessione. Controlla la Console!");
+        alert("Errore di connessione a Google.");
     }
 });
 
-// Logout
 async function handleLogout() {
     await supabaseClient.auth.signOut();
+    document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     setTimeout(() => loginScreen.style.opacity = '1', 50);
@@ -54,16 +50,13 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
-// --- AVVIO E CARICAMENTO DAL CLOUD ---
 function showApp() {
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
-        
-        // Scarica tutti i dati dal Cloud
+        document.body.classList.add('admin-mode-active');
         await loadCloudData();
-        
         updateDashboard();
         renderHighlights();
     }, 400);
@@ -71,26 +64,26 @@ function showApp() {
 
 async function loadCloudData() {
     try {
-        // Scarica Cantici
-        const { data: cantici } = await supabaseClient.from('cantici').select('*');
-        if(cantici) hymnsDB = cantici;
+        const { data: cantici, error: canticiErr } = await supabaseClient.from('cantici').select('*');
+        if(canticiErr) console.error("Errore download cantici", canticiErr);
+        else hymnsDB = cantici || [];
         renderHymns();
 
-        // Scarica Avvisi
-        const { data: avvisi } = await supabaseClient.from('avvisi').select('*');
-        if(avvisi) avvisiDB = avvisi;
+        const { data: avvisi, error: avvisiErr } = await supabaseClient.from('avvisi').select('*');
+        if(avvisiErr) console.error("Errore download avvisi", avvisiErr);
+        else avvisiDB = avvisi || [];
         renderAvvisi();
 
-        // Scarica Sermoni
-        const { data: sermoni } = await supabaseClient.from('sermoni').select('*');
-        if(sermoni) sermonsDB = sermoni;
+        const { data: sermoni, error: sermoniErr } = await supabaseClient.from('sermoni').select('*');
+        if(sermoniErr) console.error("Errore download sermoni", sermoniErr);
+        else sermonsDB = sermoni || [];
         renderSermons();
     } catch (err) {
-        console.error("Errore nel caricamento dal Cloud: ", err);
+        console.error("Errore di rete generale", err);
     }
 }
 
-// --- NAVIGAZIONE TABS E ADMIN MODE ---
+// --- NAVIGAZIONE ---
 document.querySelectorAll('.nav-item[data-target]').forEach(item => {
     item.addEventListener('click', () => {
         const target = item.getAttribute('data-target');
@@ -104,11 +97,6 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
             document.getElementById('hymnsListView').classList.remove('hidden');
         }
     });
-});
-
-document.getElementById('adminToggle').addEventListener('change', (e) => {
-    if(e.target.checked) document.body.classList.add('admin-mode-active');
-    else document.body.classList.remove('admin-mode-active');
 });
 
 // --- DASHBOARD E AVVISI ---
@@ -130,7 +118,6 @@ function updateDashboard() {
     const verse = dailyVerses[dayOfYear % dailyVerses.length];
     document.getElementById('dailyVerseText').textContent = `"${verse.text}"`;
     document.getElementById('dailyVerseRef').textContent = `- ${verse.ref}`;
-
     document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
     document.getElementById('dashSermonsCount').textContent = sermonsDB.length;
 
@@ -150,12 +137,10 @@ function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
     const sortedAvvisi = avvisiDB.sort((a,b) => new Date(b.date) - new Date(a.date));
-    
     if(sortedAvvisi.length === 0) {
         list.innerHTML = '<p class="text-muted">Nessun avviso presente al momento.</p>';
         return;
     }
-    
     sortedAvvisi.forEach(avviso => {
         const dateObj = new Date(avviso.date);
         const card = document.createElement('div');
@@ -181,14 +166,12 @@ function openAvvisoModal(id = null) {
         document.getElementById('avvisoDate').value = avv.date;
         document.getElementById('avvisoTitle').value = avv.title;
         document.getElementById('avvisoDesc').value = avv.desc;
-        document.getElementById('deleteAvvisoBtn').style.display = 'block';
     } else {
         editingAvvisoId = null;
         document.getElementById('avvisoModalTitle').textContent = "Nuovo Avviso";
         document.getElementById('avvisoDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('avvisoTitle').value = "";
         document.getElementById('avvisoDesc').value = "";
-        document.getElementById('deleteAvvisoBtn').style.display = 'none';
     }
     document.getElementById('avvisoModal').classList.remove('hidden');
 }
@@ -203,23 +186,32 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
     
     const newAvviso = { id: editingAvvisoId || Date.now().toString(), date, title, desc };
     
-    // Salva l'avviso su Supabase Cloud
-    await supabaseClient.from('avvisi').upsert([newAvviso]);
-    
-    if(editingAvvisoId) {
-        const index = avvisiDB.findIndex(a => a.id === editingAvvisoId);
-        avvisiDB[index] = newAvviso;
-    } else {
-        avvisiDB.push(newAvviso);
+    try {
+        const { error } = await supabaseClient.from('avvisi').upsert([newAvviso]);
+        if (error) throw error;
+        
+        if(editingAvvisoId) {
+            const index = avvisiDB.findIndex(a => a.id === editingAvvisoId);
+            avvisiDB[index] = newAvviso;
+        } else {
+            avvisiDB.push(newAvviso);
+        }
+        closeAvvisoModal(); renderAvvisi(); updateDashboard();
+    } catch (e) {
+        alert("Errore nel salvataggio dell'avviso: " + e.message);
     }
-    closeAvvisoModal(); renderAvvisi(); updateDashboard();
 };
 
 async function deleteAvviso(id) {
     if(confirm("Sicuro di voler eliminare questo avviso?")) {
-        await supabaseClient.from('avvisi').delete().eq('id', id);
-        avvisiDB = avvisiDB.filter(a => a.id !== id);
-        closeAvvisoModal(); renderAvvisi(); updateDashboard();
+        try {
+            const { error } = await supabaseClient.from('avvisi').delete().eq('id', id);
+            if (error) throw error;
+            avvisiDB = avvisiDB.filter(a => a.id !== id);
+            closeAvvisoModal(); renderAvvisi(); updateDashboard();
+        } catch (e) {
+            alert("Errore durante l'eliminazione: " + e.message);
+        }
     }
 }
 
@@ -227,73 +219,82 @@ async function deleteAvviso(id) {
 // --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
-    if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?\nQuesta azione è irreversibile.")) {
-        for (let hymn of hymnsDB) {
-            await supabaseClient.from('cantici').delete().eq('id', hymn.id);
+    if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
+        try {
+            for (let hymn of hymnsDB) {
+                await supabaseClient.from('cantici').delete().eq('id', hymn.id);
+            }
+            hymnsDB = [];
+            renderHymns(); updateDashboard();
+        } catch (e) {
+            alert("Errore durante l'eliminazione dei cantici: " + e.message);
         }
-        hymnsDB = [];
-        renderHymns(); updateDashboard();
     }
 });
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
     const files = Array.from(event.target.files);
-    document.getElementById('hymnSearch').placeholder = "Caricamento nel Cloud in corso...";
+    document.getElementById('hymnSearch').placeholder = "Caricamento in Cloud in corso...";
     
     for (let file of files) {
-        let text = await file.text();
-        let title = file.name.replace(/\.[^/.]+$/, "");
-        let content = text;
-        
-        if(file.name.endsWith('.xml')) {
-            // Rimuove brutalmente gli xmlns che accecano il parser
-            let safeText = text.replace(/xmlns(:\w+)?="[^"]*"/g, '');
-            safeText = safeText.replace(/<br\s*\/?>/gi, '\n');
-            const xmlDoc = new DOMParser().parseFromString(safeText, "text/xml");
-            if(xmlDoc.querySelector("title")) title = xmlDoc.querySelector("title").textContent;
+        try {
+            let text = await file.text();
+            let title = file.name.replace(/\.[^/.]+$/, "");
+            let content = text;
             
-            let versesNodes = xmlDoc.querySelectorAll("verse, chorus, stanza");
-            if(versesNodes.length === 0) versesNodes = xmlDoc.querySelectorAll("lines"); 
-            
-            if(versesNodes.length > 0) {
-                let parsed = "";
-                let lastBlockText = "";
+            if(file.name.endsWith('.xml')) {
+                let safeText = text.replace(/xmlns(:\w+)?="[^"]*"/g, '');
+                safeText = safeText.replace(/<br\s*\/?>/gi, '\n');
+                const xmlDoc = new DOMParser().parseFromString(safeText, "text/xml");
+                if(xmlDoc.querySelector("title")) title = xmlDoc.querySelector("title").textContent;
                 
-                versesNodes.forEach(v => {
-                    let vName = v.getAttribute("name") || v.tagName;
-                    let isChorus = vName.toLowerCase().startsWith("c") || vName.toLowerCase().includes("chorus");
-                    
-                    let linesNodes = v.querySelectorAll("lines");
-                    let blockText = "";
-                    if(linesNodes.length > 0) {
-                        linesNodes.forEach(line => { blockText += line.innerHTML.replace(/<[^>]+>/g, '').trim() + "\n"; });
-                    } else {
-                        blockText = v.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
-                    }
-                    
-                    blockText = blockText.trim();
-                    let normalizedCurrent = blockText.replace(/\s+/g, ' ');
-                    let normalizedLast = lastBlockText.replace(/\s+/g, ' ');
+                let versesNodes = xmlDoc.querySelectorAll("verse, chorus, stanza");
+                if(versesNodes.length === 0) versesNodes = xmlDoc.querySelectorAll("lines"); 
+                
+                if(versesNodes.length > 0) {
+                    let parsed = "";
+                    let lastBlockText = "";
+                    versesNodes.forEach(v => {
+                        let vName = v.getAttribute("name") || v.tagName;
+                        let isChorus = vName.toLowerCase().startsWith("c") || vName.toLowerCase().includes("chorus");
+                        let linesNodes = v.querySelectorAll("lines");
+                        let blockText = "";
+                        if(linesNodes.length > 0) {
+                            linesNodes.forEach(line => { blockText += line.innerHTML.replace(/<[^>]+>/g, '').trim() + "\n"; });
+                        } else {
+                            blockText = v.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                        }
+                        
+                        blockText = blockText.trim();
+                        let normalizedCurrent = blockText.replace(/\s+/g, ' ');
+                        let normalizedLast = lastBlockText.replace(/\s+/g, ' ');
 
-                    // Antiduplicato: salta se identico alla strofa precedente
-                    if(blockText.length > 0 && normalizedCurrent !== normalizedLast) {
-                        lastBlockText = blockText; 
-                        if(isChorus) blockText = "Coro:\n" + blockText;
-                        parsed += blockText + "\n\n";
-                    }
-                });
-                content = parsed.trim();
-            } else {
-                let lyricsNode = xmlDoc.querySelector("lyrics") || xmlDoc.documentElement;
-                content = lyricsNode.textContent.trim();
+                        if(blockText.length > 0 && normalizedCurrent !== normalizedLast) {
+                            lastBlockText = blockText; 
+                            if(isChorus) blockText = "Coro:\n" + blockText;
+                            parsed += blockText + "\n\n";
+                        }
+                    });
+                    content = parsed.trim();
+                } else {
+                    let lyricsNode = xmlDoc.querySelector("lyrics") || xmlDoc.documentElement;
+                    content = lyricsNode.textContent.trim();
+                }
             }
+            
+            const newHymn = { id: Date.now().toString() + Math.random().toString().slice(2,8), title: title, content: content };
+            
+            // Salvataggio con controllo errore
+            const { error } = await supabaseClient.from('cantici').insert([newHymn]);
+            if (error) {
+                alert(`Supabase ha bloccato il cantico '${title}'. Errore: ` + error.message);
+            } else {
+                hymnsDB.push(newHymn);
+            }
+        } catch (e) {
+            console.error("Errore lettura file:", e);
+            alert("Errore nella lettura del file " + file.name);
         }
-        
-        const newHymn = { id: Date.now().toString() + Math.random().toString().slice(2,8), title: title, content: content };
-        
-        // Salva in Cloud su Supabase
-        await supabaseClient.from('cantici').insert([newHymn]);
-        hymnsDB.push(newHymn);
     }
     
     document.getElementById('hymnSearch').placeholder = "Cerca cantico...";
@@ -328,25 +329,37 @@ document.getElementById('hymnSearch').addEventListener('input', (e) => {
 let editHymnId = null;
 async function deleteHymn(id) { 
     if(confirm("Eliminare cantico?")) { 
-        await supabaseClient.from('cantici').delete().eq('id', id);
-        hymnsDB = hymnsDB.filter(h => h.id !== id); 
-        renderHymns(); updateDashboard();
+        try {
+            const { error } = await supabaseClient.from('cantici').delete().eq('id', id);
+            if (error) throw error;
+            hymnsDB = hymnsDB.filter(h => h.id !== id); 
+            renderHymns(); updateDashboard();
+        } catch (e) {
+            alert("Errore di eliminazione: " + e.message);
+        }
     } 
 }
 function openEditModal(id) { editHymnId = id; const hymn = hymnsDB.find(h => h.id === id); document.getElementById('editHymnTitle').value = hymn.title; document.getElementById('editHymnBody').value = hymn.content; document.getElementById('editModal').classList.remove('hidden'); }
 function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
 document.getElementById('saveEditHymnBtn').onclick = async () => { 
-    const i = hymnsDB.findIndex(h => h.id === editHymnId); 
-    hymnsDB[i].title = document.getElementById('editHymnTitle').value; 
-    hymnsDB[i].content = document.getElementById('editHymnBody').value; 
-    
-    await supabaseClient.from('cantici').update({ title: hymnsDB[i].title, content: hymnsDB[i].content }).eq('id', editHymnId);
-    
-    renderHymns(); closeEditModal(); 
+    try {
+        const i = hymnsDB.findIndex(h => h.id === editHymnId); 
+        const updatedTitle = document.getElementById('editHymnTitle').value; 
+        const updatedContent = document.getElementById('editHymnBody').value; 
+        
+        const { error } = await supabaseClient.from('cantici').update({ title: updatedTitle, content: updatedContent }).eq('id', editHymnId);
+        if (error) throw error;
+
+        hymnsDB[i].title = updatedTitle;
+        hymnsDB[i].content = updatedContent;
+        renderHymns(); closeEditModal(); 
+    } catch (e) {
+        alert("Errore aggiornamento cantico: " + e.message);
+    }
 };
 
 
-// --- LETTORE SLIDE CANTICI (AUTO-FIT MATEMATICO 4.0) ---
+// --- LETTORE SLIDE CANTICI ---
 let currentHymnFontSize = 40; 
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
@@ -387,7 +400,6 @@ function openHymnSlides(id) {
     
     blocks.forEach((block, index) => {
         const cleanBlock = block.trim(); if(!cleanBlock) return;
-        
         const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
         const textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
@@ -397,24 +409,16 @@ function openHymnSlides(id) {
         
         const slide = document.createElement('div'); 
         slide.className = 'hymn-slide';
-        
         const contentDiv = document.createElement('div');
         contentDiv.className = `slide-content ${isChorus ? 'slide-chorus' : ''}`;
         contentDiv.innerHTML = formattedLines; 
-        
         slide.appendChild(contentDiv);
         slidesContainer.appendChild(slide);
         
         const gridCard = document.createElement('div');
         gridCard.className = 'hymn-grid-card';
-        gridCard.innerHTML = `
-            <div class="grid-card-title">${isChorus ? 'Coro' : 'Strofa ' + (index+1)}</div>
-            <div class="grid-card-preview ${isChorus ? 'slide-chorus' : ''}">${textToDisplay}</div>
-        `;
-        gridCard.onclick = () => {
-            document.getElementById('toggleGridViewBtn').click(); 
-            slidesContainer.scrollLeft = index * slidesContainer.clientWidth;
-        };
+        gridCard.innerHTML = `<div class="grid-card-title">${isChorus ? 'Coro' : 'Strofa ' + (index+1)}</div><div class="grid-card-preview ${isChorus ? 'slide-chorus' : ''}">${textToDisplay}</div>`;
+        gridCard.onclick = () => { document.getElementById('toggleGridViewBtn').click(); slidesContainer.scrollLeft = index * slidesContainer.clientWidth; };
         gridContainer.appendChild(gridCard);
         
         const dot = document.createElement('div');
@@ -427,11 +431,7 @@ function openHymnSlides(id) {
 }
 
 function autoFitHymn() {
-    if(slidesContainer.clientWidth === 0) {
-        setTimeout(autoFitHymn, 50);
-        return;
-    }
-
+    if(slidesContainer.clientWidth === 0) { setTimeout(autoFitHymn, 50); return; }
     const isMobile = window.innerWidth < 768;
     let fontSize = isMobile ? 60 : 90; 
     updateHymnFontSize(fontSize);
@@ -439,28 +439,19 @@ function autoFitHymn() {
 
     const maxWidth = slidesContainer.clientWidth - (isMobile ? 40 : 160); 
     const maxHeight = slidesContainer.clientHeight - (isMobile ? 40 : 80);
-
     let isFitting = false;
 
     while(!isFitting && fontSize > 14) {
         let overflow = false;
-        
         document.querySelectorAll('.slide-content').forEach(slide => {
             if(slide.getBoundingClientRect().height > maxHeight) overflow = true;
             slide.querySelectorAll('.hymn-line').forEach(line => {
                 if(line.getBoundingClientRect().width > maxWidth) overflow = true;
             });
         });
-        
-        if(overflow) {
-            fontSize -= 2;
-            updateHymnFontSize(fontSize);
-            void slidesContainer.offsetHeight;
-        } else {
-            isFitting = true;
-        }
+        if(overflow) { fontSize -= 2; updateHymnFontSize(fontSize); void slidesContainer.offsetHeight; } 
+        else { isFitting = true; }
     }
-    
     currentHymnFontSize = Math.max(14, fontSize - 2);
     updateHymnFontSize(currentHymnFontSize);
 }
@@ -470,20 +461,13 @@ document.getElementById('increaseHymnFont').onclick = () => {
     const isMobile = window.innerWidth < 768;
     const maxWidth = slidesContainer.clientWidth - (isMobile ? 40 : 160);
     const maxHeight = slidesContainer.clientHeight - (isMobile ? 40 : 80);
-    
     let canIncrease = true;
     document.querySelectorAll('.slide-content').forEach(slide => {
         if(slide.getBoundingClientRect().height >= maxHeight) canIncrease = false;
-        slide.querySelectorAll('.hymn-line').forEach(line => {
-            if(line.getBoundingClientRect().width >= maxWidth) canIncrease = false;
-        });
+        slide.querySelectorAll('.hymn-line').forEach(line => { if(line.getBoundingClientRect().width >= maxWidth) canIncrease = false; });
     });
-    
     if(!canIncrease) return; 
-    if(currentHymnFontSize < 120) { 
-        currentHymnFontSize += 2; 
-        updateHymnFontSize(currentHymnFontSize); 
-    }
+    if(currentHymnFontSize < 120) { currentHymnFontSize += 2; updateHymnFontSize(currentHymnFontSize); }
 };
 
 document.getElementById('decreaseHymnFont').onclick = () => { 
@@ -492,7 +476,6 @@ document.getElementById('decreaseHymnFont').onclick = () => {
 };
 
 function updateHymnFontSize(size) { document.querySelectorAll('.slide-content').forEach(el => el.style.fontSize = `${size}px`); }
-
 document.getElementById('nextSlideBtn').onclick = () => slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' });
 document.getElementById('prevSlideBtn').onclick = () => slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' });
 
@@ -500,15 +483,12 @@ slidesContainer.addEventListener('scroll', () => {
     const slideWidth = slidesContainer.clientWidth;
     if(slideWidth === 0) return;
     const currentSlide = Math.round(slidesContainer.scrollLeft / slideWidth);
-    document.querySelectorAll('.slide-dot').forEach((dot, index) => {
-        dot.classList.toggle('active', index === currentSlide);
-    });
+    document.querySelectorAll('.slide-dot').forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
 });
-
 document.getElementById('backToHymns').onclick = () => { document.getElementById('hymnReaderView').classList.add('hidden'); document.getElementById('hymnsListView').classList.remove('hidden'); };
 
 
-// --- BIBBIA: SCROLLING E FRECCE CAPITOLO ---
+// --- BIBBIA ---
 const bibleBooks = [
     {id: 1, name: "Genesi", ch: 50}, {id: 2, name: "Esodo", ch: 40}, {id: 3, name: "Levitico", ch: 27}, {id: 4, name: "Numeri", ch: 36}, {id: 5, name: "Deuteronomio", ch: 34},
     {id: 6, name: "Giosuè", ch: 24}, {id: 7, name: "Giudici", ch: 21}, {id: 8, name: "Rut", ch: 4}, {id: 9, name: "1 Samuele", ch: 31}, {id: 10, name: "2 Samuele", ch: 24},
@@ -547,7 +527,6 @@ bookSelect.dispatchEvent(new Event('change'));
 
 let currentBibleFontSize = 22;
 
-// Frecce per cambiare capitolo
 window.changeChapter = function(direction) {
     const current = parseInt(chapterSelect.value);
     const max = chapterSelect.options.length - 1;
@@ -572,7 +551,7 @@ async function fetchBibleData(version, bookId, chapter) {
             const data = await res.json();
             return JSON.parse(data.contents);
         }
-        throw new Error("Connessione fallita");
+        throw new Error("Connessione API fallita");
     }
 }
 
@@ -586,7 +565,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     
     if(!chapter) return alert("Seleziona almeno un capitolo.");
     
-    reader.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="ri-loader-4-line ri-spin" style="font-size: 32px; color: var(--accent-color);"></i><p style="margin-top:10px; color:var(--text-muted)">Connessione server in corso...</p></div>';
+    reader.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="ri-loader-4-line ri-spin" style="font-size: 32px; color: var(--accent-color);"></i><p style="margin-top:10px; color:var(--text-muted)">Connessione in corso...</p></div>';
     document.getElementById('bibleControlsArea').classList.add('hidden');
     document.getElementById('showBibleControlsArea').classList.remove('hidden');
     
@@ -663,7 +642,7 @@ document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontS
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
 
-// --- SERMONI E APPUNTI MAGICI IN CLOUD ---
+// --- SERMONI ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -698,7 +677,7 @@ function renderHighlights() {
     const ul = document.getElementById('highlightsUl');
     ul.innerHTML = '';
     if(highlightsDB.length === 0) {
-        ul.innerHTML = '<li style="padding: 15px; font-size:12px; color:var(--text-muted); text-align:center;">Nessun versetto evidenziato. Clicca sui versetti nella Bibbia per salvarli.</li>';
+        ul.innerHTML = '<li style="padding: 15px; font-size:12px; color:var(--text-muted); text-align:center;">Nessun versetto evidenziato.</li>';
         return;
     }
     
@@ -707,7 +686,6 @@ function renderHighlights() {
         li.className = 'highlight-item';
         li.innerHTML = `<strong style="color:#ff9500;">${h.bookName} ${h.chapter}:${h.verse}</strong><br>"${h.text}"`;
         
-        // Incolla Versetto nell'editor al clic!
         li.onclick = () => {
             const currentText = sBody.value;
             const textToInsert = `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
@@ -731,29 +709,38 @@ document.getElementById('saveSermonBtn').onclick = async () => {
     if(!sTitle.value && !sBody.value) return;
     const data = { id: activeSermonId || Date.now().toString(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
     
-    // Salva su Supabase Cloud
-    await supabaseClient.from('sermoni').upsert([data]);
-    
-    if(activeSermonId) {
-        const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
-        sermonsDB[idx] = data;
-    } else {
-        sermonsDB.unshift(data);
-        activeSermonId = data.id;
+    try {
+        const { error } = await supabaseClient.from('sermoni').upsert([data]);
+        if (error) throw error;
+        
+        if(activeSermonId) {
+            const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
+            sermonsDB[idx] = data;
+        } else {
+            sermonsDB.unshift(data);
+            activeSermonId = data.id;
+        }
+        renderSermons(); updateDashboard();
+        document.getElementById('deleteSermonBtn').style.display = 'block';
+        
+        const btn = document.getElementById('saveSermonBtn'); 
+        btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
+        setTimeout(() => btn.innerHTML = "<i class='ri-save-3-line'></i> Salva", 2000);
+    } catch (e) {
+        alert("Errore salvataggio sermone: " + e.message);
     }
-    renderSermons(); updateDashboard();
-    document.getElementById('deleteSermonBtn').style.display = 'block';
-    
-    const btn = document.getElementById('saveSermonBtn'); 
-    btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
-    setTimeout(() => btn.innerHTML = "<i class='ri-save-3-line'></i> Salva", 2000);
 };
 
 document.getElementById('deleteSermonBtn').onclick = async () => {
     if(confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        await supabaseClient.from('sermoni').delete().eq('id', activeSermonId);
-        sermonsDB = sermonsDB.filter(s => s.id !== activeSermonId);
-        newSermon(); renderSermons(); updateDashboard();
+        try {
+            const { error } = await supabaseClient.from('sermoni').delete().eq('id', activeSermonId);
+            if (error) throw error;
+            sermonsDB = sermonsDB.filter(s => s.id !== activeSermonId);
+            newSermon(); renderSermons(); updateDashboard();
+        } catch (e) {
+            alert("Errore di eliminazione: " + e.message);
+        }
     }
 };
 
