@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Open Worship</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="">
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-icon"><i class="ri-book-open-fill"></i></div>
+            <h1>Open Worship</h1>
+            <p>Accedi per gestire il tuo ministero</p>
+            
+            <button id="googleLoginBtn" class="btn-google">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+                Continua con Google
+            </button>
+            <p class="login-footer-text">Versione 2.0 - Open Worship Pro</p>
+        </div>
+    </div>
+
+    <div class="app-container hidden" id="mainApp">
+        <aside class="sidebar desktop-only">
+            <div class="sidebar-header">
+                <div class="app-icon"><i class="ri-book-open-fill"></i></div>
+                <h2>Open Worship</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-target="dashboard"><i class="ri-dashboard-line"></i> Dashboard</button>
+                <button class="nav-item" data-target="avvisi"><i class="ri-notification-3-line"></i> Avvisi</button>
+                <button class="nav-item" data-target="cantici"><i class="ri-music-2-line"></i> Cantici</button>
+                <button class="nav-item" data-target="bibbia"><i class="ri-book-read-line"></i> Bibbia</button>
+                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Sermoni</button>
+            </nav>
+            <div class="sidebar-footer">
+                <label class="admin-toggle">
+                    <input type="checkbox" id="adminToggle"> <i class="ri-settings-4-line"></i> Admin Mode
+                </label>
+                <button id="logoutBtn" class="btn-logout-desktop">
+                    <i class="ri-logout-box-r-line"></i> <span>Esci</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <section id="dashboard" class="content-section active">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title" id="greetingMessage">Benvenuto</h1>
+                        <p class="text-muted" id="currentDateDisplay" style="margin-top: 5px;"></p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-grid">
+                    <div class="dash-card verse-card" style="grid-column: 1 / -1;">
+                        <div class="verse-header">
+                            <i class="ri-star-smile-fill" style="color: #ff9500; font-size: 18px;"></i>
+                            <h3 style="margin-bottom: 0; color: #ff9500;">Versetto del Giorno</h3>
+                        </div>
+                        <p id="dailyVerseText" class="verse-text">"Caricamento..."</p>
+                        <p id="dailyVerseRef" class="verse-ref">-</p>
+                    </div>
+
+                    <div class="dash-card widget-primary">
+                        <div class="dash-card-icon"><i class="ri-notification-3-line"></i></div>
+                        <h3>Ultimo Avviso</h3>
+                        <div class="dash-stat" id="dashNextEvent" style="font-size: 24px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nessuno</div>
+                        <p class="dash-sub" id="dashNextEventDate">Nessuna comunicazione recente</p>
+                    </div>
+
+                    <div class="dash-card">
+                        <div class="dash-card-icon" style="color: #ff9500; background: rgba(255,149,0,0.1);"><i class="ri-music-2-fill"></i></div>
+                        <h3>Archivio Cantici</h3>
+                        <div class="dash-stat" id="dashHymnsCount">0</div>
+                        <p class="dash-sub">Cantici salvati</p>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-card-icon" style="color: #34c759; background: rgba(52,199,89,0.1);"><i class="ri-file-text-fill"></i></div>
+                        <h3>Sermoni Creati</h3>
+                        <div class="dash-stat" id="dashSermonsCount">0</div>
+                        <p class="dash-sub">Appunti salvati</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="avvisi" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Avvisi alla Chiesa</h1>
+                    <div class="admin-only-controls">
+                        <button class="btn-primary" onclick="openAvvisoModal()">
+                            <i class="ri-add-line"></i> Nuovo Avviso
+                        </button>
+                    </div>
+                </div>
+                <div class="avvisi-wrapper" id="avvisiList"></div>
+            </section>
+
+            <section id="cantici" class="content-section">
+                <div id="hymnsListView" class="view-container">
+                    <div class="section-header">
+                        <h1 class="section-title">Cantici</h1>
+                        <div class="admin-only-controls">
+                            <input type="file" id="xmlUpload" accept=".xml,.txt" multiple style="display: none;">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button class="btn-icon-bg" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
+                                    <i class="ri-upload-cloud-2-line"></i>
+                                </button>
+                                <button class="btn-icon-bg" id="deleteAllHymnsBtn" style="color: var(--danger-color); background: rgba(255, 59, 48, 0.1);" title="Cancella Tutti i Cantici">
+                                    <i class="ri-delete-bin-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-bar">
+                        <i class="ri-search-line"></i>
+                        <input type="text" id="hymnSearch" placeholder="Cerca cantico...">
+                    </div>
+                    <div class="list-container" id="hymnsList"></div>
+                </div>
+
+                <div id="hymnReaderView" class="hidden reader-view">
+                    <div class="reader-header sticky-header">
+                        <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
+                        <h3 id="currentHymnTitle" class="reader-top-title">Titolo</h3>
+                        
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
+                                <i class="ri-grid-fill" style="font-size: 18px;"></i>
+                            </button>
+                            
+                            <div class="apple-font-controls">
+                                <button id="decreaseHymnFont" class="font-btn small-a">A</button>
+                                <div class="font-divider"></div>
+                                <button id="increaseHymnFont" class="font-btn large-a">A</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="slides-wrapper" id="slidesWrapperView">
+                        <button id="prevSlideBtn" class="slide-nav-btn"><i class="ri-arrow-left-s-line"></i></button>
+                        <div class="slides-container" id="hymnSlidesContainer"></div>
+                        <button id="nextSlideBtn" class="slide-nav-btn"><i class="ri-arrow-right-s-line"></i></button>
+                    </div>
+                    <div class="slide-dots-container" id="slideDots"></div>
+
+                    <div class="hymn-grid-container hidden" id="hymnGridContainer"></div>
+                </div>
+            </section>
+
+            <section id="bibbia" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Bibbia</h1>
+                    <div class="apple-font-controls">
+                        <button id="decreaseBibleFont" class="font-btn small-a">A</button>
+                        <div class="font-divider"></div>
+                        <button id="increaseBibleFont" class="font-btn large-a">A</button>
+                    </div>
+                </div>
+                <div class="bible-card">
+                    <div id="showBibleControlsArea" class="hidden" style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border-color); background: #fafafa;">
+                        <button class="btn-text" id="showBibleControlsBtn" style="margin: 0 auto;">
+                            <i class="ri-search-line"></i> Modifica Ricerca
+                        </button>
+                    </div>
+                    <div class="bible-controls-grid" id="bibleControlsArea">
+                        <select id="bibleVersion" class="apple-select">
+                            <option value="NR06">Nuova Riveduta</option>
+                            <option value="Diodati">Diodati</option>
+                            <option value="Luzzi">Luzzi</option>
+                        </select>
+                        <select id="bibleBook" class="apple-select"></select>
+                        <select id="bibleChapter" class="apple-select"></select>
+                        <select id="bibleVerse" class="apple-select"></select>
+                        <button class="btn-primary" id="fetchBibleBtn"><i class="ri-book-read-line"></i> Leggi</button>
+                    </div>
+                    <div class="bible-reader-content" id="bibleReaderContent">
+                        <div class="empty-state">
+                            <i class="ri-book-3-line"></i>
+                            <p>Seleziona Versione, Libro e Capitolo per leggere.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sermoni" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Sermoni</h1>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn-icon-small" id="deleteSermonBtn" style="display: none; color: var(--danger-color); border: none; background: rgba(255,59,48,0.1);">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                        <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-3-line"></i> Salva</button>
+                    </div>
+                </div>
+                <div class="sermons-layout">
+                    
+                    <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
+                        <div class="list-header">Appunti Recenti</div>
+                        <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
+                        
+                        <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500; display:flex; align-items:center; gap:6px;">
+                            <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
+                        </div>
+                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;">
+                            </ul>
+                    </div>
+
+                    <div class="editor-container">
+                        <div class="editor-header">
+                            <input type="text" id="sermonTitle" class="sermon-input-title" placeholder="Titolo del sermone...">
+                            
+                            <div class="speaker-row" style="margin-bottom: 10px;">
+                                <i class="ri-price-tag-3-line text-muted"></i>
+                                <select id="sermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: none; background: transparent;">
+                                    <option value="Sermone">Sermone</option>
+                                    <option value="Studio Biblico">Studio Biblico</option>
+                                    <option value="Riunione Giovani">Riunione Giovani</option>
+                                    <option value="Nota">Nota Libera</option>
+                                </select>
+                            </div>
+
+                            <div class="speaker-row">
+                                <i class="ri-user-voice-line text-muted"></i>
+                                <input type="text" id="sermonSpeaker" class="sermon-input-speaker" placeholder="Relatore...">
+                            </div>
+                            <div class="speaker-row" style="margin-top: 10px;">
+                                <i class="ri-book-mark-line text-muted"></i>
+                                <input type="text" id="sermonRefs" class="sermon-input-speaker" placeholder="Riferimenti biblici (es. Giovanni 3:16)...">
+                            </div>
+                        </div>
+                        <textarea id="sermonBody" class="sermon-input-body" placeholder="Scrivi qui i tuoi appunti... (Clicca su un versetto evidenziato per incollarlo qui!)"></textarea>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="mobile-nav">
+            <button class="nav-item active" data-target="dashboard">
+                <div class="nav-icon-wrapper"><i class="ri-dashboard-line"></i></div><span>Home</span>
+            </button>
+            <button class="nav-item" data-target="avvisi">
+                <div class="nav-icon-wrapper"><i class="ri-notification-3-line"></i></div><span>Avvisi</span>
+            </button>
+            <button class="nav-item" data-target="cantici">
+                <div class="nav-icon-wrapper"><i class="ri-music-2-line"></i></div><span>Cantici</span>
+            </button>
+            <button class="nav-item" data-target="bibbia">
+                <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
+            </button>
+            <button class="nav-item" data-target="sermoni">
+                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Sermoni</span>
+            </button>
+            <button class="nav-item text-danger" id="mobileLogoutBtn">
+                <div class="nav-icon-wrapper"><i class="ri-logout-box-r-line"></i></div><span>Esci</span>
+            </button>
+        </nav>
+    </div>
+    
+    <div id="avvisoModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="avvisoModalTitle">Nuovo Avviso</h2>
+            <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">DATA AVVISO</label>
+            <input type="date" id="avvisoDate" class="apple-select" style="width:100%; margin-bottom: 15px;">
+            
+            <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">TITOLO</label>
+            <input type="text" id="avvisoTitle" class="apple-select" placeholder="Titolo dell'avviso..." style="width:100%; margin-bottom: 15px;">
+            
+            <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">DESCRIZIONE</label>
+            <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
+
+            <div style="display:flex; justify-content:space-between; align-items: center;">
+                <button class="btn-icon-small" id="deleteAvvisoBtn" style="color:var(--danger-color); display:none; border:none;"><i class="ri-delete-bin-line"></i></button>
+                <div style="display:flex; gap:10px; margin-left: auto;">
+                    <button class="btn-secondary" onclick="closeAvvisoModal()">Annulla</button>
+                    <button class="btn-primary" id="saveAvvisoBtn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Modifica Cantico</h2>
+            <input type="text" id="editHymnTitle" class="apple-select" style="width:100%; margin: 15px 0;">
+            <textarea id="editHymnBody" class="apple-select" style="width:100%; height: 250px; resize:none;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button class="btn-secondary" onclick="closeEditModal()">Annulla</button>
+                <button class="btn-primary" id="saveEditHymnBtn">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
