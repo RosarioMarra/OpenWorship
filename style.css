@@ -284,3 +284,25 @@ body.is-admin #addHymnBtn,
 body.is-admin #addNoticeBtn {
     display: flex !important; /* o block, a seconda dell'elemento */
 }
+
+/* --- BLOCCO ACCESSO GESTIONE --- */
+
+/* Nascondi icone di editing, eliminazione e tasti aggiunta per utenti comuni */
+.admin-only-controls, 
+.admin-list-controls, 
+.btn-delete, 
+.btn-edit,
+#addHymnBtn,
+#addNoticeBtn { 
+    display: none !important; 
+}
+
+/* Mostra i controlli SOLO se il body ha la classe specifica 'is-admin' */
+body.is-admin .admin-only-controls,
+body.is-admin .admin-list-controls,
+body.is-admin .btn-delete,
+body.is-admin .btn-edit,
+body.is-admin #addHymnBtn,
+body.is-admin #addNoticeBtn {
+    display: flex !important; 
+}
