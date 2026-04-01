@@ -6,7 +6,7 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; overflow-y: auto; overscroll-behavior-y: none; }
+body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; overflow: hidden; overscroll-behavior-y: none; }
 .app-container { display: flex; height: 100%; width: 100%; animation: fadeIn 0.4s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .hidden { display: none !important; }
