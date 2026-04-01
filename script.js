@@ -4,7 +4,6 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- LISTA EMAIL AMMINISTRATORI ---
-// Solo queste email vedranno i tasti di modifica/caricamento/eliminazione
 const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
@@ -12,7 +11,7 @@ let hymnsDB = [];
 let sermonsDB = []; 
 let avvisiDB = [];
 let highlightsDB = [];
-let isAdmin = false; // Stato globale admin
+let isAdmin = false; // Stato per gestire i permessi
 
 try { 
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
@@ -56,10 +55,22 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
+// --- FUNZIONE PER ORDINAMENTO NUMERICO ---
+function sortByNumber(a, b) {
+    const numA = parseInt(a.title.match(/\d+/));
+    const numB = parseInt(b.title.match(/\d+/));
+    
+    if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+    }
+    // Se non ci sono numeri, usa l'ordine alfabetico
+    return a.title.localeCompare(b.title);
+}
+
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     
-    // Controllo permessi
+    // Controllo se l'utente è Admin
     isAdmin = adminEmails.includes(user.email);
     
     loginScreen.style.opacity = '0';
@@ -67,7 +78,7 @@ async function showApp() {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
         
-        // Attiva i controlli admin se l'email è autorizzata
+        // Se è admin, aggiunge la classe al body per sbloccare i tasti via CSS
         if (isAdmin) {
             document.body.classList.add('admin-mode-active');
         }
@@ -185,7 +196,6 @@ function renderAvvisi() {
 }
 
 function openAvvisoModal(id = null) {
-    if(!isAdmin) return; // Blocco sicurezza JS
     if(id) {
         editingAvvisoId = id;
         const avv = avvisiDB.find(a => a.id === id);
@@ -206,7 +216,6 @@ function openAvvisoModal(id = null) {
 function closeAvvisoModal() { document.getElementById('avvisoModal').classList.add('hidden'); }
 
 document.getElementById('saveAvvisoBtn').onclick = async () => {
-    if(!isAdmin) return;
     const title = document.getElementById('avvisoTitle').value.trim();
     const date = document.getElementById('avvisoDate').value;
     const desc = document.getElementById('avvisoDesc').value.trim();
@@ -231,7 +240,6 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
 };
 
 async function deleteAvviso(id) {
-    if(!isAdmin) return;
     if(confirm("Sicuro di voler eliminare questo avviso?")) {
         try {
             const { error } = await supabaseClient.from('avvisi').delete().eq('id', id);
@@ -247,7 +255,6 @@ async function deleteAvviso(id) {
 
 // --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
-    if(!isAdmin) return;
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
     if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
         try {
@@ -263,7 +270,6 @@ document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () 
 });
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
-    if(!isAdmin) return;
     const files = Array.from(event.target.files);
     document.getElementById('hymnSearch').placeholder = "Caricamento in Cloud in corso...";
     
@@ -333,7 +339,8 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
 
 function renderHymns(hymnsArray = hymnsDB) {
     const list = document.getElementById('hymnsList'); list.innerHTML = '';
-    const sorted = [...hymnsArray].sort((a, b) => a.title.localeCompare(b.title));
+    // IMPLEMENTAZIONE RICHIESTA: Ordinamento Numerico (1, 2, 3...)
+    const sorted = [...hymnsArray].sort(sortByNumber);
     
     sorted.forEach((hymn) => {
         const card = document.createElement('div'); card.className = 'hymn-card';
@@ -358,7 +365,6 @@ document.getElementById('hymnSearch').addEventListener('input', (e) => {
 
 let editHymnId = null;
 async function deleteHymn(id) { 
-    if(!isAdmin) return;
     if(confirm("Eliminare cantico?")) { 
         try {
             const { error } = await supabaseClient.from('cantici').delete().eq('id', id);
@@ -370,20 +376,9 @@ async function deleteHymn(id) {
         }
     } 
 }
-
-function openEditModal(id) { 
-    if(!isAdmin) return;
-    editHymnId = id; 
-    const hymn = hymnsDB.find(h => h.id === id); 
-    document.getElementById('editHymnTitle').value = hymn.title; 
-    document.getElementById('editHymnBody').value = hymn.content; 
-    document.getElementById('editModal').classList.remove('hidden'); 
-}
-
+function openEditModal(id) { editHymnId = id; const hymn = hymnsDB.find(h => h.id === id); document.getElementById('editHymnTitle').value = hymn.title; document.getElementById('editHymnBody').value = hymn.content; document.getElementById('editModal').classList.remove('hidden'); }
 function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
-
 document.getElementById('saveEditHymnBtn').onclick = async () => { 
-    if(!isAdmin) return;
     try {
         const i = hymnsDB.findIndex(h => h.id === editHymnId); 
         const updatedTitle = document.getElementById('editHymnTitle').value; 
@@ -790,5 +785,16 @@ document.getElementById('deleteSermonBtn').onclick = async () => {
         }
     }
 };
+
+function renderBible(verses) {
+    const container = document.getElementById('bibleContent');
+    container.innerHTML = verses.map(v => `
+        <div class="bible-verse" data-id="${v.id}">
+            <span class="verse-num">${v.number}</span> 
+            <span class="verse-text">${v.text}</span>
+        </div>
+    `).join('');
+}
+
 
 renderSermons();

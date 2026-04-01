@@ -205,3 +205,60 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
     .reader-top-title { max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
     .hymn-grid-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
+
+/* --- AGGIUNTE PER FUNZIONALITÀ DINAMICHE --- */
+
+/* Colori Evidenziatore Bibbia */
+.bg-yellow { background-color: #fff2ac; border-radius: 4px; padding: 2px 0; }
+.bg-green  { background-color: #c7f0d0; border-radius: 4px; padding: 2px 0; }
+.bg-blue   { background-color: #d1e9ff; border-radius: 4px; padding: 2px 0; }
+.bg-pink   { background-color: #ffd1dc; border-radius: 4px; padding: 2px 0; }
+
+/* Menu contestuale per evidenziare (Action Sheet stile iOS) */
+.highlight-menu {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 20px;
+    border-radius: 24px;
+    display: flex;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10001;
+}
+
+.highlight-menu.active {
+    transform: translateX(-50%) translateY(0);
+}
+
+.color-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Fix per lo scorrimento delle slide dei cantici */
+.slides-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none; /* Firefox */
+}
+
+.slides-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+/* Animazione per il caricamento dei versetti */
+.bible-verse {
+    animation: fadeIn 0.3s ease forwards;
+}
