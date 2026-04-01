@@ -116,15 +116,16 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
 .slides-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .slides-container::-webkit-scrollbar { display: none; }
 
-/* TASTI NAVIGAZIONE IN BASSO */
-.hymn-bottom-controls { display: flex; justify-content: center; align-items: center; gap: 15px; padding: 15px; background: #fafafa; border-top: 1px solid var(--border-color); z-index: 10; }
-.slide-nav-btn { background: white; border: 1px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-color); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: 0.2s; flex-shrink: 0;}
-.slide-nav-btn:active { transform: scale(0.9); }
-
 .hymn-slide { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: center; display: flex; align-items: center; justify-content: center; padding: 0; overflow-x: hidden; overflow-y: auto; }
 .slide-content { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: auto; font-weight: 600; padding: 0 20px; }
 .hymn-line { white-space: nowrap; line-height: 1.3; min-height: 1.2em; display: block; }
 .slide-chorus { color: var(--accent-color); font-style: italic; }
+
+/* TASTI NAVIGAZIONE CANTICI (Ora più vicini e allineati) */
+.hymn-bottom-controls { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 15px; background: #fafafa; border-top: 1px solid var(--border-color); z-index: 10; }
+.hymn-nav-buttons { display: flex; gap: 15px; } /* I due bottoni vicinissimi al centro */
+.slide-nav-btn { background: white; border: 1px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-color); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: 0.2s; flex-shrink: 0;}
+.slide-nav-btn:active { transform: scale(0.9); }
 
 .slide-dots-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;}
 .slide-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d1d6; transition: 0.3s ease; }
@@ -144,6 +145,9 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
 .bible-verse { display: block; margin-bottom: 16px; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; border: 1px solid transparent; }
 .bible-verse:hover { background: rgba(0,0,0,0.02); }
 .bible-verse.highlighted { background: #fffaf0; border-color: #ffe6cc; border-left: 4px solid #ff9500; }
+
+/* BARRA FISSA IN BASSO PER LA BIBBIA */
+.bible-bottom-controls { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 15px; background: #fafafa; border-top: 1px solid var(--border-color); z-index: 10; }
 
 /* --- SERMONI E HIGHLIGHTS --- */
 .sermons-layout { display: flex; gap: 24px; flex: 1; height: 100%; overflow: hidden; padding-bottom: 20px;}

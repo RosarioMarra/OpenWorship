@@ -572,7 +572,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         const data = await fetchBibleData(version, bookId, chapter);
         
         let html = `
-            <div style="text-align: center; margin-bottom: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
                 <h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${bookName} ${chapter}</h2>
             </div>
             <div style="margin-bottom: 20px;">
@@ -588,16 +588,13 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
                      </span>`;
         });
         
-        html += `</div>
-            <div class="hymn-bottom-controls" style="border-radius: 12px; background: #fafafa; margin-top: 10px;">
-                <button class="slide-nav-btn" onclick="changeChapter(-1)"><i class="ri-arrow-left-s-line"></i></button>
-                <span style="font-weight: 700; color: var(--text-muted); font-size: 16px; padding: 0 10px;">Capitolo ${chapter}</span>
-                <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
-            </div>
-        `;
-        
+        html += `</div>`;
         reader.innerHTML = html;
         updateBibleFontSize();
+
+        // AGGIORNA LA BARRA FISSA IN BASSO DELLA BIBBIA
+        document.getElementById('bibleCurrentChapterDisplay').textContent = `${bookName} ${chapter}`;
+        document.getElementById('bibleBottomControls').classList.remove('hidden');
         
         document.querySelectorAll('.bible-verse').forEach(el => {
             el.addEventListener('click', function() {
