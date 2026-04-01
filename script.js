@@ -796,5 +796,16 @@ function renderBible(verses) {
     `).join('');
 }
 
+// Esempio di logica da inserire dopo il login
+function handleUserRole(user) {
+    const body = document.body;
+    
+    // Sostituisci con la tua condizione reale (es. user.email === 'admin@test.com')
+    if (user && user.isAdmin) {
+        body.classList.add('is-admin');
+    } else {
+        body.classList.remove('is-admin');
+    }
+}
 
 renderSermons();

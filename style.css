@@ -262,3 +262,25 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
 .bible-verse {
     animation: fadeIn 0.3s ease forwards;
 }
+
+/* --- PROTEZIONE CONTROLLI ADMIN --- */
+
+/* Nascondi di default tutti i controlli di gestione */
+.admin-only-controls, 
+.admin-list-controls, 
+.btn-delete, 
+.btn-edit,
+#addHymnBtn,
+#addNoticeBtn { 
+    display: none !important; 
+}
+
+/* Mostrali SOLO se il body ha la classe 'is-admin' */
+body.is-admin .admin-only-controls,
+body.is-admin .admin-list-controls,
+body.is-admin .btn-delete,
+body.is-admin .btn-edit,
+body.is-admin #addHymnBtn,
+body.is-admin #addNoticeBtn {
+    display: flex !important; /* o block, a seconda dell'elemento */
+}
