@@ -1,8 +1,6 @@
 // --- CONNESSIONE SUPABASE CLOUD ---
 const supabaseUrl = 'https://tgwiazgovhecxquvzzhn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnd2lhemdvdmhlY3hxdXZ6emhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTA2NjcsImV4cCI6MjA5MDU2NjY2N30.srb3N0_csi4qBFBFyVeUMWueIWWidwV7vVcOLg0LJs8';
-
-// ABBIAMO CAMBIATO IL NOME QUI IN "supabaseClient" PER NON ANDARE IN CONFLITTO!
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
@@ -15,7 +13,7 @@ let highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || [];
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 
-// Controlla se l'utente è già loggato
+// Controlla se l'utente è già loggato all'apertura dell'app
 async function checkUser() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -26,12 +24,15 @@ async function checkUser() {
 }
 checkUser();
 
-// Tasto Login Google con Debug
+// Tasto Login Google (FORZATO SULLA CARTELLA CORRETTA DI GITHUB)
 document.getElementById('googleLoginBtn').addEventListener('click', async () => {
     console.log("Bottone cliccato! Tento il login con Supabase...");
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
+            options: {
+                redirectTo: 'https://rosariomarra.github.io/OpenWorship/'
+            }
         });
         if (error) {
             console.error("Errore da Supabase:", error);
@@ -60,7 +61,7 @@ function showApp() {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
         
-        // Scarica i dati dal Cloud
+        // Scarica tutti i dati dal Cloud
         await loadCloudData();
         
         updateDashboard();
@@ -223,11 +224,10 @@ async function deleteAvviso(id) {
 }
 
 
-// --- CANTICI: XML PARSER E CLOUD SYNC ---
+// --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
     if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?\nQuesta azione è irreversibile.")) {
-        // Rimuove tutti i cantici dal database Cloud
         for (let hymn of hymnsDB) {
             await supabaseClient.from('cantici').delete().eq('id', hymn.id);
         }
@@ -246,6 +246,7 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
         let content = text;
         
         if(file.name.endsWith('.xml')) {
+            // Rimuove brutalmente gli xmlns che accecano il parser
             let safeText = text.replace(/xmlns(:\w+)?="[^"]*"/g, '');
             safeText = safeText.replace(/<br\s*\/?>/gi, '\n');
             const xmlDoc = new DOMParser().parseFromString(safeText, "text/xml");
@@ -267,13 +268,14 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                     if(linesNodes.length > 0) {
                         linesNodes.forEach(line => { blockText += line.innerHTML.replace(/<[^>]+>/g, '').trim() + "\n"; });
                     } else {
-                        blockText = v.innerHTML.replace(/<[^>]+>/g, '').trim();
+                        blockText = v.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
                     }
                     
                     blockText = blockText.trim();
                     let normalizedCurrent = blockText.replace(/\s+/g, ' ');
                     let normalizedLast = lastBlockText.replace(/\s+/g, ' ');
 
+                    // Antiduplicato: salta se identico alla strofa precedente
                     if(blockText.length > 0 && normalizedCurrent !== normalizedLast) {
                         lastBlockText = blockText; 
                         if(isChorus) blockText = "Coro:\n" + blockText;
@@ -344,7 +346,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
 };
 
 
-// --- LETTORE SLIDE CANTICI (AUTO-FIT MATEMATICO) ---
+// --- LETTORE SLIDE CANTICI (AUTO-FIT MATEMATICO 4.0) ---
 let currentHymnFontSize = 40; 
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
@@ -506,7 +508,7 @@ slidesContainer.addEventListener('scroll', () => {
 document.getElementById('backToHymns').onclick = () => { document.getElementById('hymnReaderView').classList.add('hidden'); document.getElementById('hymnsListView').classList.remove('hidden'); };
 
 
-// --- BIBBIA E EVIDENZIATURA ---
+// --- BIBBIA: SCROLLING E FRECCE CAPITOLO ---
 const bibleBooks = [
     {id: 1, name: "Genesi", ch: 50}, {id: 2, name: "Esodo", ch: 40}, {id: 3, name: "Levitico", ch: 27}, {id: 4, name: "Numeri", ch: 36}, {id: 5, name: "Deuteronomio", ch: 34},
     {id: 6, name: "Giosuè", ch: 24}, {id: 7, name: "Giudici", ch: 21}, {id: 8, name: "Rut", ch: 4}, {id: 9, name: "1 Samuele", ch: 31}, {id: 10, name: "2 Samuele", ch: 24},
@@ -545,6 +547,7 @@ bookSelect.dispatchEvent(new Event('change'));
 
 let currentBibleFontSize = 22;
 
+// Frecce per cambiare capitolo
 window.changeChapter = function(direction) {
     const current = parseInt(chapterSelect.value);
     const max = chapterSelect.options.length - 1;
@@ -660,7 +663,7 @@ document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontS
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
 
-// --- SERMONI ---
+// --- SERMONI E APPUNTI MAGICI IN CLOUD ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -695,7 +698,7 @@ function renderHighlights() {
     const ul = document.getElementById('highlightsUl');
     ul.innerHTML = '';
     if(highlightsDB.length === 0) {
-        ul.innerHTML = '<li style="padding: 15px; font-size:12px; color:var(--text-muted); text-align:center;">Nessun versetto evidenziato.</li>';
+        ul.innerHTML = '<li style="padding: 15px; font-size:12px; color:var(--text-muted); text-align:center;">Nessun versetto evidenziato. Clicca sui versetti nella Bibbia per salvarli.</li>';
         return;
     }
     
@@ -704,6 +707,7 @@ function renderHighlights() {
         li.className = 'highlight-item';
         li.innerHTML = `<strong style="color:#ff9500;">${h.bookName} ${h.chapter}:${h.verse}</strong><br>"${h.text}"`;
         
+        // Incolla Versetto nell'editor al clic!
         li.onclick = () => {
             const currentText = sBody.value;
             const textToInsert = `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
