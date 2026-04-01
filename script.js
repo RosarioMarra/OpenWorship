@@ -80,7 +80,7 @@ async function showApp() {
         
         // Se è admin, aggiunge la classe al body per sbloccare i tasti via CSS
         if (isAdmin) {
-            document.body.classList.add('admin-mode-active');
+            document.body.classList.add('is-admin');
         }
 
         // Imposta Foto Profilo e Nome dall'account Google
