@@ -166,8 +166,7 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
 .grid-card-preview { font-size: 14px; font-weight: 500; color: var(--text-main); white-space: pre-wrap; line-height: 1.4; }
 
 /* --- BIBBIA & EVIDENZIATORE --- */
-.bible-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; flex: 1; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03);}
-.bible-controls-grid { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr auto; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); background: #fafafa; transition: 0.3s ease; overflow: hidden;}
+.bible-controls-grid { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr auto; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); background: #fafafa; transition: 0.3s ease; overflow: hidden; min-height: 0;}
 .bible-reader-content { padding: 30px; overflow-y: auto; font-size: 20px; line-height: 1.6; flex: 1; transition: font-size 0.2s;}
 .bible-verse { display: block; margin-bottom: 16px; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; border: 1px solid transparent; }
 .bible-verse:hover { background: rgba(0,0,0,0.02); }
