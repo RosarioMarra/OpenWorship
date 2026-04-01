@@ -184,7 +184,8 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
     const desc = document.getElementById('avvisoDesc').value.trim();
     if(!title || !date) return;
     
-    const newAvviso = { id: editingAvvisoId || Date.now().toString(), date, title, desc };
+    // FIX UUID: Generiamo un UUID valido e ufficiale!
+    const newAvviso = { id: editingAvvisoId || crypto.randomUUID(), date, title, desc };
     
     try {
         const { error } = await supabaseClient.from('avvisi').upsert([newAvviso]);
@@ -282,9 +283,9 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                 }
             }
             
-            const newHymn = { id: Date.now().toString() + Math.random().toString().slice(2,8), title: title, content: content };
+            // FIX UUID: Generiamo un ID in formato UUID per Supabase!
+            const newHymn = { id: crypto.randomUUID(), title: title, content: content };
             
-            // Salvataggio con controllo errore
             const { error } = await supabaseClient.from('cantici').insert([newHymn]);
             if (error) {
                 alert(`Supabase ha bloccato il cantico '${title}'. Errore: ` + error.message);
@@ -707,7 +708,9 @@ function newSermon() {
 
 document.getElementById('saveSermonBtn').onclick = async () => {
     if(!sTitle.value && !sBody.value) return;
-    const data = { id: activeSermonId || Date.now().toString(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
+    
+    // FIX UUID: Generiamo l'ID in formato UUID anche qui!
+    const data = { id: activeSermonId || crypto.randomUUID(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
     
     try {
         const { error } = await supabaseClient.from('sermoni').upsert([data]);
