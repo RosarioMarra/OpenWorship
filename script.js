@@ -808,4 +808,27 @@ function handleUserRole(user) {
     }
 }
 
+// Funzione da chiamare subito dopo il login dell'utente
+function checkAdminPrivileges(userEmail) {
+    const adminEmail = "marraros11@gmail.com";
+    const bodyElement = document.body;
+
+    if (userEmail === adminEmail) {
+        // Se l'email corrisponde, aggiunge la classe che attiva i CSS admin
+        bodyElement.classList.add('is-admin');
+        console.log("Accesso amministratore confermato.");
+    } else {
+        // Altrimenti si assicura che la classe non sia presente
+        bodyElement.classList.remove('is-admin');
+        console.log("Accesso come utente standard.");
+    }
+}
+
+// Esempio di integrazione con Firebase o altro sistema:
+// auth.onAuthStateChanged(user => {
+//    if (user) {
+//        checkAdminPrivileges(user.email);
+//    }
+// });
+
 renderSermons();
