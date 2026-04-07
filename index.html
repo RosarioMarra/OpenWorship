@@ -72,19 +72,20 @@
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">Ciao, <span id="userFirstName">Utente</span></h1>
+                        <h1 class="section-title" id="greetingMessage">Benvenuto</h1>
                         <p class="text-muted" id="currentDateDisplay" style="margin-top: 5px;"></p>
                     </div>
                 </div>
                 
                 <div class="dashboard-grid">
-                    <div class="dash-card verse-card">
-                    <img id="dailyVerseImg" src="" class="verse-img-bg">
-                    <div class="verse-content">
+                    <div class="dash-card verse-card" style="grid-column: 1 / -1;">
+                        <div class="verse-header">
+                            <i class="ri-star-smile-fill" style="color: #ff9500; font-size: 18px;"></i>
+                            <h3 style="margin-bottom: 0; color: #ff9500;">Versetto del Giorno</h3>
+                        </div>
                         <p id="dailyVerseText" class="verse-text">"Caricamento..."</p>
                         <p id="dailyVerseRef" class="verse-ref">-</p>
                     </div>
-                </div>
 
                     <div class="dash-card widget-primary">
                         <div class="dash-card-icon"><i class="ri-notification-3-line"></i></div>
@@ -175,12 +176,6 @@
 
                     <div class="hymn-grid-container hidden" id="hymnGridContainer"></div>
                 </div>
-                    <div class="sticky-search-wrapper">
-                    <div class="tabs-container" style="display:flex; margin-bottom:10px; background:#e5e5ea; border-radius:10px; padding:2px;">
-                        <button onclick="switchHymnTab('all')" id="tabAll" style="flex:1; border:none; padding:8px; border-radius:8px; font-weight:600;">Tutti</button>
-                        <button onclick="switchHymnTab('fav')" id="tabFav" style="flex:1; border:none; padding:8px; border-radius:8px; font-weight:600;">Preferiti</button>
-                    </div>
-            </div>
             </section>
 
             <section id="bibbia" class="content-section">
@@ -273,9 +268,6 @@
                             </div>
                         </div>
                         <textarea id="sermonBody" class="sermon-input-body" placeholder="Scrivi qui i tuoi appunti... (Clicca su un versetto evidenziato per incollarlo qui!)"></textarea>
-                        <div style="display:flex; justify-content:center; margin-bottom:20px;">
-                        <button class="btn-primary" onclick="startNewSermon()" style="border-radius:25px; padding:12px 30px;">Nuovo Appunto</button>
-                            </div>
                     </div>
                 </div>
             </section>

@@ -824,7 +824,6 @@ function checkAdminPrivileges(userEmail) {
     }
 }
 
-
 // Esempio di integrazione con Firebase o altro sistema:
 // auth.onAuthStateChanged(user => {
 //    if (user) {
