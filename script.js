@@ -824,6 +824,54 @@ function checkAdminPrivileges(userEmail) {
     }
 }
 
+// --- LOGICHE AGGIUNTIVE ---
+
+// 1. Saluto personalizzato e Immagine Versetto
+async function applyUserAndVerse() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user && user.user_metadata) {
+        const full_name = user.user_metadata.full_name || "Utente";
+        document.getElementById('userFirstName').textContent = full_name.split(' ')[0];
+    }
+    
+    // Immagine dinamica basata sul giorno dell'anno
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    const imgUrl = `https://picsum.photos/id/${(dayOfYear % 50) + 10}/800/600`;
+    document.getElementById('dailyVerseImg').src = imgUrl;
+}
+
+// 2. Gestione Preferiti (Salvati localmente)
+let favList = JSON.parse(localStorage.getItem('openWorshipFavs')) || [];
+
+function toggleFavorite(id, event) {
+    event.stopPropagation();
+    const index = favList.indexOf(id);
+    if (index > -1) favList.splice(index, 1);
+    else favList.push(id);
+    
+    localStorage.setItem('openWorshipFavs', JSON.stringify(favList));
+    renderHymns(); // Richiama la tua funzione originale per aggiornare la lista
+}
+
+function switchHymnTab(type) {
+    // Qui puoi filtrare la tua hymnsDB basandoti su favList
+    const filtered = type === 'fav' ? hymnsDB.filter(h => favList.includes(h.id)) : hymnsDB;
+    renderHymns(filtered); 
+}
+
+// 3. Focus automatico Sermoni
+function startNewSermon() {
+    newSermon(); // Tua funzione originale
+    setTimeout(() => {
+        document.getElementById('sermonBody').focus();
+        // Scroll automatico all'area di testo su mobile
+        document.getElementById('sermonBody').scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+}
+
+// 4. Inizializzazione (da mettere dentro la tua funzione showApp)
+applyUserAndVerse();
+
 // Esempio di integrazione con Firebase o altro sistema:
 // auth.onAuthStateChanged(user => {
 //    if (user) {

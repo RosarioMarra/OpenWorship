@@ -289,3 +289,91 @@ body.is-admin #addHymnBtn,
 body.is-admin #addNoticeBtn {
     display: flex !important;
 }
+
+
+
+/* --- NUOVE IMPLEMENTAZIONI UI --- */
+
+/* Titoli sezioni ridotti */
+.section-title { font-size: 20px !important; font-weight: 800; letter-spacing: -0.5px; }
+
+/* Dashboard Home: Card 2x2 e Versetto grande */
+.dashboard-grid { 
+    display: grid !important; 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 10px !important; 
+}
+
+.verse-card {
+    grid-column: 1 / -1 !important;
+    height: 180px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 20px !important;
+}
+
+.verse-img-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    filter: brightness(0.6);
+}
+
+.verse-content { z-index: 1; position: relative; color: white; text-align: center; padding: 15px; }
+
+/* Cantici: Sezioni e Cuore Preferiti */
+.sticky-search-wrapper {
+    position: sticky;
+    top: 0;
+    background: var(--bg-app);
+    z-index: 100;
+    padding-bottom: 10px;
+}
+
+.btn-heart-fav {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 5px;
+}
+.btn-heart-fav.active { color: #ff2d55; }
+
+/* Scorrimento strofe "Focus" */
+.hymn-slide {
+    opacity: 0.4;
+    transform: scale(0.9);
+    transition: all 0.3s ease;
+    padding: 20px;
+}
+.hymn-slide.active-focus {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Navigazione Mobile: Nomi sempre visibili */
+.mobile-nav .nav-item span {
+    display: block !important;
+    font-size: 10px !important;
+    opacity: 1 !important;
+    margin-top: 2px;
+}
+
+/* Sermoni: Tasto elimina sulla card */
+.sermon-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 12px;
+}
