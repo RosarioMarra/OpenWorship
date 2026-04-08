@@ -824,66 +824,6 @@ function checkAdminPrivileges(userEmail) {
     }
 }
 
-// Gestione Preferiti Cantici
-let favoritesDB = JSON.parse(localStorage.getItem('favoritesDB')) || [];
-
-function toggleFavorite(id, event) {
-    event.stopPropagation();
-    const idx = favoritesDB.indexOf(id);
-    if (idx > -1) favoritesDB.splice(idx, 1);
-    else favoritesDB.push(id);
-    localStorage.setItem('favoritesDB', JSON.stringify(favoritesDB));
-    renderHymns(); // Ricarica la lista per aggiornare i cuori
-}
-
-// Saluto Dinamico con nome Google
-async function updateGreeting() {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (user) {
-        const name = user.user_metadata.full_name.split(' ')[0];
-        document.getElementById('greetingMessage').textContent = `Ciao, ${name}`;
-    }
-}
-
-// Logica scorrimento verticale cantici
-function initVerticalScroll() {
-    const container = document.getElementById('hymnSlidesContainer');
-    if(!container) return;
-    container.addEventListener('scroll', () => {
-        const slides = container.querySelectorAll('.hymn-slide');
-        const containerCenter = container.scrollTop + (container.clientHeight / 2);
-        
-        slides.forEach(slide => {
-            const slideCenter = slide.offsetTop + (slide.clientHeight / 2);
-            if (Math.abs(containerCenter - slideCenter) < 100) {
-                slide.classList.add('active-slide');
-            } else {
-                slide.classList.remove('active-slide');
-            }
-        });
-    });
-}
-
-// Integrazione nel caricamento
-const originalShowApp = showApp;
-showApp = async function() {
-    await originalShowApp();
-    updateGreeting();
-    initVerticalScroll();
-};
-
-// Funzione Nuovo Appunto migliorata
-function newSermon() {
-    activeSermonId = null;
-    document.getElementById('sermonTitle').value = "";
-    document.getElementById('sermonBody').value = "";
-    document.getElementById('deleteSermonBtn').style.display = 'none';
-    
-    // Sposta il focus e scrolla all'area di testo
-    document.getElementById('sermonBody').scrollIntoView({behavior: 'smooth'});
-    document.getElementById('sermonBody').focus();
-}
-
 // Esempio di integrazione con Firebase o altro sistema:
 // auth.onAuthStateChanged(user => {
 //    if (user) {
