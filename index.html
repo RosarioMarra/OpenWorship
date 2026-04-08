@@ -14,6 +14,7 @@
 </head>
 <body class="">
     <div id="loginScreen" class="login-container">
+        
         <div class="login-video-wrapper">
             <video autoplay muted loop playsinline id="loginVideo">
                 <source src="https://cdn.pixabay.com/video/2022/04/17/114251-699946890_large.mp4" type="video/mp4">
@@ -67,6 +68,7 @@
         </aside>
 
         <main class="main-content">
+            
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
                     <div>
@@ -76,37 +78,37 @@
                 </div>
                 
                 <div class="dashboard-grid">
-                    <div class="dash-card verse-card" id="verseOfDayCard" style="grid-column: 1 / -1;">
+                    <div class="dash-card verse-card" style="grid-column: 1 / -1;">
                         <div class="verse-header">
-                            <i class="ri-star-smile-fill" style="color: #ffd700; font-size: 22px;"></i>
-                            <h3 style="margin-bottom: 0; color: #ffd700;">Versetto del Giorno</h3>
+                            <i class="ri-star-smile-fill" style="color: #ff9500; font-size: 18px;"></i>
+                            <h3 style="margin-bottom: 0; color: #ff9500;">Versetto del Giorno</h3>
                         </div>
                         <p id="dailyVerseText" class="verse-text">"Caricamento..."</p>
                         <p id="dailyVerseRef" class="verse-ref">-</p>
                     </div>
 
-                    <div class="dash-card widget-primary" data-section="avvisi">
+                    <div class="dash-card clickable-card" data-section="avvisi">
                         <div class="dash-card-icon"><i class="ri-notification-3-line"></i></div>
                         <h3>Ultimo Avviso</h3>
                         <div class="dash-stat" id="dashNextEvent" style="font-size: 18px; font-weight: 700;">Nessuno</div>
                         <p class="dash-sub" id="dashNextEventDate">Nessuna comunicazione recente</p>
                     </div>
 
-                    <div class="dash-card" data-section="cantici">
+                    <div class="dash-card clickable-card" data-section="cantici">
                         <div class="dash-card-icon" style="color: #ff9500; background: rgba(255,149,0,0.1);"><i class="ri-music-2-fill"></i></div>
                         <h3>Archivio Cantici</h3>
                         <div class="dash-stat" id="dashHymnsCount">0</div>
                         <p class="dash-sub">Cantici salvati</p>
                     </div>
                     
-                    <div class="dash-card" data-section="bibbia">
+                    <div class="dash-card clickable-card" data-section="bibbia">
                         <div class="dash-card-icon" style="color: #34c759; background: rgba(52,199,89,0.1);"><i class="ri-book-read-line"></i></div>
                         <h3>Bibbia</h3>
-                        <div class="dash-stat" id="dashBibleStat">📖</div>
+                        <div class="dash-stat"><i class="ri-book-open-line"></i></div>
                         <p class="dash-sub">Leggi la Parola</p>
                     </div>
                     
-                    <div class="dash-card" data-section="sermoni">
+                    <div class="dash-card clickable-card" data-section="sermoni">
                         <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
                         <h3>Sermoni</h3>
                         <div class="dash-stat" id="dashSermonsCount">0</div>
@@ -148,8 +150,8 @@
                     </div>
                     
                     <div class="favorites-header">
-                        <button class="favorites-tab active" data-tab="all">📖 Tutti i Cantici</button>
-                        <button class="favorites-tab" data-tab="favorites">❤️ Preferiti</button>
+                        <button class="favorites-tab active" data-tab="all"><i class="ri-book-open-line"></i> Tutti i Cantici</button>
+                        <button class="favorites-tab" data-tab="favorites"><i class="ri-heart-line"></i> Preferiti</button>
                     </div>
                     
                     <div class="search-bar-fixed">
@@ -235,6 +237,7 @@
                         <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; min-width: 140px; text-align: center;">Capitolo</span>
                         <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
                     </div>
+
                 </div>
             </section>
 
@@ -249,15 +252,17 @@
                     </div>
                 </div>
                 <div class="sermons-layout">
+                    
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
-                        <button class="new-sermon-btn" id="newSermonBtnCentral">+ Nuovo Appunto</button>
+                        <button class="new-sermon-btn" id="newSermonBtnCentral"><i class="ri-add-line"></i> Nuovo Appunto</button>
                         <div class="list-header">Appunti Recenti</div>
                         <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
                         
                         <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500; display:flex; align-items:center; gap:6px;">
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
-                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;"></ul>
+                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;">
+                            </ul>
                     </div>
 
                     <div class="editor-container">

@@ -13,7 +13,6 @@ let avvisiDB = [];
 let highlightsDB = [];
 let favoritesDB = [];
 let isAdmin = false;
-let currentUserEmail = "";
 let currentTab = "all";
 let searchTerm = "";
 
@@ -25,7 +24,7 @@ try {
     favoritesDB = [];
 }
 
-// Funzione per salvare i preferiti
+// Funzioni preferiti
 function saveFavorites() {
     localStorage.setItem('favoritesDB', JSON.stringify(favoritesDB));
 }
@@ -43,130 +42,6 @@ function toggleFavorite(hymnId) {
 
 function isFavorite(hymnId) {
     return favoritesDB.includes(hymnId);
-}
-
-// --- FUNZIONE ESPORTAZIONE CANTICI ---
-function setupExportButton() {
-    const exportBtn = document.getElementById('exportHymnsBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            if (hymnsDB.length === 0) {
-                alert("Nessun cantico da esportare.");
-                return;
-            }
-            
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 350px; text-align: center;">
-                    <h3 style="margin-bottom: 20px;">Esporta Cantici</h3>
-                    <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli il formato di esportazione:</p>
-                    <div class="export-format-selector">
-                        <button class="export-format-btn active" data-format="openlp">OpenLP</button>
-                        <button class="export-format-btn" data-format="json">JSON</button>
-                        <button class="export-format-btn" data-format="txt">Testo</button>
-                    </div>
-                    <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
-                        <button class="btn-secondary" id="cancelExportBtn">Annulla</button>
-                        <button class="btn-primary" id="confirmExportBtn">Esporta</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            let selectedFormat = 'openlp';
-            
-            modal.querySelectorAll('.export-format-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    modal.querySelectorAll('.export-format-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectedFormat = btn.getAttribute('data-format');
-                });
-            });
-            
-            modal.querySelector('#cancelExportBtn').onclick = () => modal.remove();
-            modal.querySelector('#confirmExportBtn').onclick = () => {
-                exportHymns(selectedFormat);
-                modal.remove();
-            };
-        });
-    }
-}
-
-function exportHymns(format) {
-    if (format === 'openlp') {
-        let xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<songs version="1.0">
-`;
-        hymnsDB.forEach(hymn => {
-            let content = hymn.content;
-            const blocks = content.split(/\n\s*\n/);
-            let formattedContent = '';
-            blocks.forEach((block, idx) => {
-                const isChorus = /coro|chorus|rit|ritornello/i.test(block);
-                let cleanBlock = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-                if (isChorus) {
-                    formattedContent += `[chór]\n${cleanBlock}\n[/chór]\n\n`;
-                } else {
-                    formattedContent += `[v${idx + 1}]\n${cleanBlock}\n[/v${idx + 1}]\n\n`;
-                }
-            });
-            
-            xmlContent += `  <song>
-    <title>${escapeXml(hymn.title)}</title>
-    <lyrics>${escapeXml(formattedContent)}</lyrics>
-  </song>
-`;
-        });
-        xmlContent += `</songs>`;
-        downloadFile(xmlContent, 'cantici_openlp.xml', 'application/xml');
-    } else if (format === 'json') {
-        const exportData = hymnsDB.map(h => ({
-            title: h.title,
-            content: h.content,
-            exportDate: new Date().toISOString()
-        }));
-        const jsonContent = JSON.stringify(exportData, null, 2);
-        downloadFile(jsonContent, 'cantici_export.json', 'application/json');
-    } else if (format === 'txt') {
-        let txtContent = '='.repeat(60) + '\n';
-        txtContent += 'CANTICI ESPORTATI DA OPEN WORSHIP\n';
-        txtContent += `Data esportazione: ${new Date().toLocaleString()}\n`;
-        txtContent += `Totale cantici: ${hymnsDB.length}\n`;
-        txtContent += '='.repeat(60) + '\n\n';
-        
-        hymnsDB.forEach((hymn, idx) => {
-            txtContent += `${idx + 1}. ${hymn.title}\n`;
-            txtContent += '-'.repeat(40) + '\n';
-            txtContent += hymn.content + '\n';
-            txtContent += '\n' + '='.repeat(60) + '\n\n';
-        });
-        downloadFile(txtContent, 'cantici_export.txt', 'text/plain');
-    }
-}
-
-function escapeXml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.replace(/[<>&'"]/g, function(c) {
-        if (c === '<') return '&lt;';
-        if (c === '>') return '&gt;';
-        if (c === '&') return '&amp;';
-        if (c === "'") return '&apos;';
-        if (c === '"') return '&quot;';
-        return c;
-    });
-}
-
-function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
 }
 
 // --- LOGIN LOGIC CON SUPABASE ---
@@ -187,7 +62,7 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin + window.location.pathname }
+            options: { redirectTo: 'https://rosariomarra.github.io/OpenWorship/' }
         });
         if (error) alert("Errore durante il login: " + error.message);
     } catch (err) {
@@ -205,9 +80,11 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
+// --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
     const numA = parseInt(a.title.match(/\d+/));
     const numB = parseInt(b.title.match(/\d+/));
+    
     if (!isNaN(numA) && !isNaN(numB)) {
         return numA - numB;
     }
@@ -225,7 +102,6 @@ const verseImages = [
 
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    currentUserEmail = user.email;
     
     isAdmin = adminEmails.includes(user.email);
     
@@ -246,41 +122,48 @@ async function showApp() {
             profileImg.classList.remove('hidden');
         }
         profileName.textContent = user.user_metadata.full_name || user.email;
-        
-        const greetingMsg = document.getElementById('greetingMessage');
-        const hour = new Date().getHours();
-        const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
-        const firstName = user.user_metadata.full_name?.split(' ')[0] || 'Amico';
-        greetingMsg.innerHTML = `${greeting}, ${firstName}! 👋`;
 
         await loadCloudData();
         updateDashboard();
         renderHighlights();
         updateVerseOfDayImage();
-        
         setupFavoritesTabs();
         setupDashboardCards();
-        setupExportButton();
         
+        // Nuovo appunto centrale
         document.getElementById('newSermonBtnCentral').addEventListener('click', () => {
             newSermon();
             document.getElementById('sermonTitle').focus();
         });
         
+        // Search input
+        document.getElementById('hymnSearch').addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            renderHymns();
+        });
+        
+        // Esportazione cantici
+        setupExportButton();
+        
     }, 400);
 }
 
 function updateVerseOfDayImage() {
-    const verseCard = document.getElementById('verseOfDayCard');
+    const verseCard = document.querySelector('.verse-card');
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     const imageIndex = dayOfYear % verseImages.length;
-    verseCard.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('${verseImages[imageIndex]}')`;
+    verseCard.style.background = `linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.6)), url('${verseImages[imageIndex]}')`;
     verseCard.style.backgroundSize = 'cover';
     verseCard.style.backgroundPosition = 'center';
+    verseCard.style.color = 'white';
+    const verseHeader = verseCard.querySelector('.verse-header h3');
+    if (verseHeader) verseHeader.style.color = '#ffd700';
+    const verseRef = verseCard.querySelector('.verse-ref');
+    if (verseRef) verseRef.style.color = '#ffd700';
 }
 
 function setupDashboardCards() {
-    document.querySelectorAll('.dash-card[data-section]').forEach(card => {
+    document.querySelectorAll('.clickable-card').forEach(card => {
         card.addEventListener('click', () => {
             const section = card.getAttribute('data-section');
             const targetBtn = document.querySelector(`.nav-item[data-target="${section}"]`);
@@ -328,16 +211,24 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
 
 // --- DASHBOARD E AVVISI ---
 const dailyVerses = [
-    { text: "Poiché Dio ha tanto amato il mondo, che ha dato il suo unigenito Figlio, affinché chiunque crede in lui non perisca, ma abbia vita eterna.", ref: "Giovanni 3:16" },
+    { text: "Poiché Dio ha tanto amato il mondo...", ref: "Giovanni 3:16" },
     { text: "Io posso ogni cosa in colui che mi fortifica.", ref: "Filippesi 4:13" },
     { text: "Il Signore è il mio pastore: nulla mi manca.", ref: "Salmi 23:1" },
-    { text: "Or la fede è certezza di cose che si sperano, dimostrazione di realtà che non si vedono.", ref: "Ebrei 11:1" },
+    { text: "Or la fede è certezza di cose che si sperano...", ref: "Ebrei 11:1" },
     { text: "Non preoccupatevi di nulla, ma in ogni cosa fate conoscere le vostre richieste a Dio.", ref: "Filippesi 4:6" },
     { text: "Il Signore ti benedica e ti custodisca.", ref: "Numeri 6:24" },
     { text: "Gustate e vedete quanto il Signore è buono!", ref: "Salmi 34:9" }
 ];
 
 function updateDashboard() {
+    const hour = new Date().getHours();
+    const greetingMsg = document.getElementById('greetingMessage');
+    const currentText = greetingMsg.innerHTML;
+    if (!currentText.includes('Buongiorno') && !currentText.includes('Buon pomeriggio') && !currentText.includes('Buonasera')) {
+        greetingMsg.innerHTML = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
+    }
+    document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
@@ -346,7 +237,6 @@ function updateDashboard() {
     document.getElementById('dailyVerseRef').textContent = `- ${verse.ref}`;
     document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
     document.getElementById('dashSermonsCount').textContent = sermonsDB.length;
-    document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const sortedAvvisi = [...avvisiDB].sort((a,b) => new Date(b.date) - new Date(a.date));
     if(sortedAvvisi.length > 0) {
@@ -455,7 +345,7 @@ async function deleteAvviso(id) {
     }
 }
 
-// --- CANTICI ---
+// --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
     if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
@@ -466,7 +356,8 @@ document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () 
             hymnsDB = [];
             favoritesDB = [];
             saveFavorites();
-            renderHymns(); updateDashboard();
+            renderHymns(); 
+            updateDashboard();
         } catch (e) {
             alert("Errore durante l'eliminazione dei cantici: " + e.message);
         }
@@ -538,7 +429,8 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
     }
     
     document.getElementById('hymnSearch').placeholder = "Cerca cantico...";
-    renderHymns(); updateDashboard();
+    renderHymns(); 
+    updateDashboard();
 });
 
 function getFilteredHymns() {
@@ -570,14 +462,14 @@ function renderHymns() {
         card.className = 'hymn-card';
         const favActive = isFavorite(hymn.id);
         card.innerHTML = `
-            <div style="flex:1;" onclick="openHymnSlides('${hymn.id}')">
+            <div style="flex:1" onclick="openHymnSlides('${hymn.id}')">
                 <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
                     <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                 </button>
-                <div class="admin-list-controls" style="display:flex; gap:5px;">
+                <div class="admin-list-controls">
                     <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
                     <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
                 </div>
@@ -586,11 +478,6 @@ function renderHymns() {
         list.appendChild(card);
     });
 }
-
-document.getElementById('hymnSearch').addEventListener('input', (e) => {
-    searchTerm = e.target.value;
-    renderHymns();
-});
 
 function setupFavoritesTabs() {
     const tabs = document.querySelectorAll('.favorites-tab');
@@ -613,7 +500,8 @@ async function deleteHymn(id) {
             hymnsDB = hymnsDB.filter(h => h.id !== id);
             favoritesDB = favoritesDB.filter(favId => favId !== id);
             saveFavorites();
-            renderHymns(); updateDashboard();
+            renderHymns(); 
+            updateDashboard();
         } catch (e) {
             alert("Errore di eliminazione: " + e.message);
         }
@@ -632,11 +520,125 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
 
         hymnsDB[i].title = updatedTitle;
         hymnsDB[i].content = updatedContent;
-        renderHymns(); closeEditModal(); 
+        renderHymns(); 
+        closeEditModal(); 
     } catch (e) {
         alert("Errore aggiornamento cantico: " + e.message);
     }
 };
+
+// --- FUNZIONE ESPORTAZIONE CANTICI ---
+function setupExportButton() {
+    const exportBtn = document.getElementById('exportHymnsBtn');
+    if (!exportBtn) return;
+    
+    exportBtn.addEventListener('click', () => {
+        if (hymnsDB.length === 0) {
+            alert("Nessun cantico da esportare.");
+            return;
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 350px; text-align: center;">
+                <h3 style="margin-bottom: 20px;">Esporta Cantici</h3>
+                <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli il formato di esportazione:</p>
+                <div class="export-format-selector">
+                    <button class="export-format-btn active" data-format="openlp">OpenLP</button>
+                    <button class="export-format-btn" data-format="json">JSON</button>
+                    <button class="export-format-btn" data-format="txt">Testo</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
+                    <button class="btn-secondary" id="cancelExportBtn">Annulla</button>
+                    <button class="btn-primary" id="confirmExportBtn">Esporta</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        let selectedFormat = 'openlp';
+        
+        modal.querySelectorAll('.export-format-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.querySelectorAll('.export-format-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedFormat = btn.getAttribute('data-format');
+            });
+        });
+        
+        modal.querySelector('#cancelExportBtn').onclick = () => modal.remove();
+        modal.querySelector('#confirmExportBtn').onclick = () => {
+            exportHymns(selectedFormat);
+            modal.remove();
+        };
+    });
+}
+
+function exportHymns(format) {
+    if (format === 'openlp') {
+        let xmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<songs version="1.0">\n`;
+        hymnsDB.forEach(hymn => {
+            let content = hymn.content;
+            const blocks = content.split(/\n\s*\n/);
+            let formattedContent = '';
+            blocks.forEach((block, idx) => {
+                const isChorus = /coro|chorus|rit|ritornello/i.test(block);
+                let cleanBlock = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+                if (isChorus) {
+                    formattedContent += `[chór]\n${cleanBlock}\n[/chór]\n\n`;
+                } else {
+                    formattedContent += `[v${idx + 1}]\n${cleanBlock}\n[/v${idx + 1}]\n\n`;
+                }
+            });
+            xmlContent += `  <song>\n    <title>${escapeXml(hymn.title)}</title>\n    <lyrics>${escapeXml(formattedContent)}</lyrics>\n  </song>\n`;
+        });
+        xmlContent += `</songs>`;
+        downloadFile(xmlContent, 'cantici_openlp.xml', 'application/xml');
+    } else if (format === 'json') {
+        const exportData = hymnsDB.map(h => ({ title: h.title, content: h.content, exportDate: new Date().toISOString() }));
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        downloadFile(jsonContent, 'cantici_export.json', 'application/json');
+    } else if (format === 'txt') {
+        let txtContent = '='.repeat(60) + '\n';
+        txtContent += 'CANTICI ESPORTATI DA OPEN WORSHIP\n';
+        txtContent += `Data esportazione: ${new Date().toLocaleString()}\n`;
+        txtContent += `Totale cantici: ${hymnsDB.length}\n`;
+        txtContent += '='.repeat(60) + '\n\n';
+        
+        hymnsDB.forEach((hymn, idx) => {
+            txtContent += `${idx + 1}. ${hymn.title}\n`;
+            txtContent += '-'.repeat(40) + '\n';
+            txtContent += hymn.content + '\n';
+            txtContent += '\n' + '='.repeat(60) + '\n\n';
+        });
+        downloadFile(txtContent, 'cantici_export.txt', 'text/plain');
+    }
+}
+
+function escapeXml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe.replace(/[<>&'"]/g, function(c) {
+        if (c === '<') return '&lt;';
+        if (c === '>') return '&gt;';
+        if (c === '&') return '&amp;';
+        if (c === "'") return '&apos;';
+        if (c === '"') return '&quot;';
+        return c;
+    });
+}
+
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
 
 // --- LETTORE SLIDE CANTICI ---
 let currentHymnFontSize = 40; 
@@ -685,7 +687,7 @@ function openHymnSlides(id) {
         const cleanBlock = block.trim(); 
         if(!cleanBlock) return;
         const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
-        let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+        const textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
         const formattedLines = textToDisplay.split('\n').map(line => {
             return `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`;
