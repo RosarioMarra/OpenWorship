@@ -231,6 +231,11 @@
                         <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-3-line"></i> Salva</button>
                     </div>
                 </div>
+                <div class="sermon-actions-center" style="display: flex; justify-content: center; margin: 20px 0;">
+                    <button class="btn-primary" onclick="newSermon()" style="border-radius: 50px; padding: 15px 30px; font-weight: 800;">
+                        <i class="ri-add-circle-fill"></i> NUOVO APPUNTO
+                    </button>
+                </div>
                 <div class="sermons-layout">
                     
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
@@ -275,22 +280,24 @@
 
         <nav class="mobile-nav">
             <button class="nav-item active" data-target="dashboard">
-                <div class="nav-icon-wrapper"><i class="ri-dashboard-line"></i></div><span>Home</span>
-            </button>
+                <div class="nav-icon-wrapper"><i class="ri-dashboard-line"></i></div>
+                <span class="nav-label" style="display: block !important;">Home</span>
+             </button>
             <button class="nav-item" data-target="avvisi">
-                <div class="nav-icon-wrapper"><i class="ri-notification-3-line"></i></div><span>Avvisi</span>
+                <div class="nav-icon-wrapper"><i class="ri-notification-3-line"></i></div>
+                <span class="nav-label" style="display: block !important;">Avvisi</span>
             </button>
             <button class="nav-item" data-target="cantici">
-                <div class="nav-icon-wrapper"><i class="ri-music-2-line"></i></div><span>Cantici</span>
-            </button>
+                 <div class="nav-icon-wrapper"><i class="ri-music-2-line"></i></div>
+                <span class="nav-label" style="display: block !important;">Cantici</span>
+                </button>
             <button class="nav-item" data-target="bibbia">
-                <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
+                 <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div>
+                <span class="nav-label" style="display: block !important;">Bibbia</span>
             </button>
             <button class="nav-item" data-target="sermoni">
-                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Sermoni</span>
-            </button>
-            <button class="nav-item text-danger" id="mobileLogoutBtn">
-                <div class="nav-icon-wrapper"><i class="ri-logout-box-r-line"></i></div><span>Esci</span>
+               <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div>
+             <span class="nav-label" style="display: block !important;">Sermoni</span>
             </button>
         </nav>
     </div>
