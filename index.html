@@ -85,22 +85,30 @@
                         <p id="dailyVerseRef" class="verse-ref">-</p>
                     </div>
 
-                    <div class="dash-card widget-primary">
+                    <div class="dash-card widget-primary" data-section="avvisi">
                         <div class="dash-card-icon"><i class="ri-notification-3-line"></i></div>
                         <h3>Ultimo Avviso</h3>
                         <div class="dash-stat" id="dashNextEvent" style="font-size: 18px; font-weight: 700;">Nessuno</div>
                         <p class="dash-sub" id="dashNextEventDate">Nessuna comunicazione recente</p>
                     </div>
 
-                    <div class="dash-card">
+                    <div class="dash-card" data-section="cantici">
                         <div class="dash-card-icon" style="color: #ff9500; background: rgba(255,149,0,0.1);"><i class="ri-music-2-fill"></i></div>
                         <h3>Archivio Cantici</h3>
                         <div class="dash-stat" id="dashHymnsCount">0</div>
                         <p class="dash-sub">Cantici salvati</p>
                     </div>
-                    <div class="dash-card">
-                        <div class="dash-card-icon" style="color: #34c759; background: rgba(52,199,89,0.1);"><i class="ri-file-text-fill"></i></div>
-                        <h3>Sermoni Creati</h3>
+                    
+                    <div class="dash-card" data-section="bibbia">
+                        <div class="dash-card-icon" style="color: #34c759; background: rgba(52,199,89,0.1);"><i class="ri-book-read-line"></i></div>
+                        <h3>Bibbia</h3>
+                        <div class="dash-stat" id="dashBibleStat">📖</div>
+                        <p class="dash-sub">Leggi la Parola</p>
+                    </div>
+                    
+                    <div class="dash-card" data-section="sermoni">
+                        <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
+                        <h3>Sermoni</h3>
                         <div class="dash-stat" id="dashSermonsCount">0</div>
                         <p class="dash-sub">Appunti salvati</p>
                     </div>
@@ -128,6 +136,9 @@
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <button class="btn-icon-bg" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
                                     <i class="ri-upload-cloud-2-line"></i>
+                                </button>
+                                <button class="btn-icon-bg" id="exportHymnsBtn" title="Esporta Cantici" style="color: #34c759; background: rgba(52,199,89,0.1);">
+                                    <i class="ri-download-2-line"></i>
                                 </button>
                                 <button class="btn-icon-bg" id="deleteAllHymnsBtn" style="color: var(--danger-color); background: rgba(255, 59, 48, 0.1);" title="Cancella Tutti i Cantici">
                                     <i class="ri-delete-bin-line"></i>
@@ -204,7 +215,7 @@
                         <select id="bibleVersion" class="apple-select">
                             <option value="NR06">Nuova Riveduta</option>
                             <option value="Diodati">Diodati</option>
-                            <option value="Luzzi">Luzi</option>
+                            <option value="Luzzi">Luzzi</option>
                         </select>
                         <select id="bibleBook" class="apple-select"></select>
                         <select id="bibleChapter" class="apple-select"></select>
@@ -239,7 +250,7 @@
                 </div>
                 <div class="sermons-layout">
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
-                        <button class="new-sermon-btn" id="newSermonBtnCentral">➕ Nuovo Appunto</button>
+                        <button class="new-sermon-btn" id="newSermonBtnCentral">+ Nuovo Appunto</button>
                         <div class="list-header">Appunti Recenti</div>
                         <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
                         
