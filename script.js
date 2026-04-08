@@ -150,16 +150,12 @@ async function showApp() {
 
 function updateVerseOfDayImage() {
     const verseCard = document.querySelector('.verse-card');
+    const bgImageDiv = document.querySelector('.verse-bg-image');
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     const imageIndex = dayOfYear % verseImages.length;
-    verseCard.style.background = `linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.6)), url('${verseImages[imageIndex]}')`;
-    verseCard.style.backgroundSize = 'cover';
-    verseCard.style.backgroundPosition = 'center';
-    verseCard.style.color = 'white';
-    const verseHeader = verseCard.querySelector('.verse-header h3');
-    if (verseHeader) verseHeader.style.color = '#ffd700';
-    const verseRef = verseCard.querySelector('.verse-ref');
-    if (verseRef) verseRef.style.color = '#ffd700';
+    if (bgImageDiv) {
+        bgImageDiv.style.backgroundImage = `url('${verseImages[imageIndex]}')`;
+    }
 }
 
 function setupDashboardCards() {
@@ -211,10 +207,10 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
 
 // --- DASHBOARD E AVVISI ---
 const dailyVerses = [
-    { text: "Poiché Dio ha tanto amato il mondo...", ref: "Giovanni 3:16" },
+    { text: "Poiché Dio ha tanto amato il mondo, che ha dato il suo unigenito Figlio, affinché chiunque crede in lui non perisca, ma abbia vita eterna.", ref: "Giovanni 3:16" },
     { text: "Io posso ogni cosa in colui che mi fortifica.", ref: "Filippesi 4:13" },
     { text: "Il Signore è il mio pastore: nulla mi manca.", ref: "Salmi 23:1" },
-    { text: "Or la fede è certezza di cose che si sperano...", ref: "Ebrei 11:1" },
+    { text: "Or la fede è certezza di cose che si sperano, dimostrazione di realtà che non si vedono.", ref: "Ebrei 11:1" },
     { text: "Non preoccupatevi di nulla, ma in ogni cosa fate conoscere le vostre richieste a Dio.", ref: "Filippesi 4:6" },
     { text: "Il Signore ti benedica e ti custodisca.", ref: "Numeri 6:24" },
     { text: "Gustate e vedete quanto il Signore è buono!", ref: "Salmi 34:9" }
@@ -233,8 +229,8 @@ function updateDashboard() {
     const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
     const verse = dailyVerses[dayOfYear % dailyVerses.length];
-    document.getElementById('dailyVerseText').textContent = `"${verse.text}"`;
-    document.getElementById('dailyVerseRef').textContent = `- ${verse.ref}`;
+    document.getElementById('dailyVerseText').innerHTML = `"${verse.text}"`;
+    document.getElementById('dailyVerseRef').innerHTML = `- ${verse.ref}`;
     document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
     document.getElementById('dashSermonsCount').textContent = sermonsDB.length;
 
@@ -465,11 +461,11 @@ function renderHymns() {
             <div style="flex:1" onclick="openHymnSlides('${hymn.id}')">
                 <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div style="display:flex; gap:12px; align-items:center;">
                 <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
                     <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                 </button>
-                <div class="admin-list-controls">
+                <div class="admin-list-controls" style="display:flex; gap:12px;">
                     <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
                     <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
                 </div>
@@ -527,7 +523,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     }
 };
 
-// --- FUNZIONE ESPORTAZIONE CANTICI ---
+// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP ---
 function setupExportButton() {
     const exportBtn = document.getElementById('exportHymnsBtn');
     if (!exportBtn) return;
@@ -549,6 +545,7 @@ function setupExportButton() {
                     <button class="export-format-btn active" data-format="openlp">OpenLP</button>
                     <button class="export-format-btn" data-format="json">JSON</button>
                     <button class="export-format-btn" data-format="txt">Testo</button>
+                    <button class="export-format-btn" data-format="zip">ZIP (singoli file)</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
                     <button class="btn-secondary" id="cancelExportBtn">Annulla</button>
@@ -614,7 +611,28 @@ function exportHymns(format) {
             txtContent += '\n' + '='.repeat(60) + '\n\n';
         });
         downloadFile(txtContent, 'cantici_export.txt', 'text/plain');
+    } else if (format === 'zip') {
+        // Esporta ogni cantico come file singolo in uno ZIP
+        const zip = new JSZip();
+        
+        hymnsDB.forEach((hymn, idx) => {
+            let filename = `${idx + 1}_${sanitizeFilename(hymn.title)}.txt`;
+            let content = `${hymn.title}\n\n${'='.repeat(50)}\n\n${hymn.content}`;
+            zip.file(filename, content);
+        });
+        
+        zip.generateAsync({ type: "blob" }).then(function(blob) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `cantici_export_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
     }
+}
+
+function sanitizeFilename(filename) {
+    return filename.replace(/[\\/:*?"<>|]/g, '_').substring(0, 50);
 }
 
 function escapeXml(unsafe) {
@@ -953,7 +971,7 @@ function updateBibleFontSize() { document.getElementById('bibleReaderContent').s
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-// --- SERMONI ---
+// --- SERMONI (APPUNTI) ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -1076,9 +1094,9 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         
         const btn = document.getElementById('saveSermonBtn'); 
         btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
-        setTimeout(() => btn.innerHTML = "<i class='ri-save-3-line'></i> Salva", 2000);
+        setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i> Salva", 2000);
     } catch (e) {
-        alert("Errore salvataggio sermone: " + e.message);
+        alert("Errore salvataggio appunto: " + e.message);
     }
 };
 

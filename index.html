@@ -58,7 +58,7 @@
                 <button class="nav-item" data-target="avvisi"><i class="ri-notification-3-line"></i> Avvisi</button>
                 <button class="nav-item" data-target="cantici"><i class="ri-music-2-line"></i> Cantici</button>
                 <button class="nav-item" data-target="bibbia"><i class="ri-book-read-line"></i> Bibbia</button>
-                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Sermoni</button>
+                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Appunti</button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logoutBtn" class="btn-logout-desktop">
@@ -78,13 +78,15 @@
                 </div>
                 
                 <div class="dashboard-grid">
-                    <div class="dash-card verse-card" style="grid-column: 1 / -1;">
-                        <div class="verse-header">
-                            <i class="ri-star-smile-fill" style="color: #ff9500; font-size: 18px;"></i>
-                            <h3 style="margin-bottom: 0; color: #ff9500;">Versetto del Giorno</h3>
+                    <div class="dash-card verse-card" style="grid-column: 1 / -1; position: relative; overflow: hidden;">
+                        <div class="verse-bg-image"></div>
+                        <div class="verse-overlay"></div>
+                        <div class="verse-header" style="position: relative; z-index: 2;">
+                            <i class="ri-star-smile-fill" style="color: #ffd700; font-size: 18px;"></i>
+                            <h3 style="margin-bottom: 0; color: #ffd700;">Versetto del Giorno</h3>
                         </div>
-                        <p id="dailyVerseText" class="verse-text">"Caricamento..."</p>
-                        <p id="dailyVerseRef" class="verse-ref">-</p>
+                        <p id="dailyVerseText" class="verse-text" style="position: relative; z-index: 2; color: white;">"Caricamento..."</p>
+                        <p id="dailyVerseRef" class="verse-ref" style="position: relative; z-index: 2; color: #ffd700;">-</p>
                     </div>
 
                     <div class="dash-card clickable-card" data-section="avvisi">
@@ -110,7 +112,7 @@
                     
                     <div class="dash-card clickable-card" data-section="sermoni">
                         <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
-                        <h3>Sermoni</h3>
+                        <h3>Appunti</h3>
                         <div class="dash-stat" id="dashSermonsCount">0</div>
                         <p class="dash-sub">Appunti salvati</p>
                     </div>
@@ -136,13 +138,13 @@
                         <div class="admin-only-controls">
                             <input type="file" id="xmlUpload" accept=".xml,.txt" multiple style="display: none;">
                             <div style="display: flex; gap: 10px; align-items: center;">
-                                <button class="btn-icon-bg" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
-                                    <i class="ri-upload-cloud-2-line"></i>
+                                <button class="btn-icon-simple" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
+                                    <i class="ri-upload-line"></i>
                                 </button>
-                                <button class="btn-icon-bg" id="exportHymnsBtn" title="Esporta Cantici" style="color: #34c759; background: rgba(52,199,89,0.1);">
-                                    <i class="ri-download-2-line"></i>
+                                <button class="btn-icon-simple" id="exportHymnsBtn" title="Esporta Cantici" style="color: #34c759;">
+                                    <i class="ri-download-line"></i>
                                 </button>
-                                <button class="btn-icon-bg" id="deleteAllHymnsBtn" style="color: var(--danger-color); background: rgba(255, 59, 48, 0.1);" title="Cancella Tutti i Cantici">
+                                <button class="btn-icon-simple" id="deleteAllHymnsBtn" style="color: var(--danger-color);" title="Cancella Tutti i Cantici">
                                     <i class="ri-delete-bin-line"></i>
                                 </button>
                             </div>
@@ -243,12 +245,12 @@
 
             <section id="sermoni" class="content-section">
                 <div class="section-header">
-                    <h1 class="section-title">Sermoni</h1>
+                    <h1 class="section-title">Appunti</h1>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button class="btn-icon-small" id="deleteSermonBtn" style="display: none; color: var(--danger-color); border: none; background: rgba(255,59,48,0.1);">
+                        <button class="btn-icon-simple" id="deleteSermonBtn" style="display: none; color: var(--danger-color);">
                             <i class="ri-delete-bin-line"></i>
                         </button>
-                        <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-3-line"></i> Salva</button>
+                        <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
                     </div>
                 </div>
                 <div class="sermons-layout">
@@ -267,7 +269,7 @@
 
                     <div class="editor-container">
                         <div class="editor-header">
-                            <input type="text" id="sermonTitle" class="sermon-input-title" placeholder="Titolo del sermone...">
+                            <input type="text" id="sermonTitle" class="sermon-input-title" placeholder="Titolo dell'appunto...">
                             
                             <div class="speaker-row" style="margin-bottom: 10px;">
                                 <i class="ri-price-tag-3-line text-muted"></i>
@@ -308,7 +310,7 @@
                 <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
             </button>
             <button class="nav-item" data-target="sermoni">
-                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Sermoni</span>
+                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Appunti</span>
             </button>
             <button class="nav-item text-danger" id="mobileLogoutBtn">
                 <div class="nav-icon-wrapper"><i class="ri-logout-box-r-line"></i></div><span>Esci</span>
@@ -329,7 +331,7 @@
             <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
 
             <div style="display:flex; justify-content:space-between; align-items: center;">
-                <button class="btn-icon-small" id="deleteAvvisoBtn" style="color:var(--danger-color); display:none; border:none;"><i class="ri-delete-bin-line"></i></button>
+                <button class="btn-icon-simple" id="deleteAvvisoBtn" style="color:var(--danger-color); display:none;"><i class="ri-delete-bin-line"></i></button>
                 <div style="display:flex; gap:10px; margin-left: auto;">
                     <button class="btn-secondary" onclick="closeAvvisoModal()">Annulla</button>
                     <button class="btn-primary" id="saveAvvisoBtn">Salva</button>
@@ -351,6 +353,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="script.js"></script>
 
     <script>
