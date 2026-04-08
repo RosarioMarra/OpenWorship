@@ -11,12 +11,38 @@ let hymnsDB = [];
 let sermonsDB = []; 
 let avvisiDB = [];
 let highlightsDB = [];
-let isAdmin = false; // Stato per gestire i permessi
+let favoritesDB = [];
+let isAdmin = false;
+let currentUserEmail = "";
+let currentTab = "all";
+let searchTerm = "";
 
 try { 
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || []; 
+    favoritesDB = JSON.parse(localStorage.getItem('favoritesDB')) || [];
 } catch(e) { 
-    highlightsDB = []; 
+    highlightsDB = [];
+    favoritesDB = [];
+}
+
+// Funzione per salvare i preferiti
+function saveFavorites() {
+    localStorage.setItem('favoritesDB', JSON.stringify(favoritesDB));
+}
+
+function toggleFavorite(hymnId) {
+    const index = favoritesDB.indexOf(hymnId);
+    if (index === -1) {
+        favoritesDB.push(hymnId);
+    } else {
+        favoritesDB.splice(index, 1);
+    }
+    saveFavorites();
+    renderHymns();
+}
+
+function isFavorite(hymnId) {
+    return favoritesDB.includes(hymnId);
 }
 
 // --- LOGIN LOGIC CON SUPABASE ---
@@ -37,7 +63,7 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: 'https://rosariomarra.github.io/OpenWorship/' }
+            options: { redirectTo: window.location.origin + window.location.pathname }
         });
         if (error) alert("Errore durante il login: " + error.message);
     } catch (err) {
@@ -55,22 +81,28 @@ async function handleLogout() {
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
 
-// --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
     const numA = parseInt(a.title.match(/\d+/));
     const numB = parseInt(b.title.match(/\d+/));
-    
     if (!isNaN(numA) && !isNaN(numB)) {
         return numA - numB;
     }
-    // Se non ci sono numeri, usa l'ordine alfabetico
     return a.title.localeCompare(b.title);
 }
 
+// Immagini per il versetto del giorno
+const verseImages = [
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800',
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800',
+    'https://images.unsplash.com/photo-1444084316824-dc26d6657664?w=800',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800',
+    'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800'
+];
+
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
+    currentUserEmail = user.email;
     
-    // Controllo se l'utente è Admin
     isAdmin = adminEmails.includes(user.email);
     
     loginScreen.style.opacity = '0';
@@ -78,12 +110,10 @@ async function showApp() {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
         
-        // Se è admin, aggiunge la classe al body per sbloccare i tasti via CSS
         if (isAdmin) {
             document.body.classList.add('is-admin');
         }
 
-        // Imposta Foto Profilo e Nome dall'account Google
         const profileImg = document.getElementById('userProfileImg');
         const profileName = document.getElementById('userProfileName');
         
@@ -92,11 +122,37 @@ async function showApp() {
             profileImg.classList.remove('hidden');
         }
         profileName.textContent = user.user_metadata.full_name || user.email;
+        
+        const greetingMsg = document.getElementById('greetingMessage');
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
+        const firstName = user.user_metadata.full_name?.split(' ')[0] || 'Amico';
+        greetingMsg.innerHTML = `${greeting}, ${firstName}! 👋`;
 
         await loadCloudData();
         updateDashboard();
         renderHighlights();
+        updateVerseOfDayImage();
+        
+        // Setup tabs per cantici
+        setupFavoritesTabs();
+        
+        // Setup nuovo appunto centrale
+        document.getElementById('newSermonBtnCentral').addEventListener('click', () => {
+            newSermon();
+            document.getElementById('sermonTitle').focus();
+        });
+        
     }, 400);
+}
+
+function updateVerseOfDayImage() {
+    const verseCard = document.getElementById('verseOfDayCard');
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+    const imageIndex = dayOfYear % verseImages.length;
+    verseCard.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('${verseImages[imageIndex]}')`;
+    verseCard.style.backgroundSize = 'cover';
+    verseCard.style.backgroundPosition = 'center';
 }
 
 async function loadCloudData() {
@@ -138,15 +194,17 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
 
 // --- DASHBOARD E AVVISI ---
 const dailyVerses = [
-    { text: "Poiché Dio ha tanto amato il mondo...", ref: "Giovanni 3:16" },
+    { text: "Poiché Dio ha tanto amato il mondo, che ha dato il suo unigenito Figlio, affinché chiunque crede in lui non perisca, ma abbia vita eterna.", ref: "Giovanni 3:16" },
     { text: "Io posso ogni cosa in colui che mi fortifica.", ref: "Filippesi 4:13" },
     { text: "Il Signore è il mio pastore: nulla mi manca.", ref: "Salmi 23:1" },
-    { text: "Or la fede è certezza di cose che si sperano...", ref: "Ebrei 11:1" }
+    { text: "Or la fede è certezza di cose che si sperano, dimostrazione di realtà che non si vedono.", ref: "Ebrei 11:1" },
+    { text: "Non preoccupatevi di nulla, ma in ogni cosa fate conoscere le vostre richieste a Dio.", ref: "Filippesi 4:6" },
+    { text: "Il Signore ti benedica e ti custodisca.", ref: "Numeri 6:24" },
+    { text: "Gustate e vedete quanto il Signore è buono!", ref: "Salmi 34:9" }
 ];
 
 function updateDashboard() {
     const hour = new Date().getHours();
-    document.getElementById('greetingMessage').textContent = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
     document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     
     const now = new Date();
@@ -158,7 +216,7 @@ function updateDashboard() {
     document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
     document.getElementById('dashSermonsCount').textContent = sermonsDB.length;
 
-    const sortedAvvisi = avvisiDB.sort((a,b) => new Date(b.date) - new Date(a.date));
+    const sortedAvvisi = [...avvisiDB].sort((a,b) => new Date(b.date) - new Date(a.date));
     if(sortedAvvisi.length > 0) {
         document.getElementById('dashNextEvent').textContent = sortedAvvisi[0].title;
         document.getElementById('dashNextEventDate').textContent = new Date(sortedAvvisi[0].date).toLocaleDateString('it-IT', {day:'numeric', month:'long'});
@@ -173,7 +231,7 @@ let editingAvvisoId = null;
 function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
-    const sortedAvvisi = avvisiDB.sort((a,b) => new Date(b.date) - new Date(a.date));
+    const sortedAvvisi = [...avvisiDB].sort((a,b) => new Date(b.date) - new Date(a.date));
     if(sortedAvvisi.length === 0) {
         list.innerHTML = '<p class="text-muted">Nessun avviso presente al momento.</p>';
         return;
@@ -188,10 +246,22 @@ function renderAvvisi() {
                 <button class="btn-delete" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
             </div>
             <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}</div>
-            <div class="avviso-title">${avviso.title}</div>
-            <div class="avviso-desc">${avviso.desc}</div>
+            <div class="avviso-title">${escapeHtml(avviso.title)}</div>
+            <div class="avviso-desc">${escapeHtml(avviso.desc)}</div>
         `;
         list.appendChild(card);
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
     });
 }
 
@@ -203,12 +273,15 @@ function openAvvisoModal(id = null) {
         document.getElementById('avvisoDate').value = avv.date;
         document.getElementById('avvisoTitle').value = avv.title;
         document.getElementById('avvisoDesc').value = avv.desc;
+        document.getElementById('deleteAvvisoBtn').style.display = 'block';
+        document.getElementById('deleteAvvisoBtn').onclick = () => deleteAvviso(id);
     } else {
         editingAvvisoId = null;
         document.getElementById('avvisoModalTitle').textContent = "Nuovo Avviso";
         document.getElementById('avvisoDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('avvisoTitle').value = "";
         document.getElementById('avvisoDesc').value = "";
+        document.getElementById('deleteAvvisoBtn').style.display = 'none';
     }
     document.getElementById('avvisoModal').classList.remove('hidden');
 }
@@ -252,8 +325,7 @@ async function deleteAvviso(id) {
     }
 }
 
-
-// --- CANTICI: XML PARSER INTELLIGENTE E CLOUD SYNC ---
+// --- CANTICI ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if(hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
     if(confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
@@ -337,20 +409,46 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
     renderHymns(); updateDashboard();
 });
 
-function renderHymns(hymnsArray = hymnsDB) {
-    const list = document.getElementById('hymnsList'); list.innerHTML = '';
-    // IMPLEMENTAZIONE RICHIESTA: Ordinamento Numerico (1, 2, 3...)
-    const sorted = [...hymnsArray].sort(sortByNumber);
+function getFilteredHymns() {
+    let filtered = [...hymnsDB];
     
-    sorted.forEach((hymn) => {
-        const card = document.createElement('div'); card.className = 'hymn-card';
+    if (searchTerm) {
+        filtered = filtered.filter(h => h.title.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    
+    if (currentTab === "favorites") {
+        filtered = filtered.filter(h => isFavorite(h.id));
+    }
+    
+    return filtered.sort(sortByNumber);
+}
+
+function renderHymns() {
+    const list = document.getElementById('hymnsList');
+    list.innerHTML = '';
+    const filtered = getFilteredHymns();
+    
+    if (filtered.length === 0) {
+        list.innerHTML = '<p class="text-muted" style="text-align:center; padding:40px;">Nessun cantico trovato</p>';
+        return;
+    }
+    
+    filtered.forEach((hymn) => {
+        const card = document.createElement('div'); 
+        card.className = 'hymn-card';
+        const favActive = isFavorite(hymn.id);
         card.innerHTML = `
-            <div style="flex:1" onclick="openHymnSlides('${hymn.id}')">
-                <span style="font-weight:600;">${hymn.title}</span>
+            <div style="flex:1; display:flex; align-items:center; gap:12px;" onclick="openHymnSlides('${hymn.id}')">
+                <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
             </div>
-            <div class="admin-list-controls">
-                <button class="btn-edit" onclick="openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
-                <button class="btn-delete" onclick="deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
+                    <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
+                </button>
+                <div class="admin-list-controls" style="display:flex; gap:5px;">
+                    <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
+                    <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
+                </div>
             </div>
         `;
         list.appendChild(card);
@@ -358,10 +456,21 @@ function renderHymns(hymnsArray = hymnsDB) {
 }
 
 document.getElementById('hymnSearch').addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = hymnsDB.filter(h => h.title.toLowerCase().includes(term));
-    renderHymns(filtered);
+    searchTerm = e.target.value;
+    renderHymns();
 });
+
+function setupFavoritesTabs() {
+    const tabs = document.querySelectorAll('.favorites-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.getAttribute('data-tab');
+            renderHymns();
+        });
+    });
+}
 
 let editHymnId = null;
 async function deleteHymn(id) { 
@@ -369,7 +478,9 @@ async function deleteHymn(id) {
         try {
             const { error } = await supabaseClient.from('cantici').delete().eq('id', id);
             if (error) throw error;
-            hymnsDB = hymnsDB.filter(h => h.id !== id); 
+            hymnsDB = hymnsDB.filter(h => h.id !== id);
+            favoritesDB = favoritesDB.filter(favId => favId !== id);
+            saveFavorites();
             renderHymns(); updateDashboard();
         } catch (e) {
             alert("Errore di eliminazione: " + e.message);
@@ -394,7 +505,6 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
         alert("Errore aggiornamento cantico: " + e.message);
     }
 };
-
 
 // --- LETTORE SLIDE CANTICI ---
 let currentHymnFontSize = 40; 
@@ -421,6 +531,8 @@ document.getElementById('toggleGridViewBtn').onclick = () => {
 
 function openHymnSlides(id) {
     const hymn = hymnsDB.find(h => h.id === id);
+    if (!hymn) return;
+    
     document.getElementById('hymnsListView').classList.add('hidden');
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
@@ -431,17 +543,20 @@ function openHymnSlides(id) {
     gridContainer.classList.add('hidden');
     document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
 
-    slidesContainer.innerHTML = ''; document.getElementById('slideDots').innerHTML = ''; gridContainer.innerHTML = '';
+    slidesContainer.innerHTML = ''; 
+    document.getElementById('slideDots').innerHTML = ''; 
+    gridContainer.innerHTML = '';
     
     const blocks = hymn.content.split(/\n\s*\n/);
     
     blocks.forEach((block, index) => {
-        const cleanBlock = block.trim(); if(!cleanBlock) return;
+        const cleanBlock = block.trim(); 
+        if(!cleanBlock) return;
         const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
-        const textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+        let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
         const formattedLines = textToDisplay.split('\n').map(line => {
-            return `<div class="hymn-line">${line || '&nbsp;'}</div>`;
+            return `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`;
         }).join('');
         
         const slide = document.createElement('div'); 
@@ -454,8 +569,8 @@ function openHymnSlides(id) {
         
         const gridCard = document.createElement('div');
         gridCard.className = 'hymn-grid-card';
-        gridCard.innerHTML = `<div class="grid-card-title">${isChorus ? 'Coro' : 'Strofa ' + (index+1)}</div><div class="grid-card-preview ${isChorus ? 'slide-chorus' : ''}">${textToDisplay}</div>`;
-        gridCard.onclick = () => { document.getElementById('toggleGridViewBtn').click(); slidesContainer.scrollLeft = index * slidesContainer.clientWidth; };
+        gridCard.innerHTML = `<div class="grid-card-title">${isChorus ? 'Coro' : 'Strofa ' + (index+1)}</div><div class="grid-card-preview ${isChorus ? 'slide-chorus' : ''}">${escapeHtml(textToDisplay.substring(0, 100))}${textToDisplay.length > 100 ? '...' : ''}</div>`;
+        gridCard.onclick = () => { document.getElementById('toggleGridViewBtn').click(); scrollToSlide(index); };
         gridContainer.appendChild(gridCard);
         
         const dot = document.createElement('div');
@@ -464,7 +579,30 @@ function openHymnSlides(id) {
     });
     
     slidesContainer.scrollLeft = 0;
+    updateSlideVisibility();
     setTimeout(autoFitHymn, 50);
+}
+
+function scrollToSlide(index) {
+    const slideWidth = slidesContainer.clientWidth;
+    slidesContainer.scrollLeft = index * slideWidth;
+}
+
+function updateSlideVisibility() {
+    const slides = document.querySelectorAll('.hymn-slide');
+    const containerRect = slidesContainer.getBoundingClientRect();
+    const center = containerRect.left + containerRect.width / 2;
+    
+    slides.forEach(slide => {
+        const slideRect = slide.getBoundingClientRect();
+        const slideCenter = slideRect.left + slideRect.width / 2;
+        const distance = Math.abs(slideCenter - center);
+        const maxDistance = containerRect.width / 2;
+        const opacity = Math.max(0.3, 1 - (distance / maxDistance) * 0.7);
+        const scale = Math.max(0.7, 1 - (distance / maxDistance) * 0.3);
+        slide.style.opacity = opacity;
+        slide.style.transform = `scale(${scale})`;
+    });
 }
 
 function autoFitHymn() {
@@ -513,17 +651,17 @@ document.getElementById('decreaseHymnFont').onclick = () => {
 };
 
 function updateHymnFontSize(size) { document.querySelectorAll('.slide-content').forEach(el => el.style.fontSize = `${size}px`); }
-document.getElementById('nextSlideBtn').onclick = () => slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' });
-document.getElementById('prevSlideBtn').onclick = () => slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' });
+document.getElementById('nextSlideBtn').onclick = () => { slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' }); setTimeout(updateSlideVisibility, 300); };
+document.getElementById('prevSlideBtn').onclick = () => { slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' }); setTimeout(updateSlideVisibility, 300); };
 
 slidesContainer.addEventListener('scroll', () => {
     const slideWidth = slidesContainer.clientWidth;
     if(slideWidth === 0) return;
     const currentSlide = Math.round(slidesContainer.scrollLeft / slideWidth);
     document.querySelectorAll('.slide-dot').forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
+    updateSlideVisibility();
 });
 document.getElementById('backToHymns').onclick = () => { document.getElementById('hymnReaderView').classList.add('hidden'); document.getElementById('hymnsListView').classList.remove('hidden'); };
-
 
 // --- BIBBIA ---
 const bibleBooks = [
@@ -611,7 +749,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         
         let html = `
             <div style="text-align: center; margin-bottom: 30px;">
-                <h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${bookName} ${chapter}</h2>
+                <h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${escapeHtml(bookName)} ${chapter}</h2>
             </div>
             <div style="margin-bottom: 20px;">
         `;
@@ -620,7 +758,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
             const cleanText = v.text.replace(/<\/?(?:span|i|b|div)[^>]*>/g, ''); 
             const isHighlight = highlightsDB.some(h => h.book === bookId && h.chapter === chapter && h.verse == v.verse);
             
-            html += `<span class="bible-verse ${isHighlight ? 'highlighted' : ''}" id="verse-${v.verse}" data-book="${bookId}" data-bookname="${bookName}" data-chapter="${chapter}" data-verse="${v.verse}" data-text="${cleanText.replace(/"/g, '&quot;')}">
+            html += `<span class="bible-verse ${isHighlight ? 'highlighted' : ''}" id="verse-${v.verse}" data-book="${bookId}" data-bookname="${escapeHtml(bookName)}" data-chapter="${chapter}" data-verse="${v.verse}" data-text="${escapeHtml(cleanText).replace(/"/g, '&quot;')}">
                         <sup style="color:var(--accent-color); font-weight:bold; font-size: 14px; margin-right:6px;">${v.verse}</sup>
                         ${cleanText}
                      </span>`;
@@ -630,7 +768,6 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         reader.innerHTML = html;
         updateBibleFontSize();
 
-        // AGGIORNA LA BARRA FISSA IN BASSO DELLA BIBBIA
         document.getElementById('bibleCurrentChapterDisplay').textContent = `${bookName} ${chapter}`;
         document.getElementById('bibleBottomControls').classList.remove('hidden');
         
@@ -682,7 +819,6 @@ function updateBibleFontSize() { document.getElementById('bibleReaderContent').s
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-
 // --- SERMONI ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
@@ -693,25 +829,51 @@ let activeSermonId = null;
 
 function renderSermons() {
     const ul = document.getElementById('sermonsUl');
-    ul.innerHTML = '<li onclick="newSermon()" style="color:var(--accent-color); font-weight:700; cursor:pointer; padding:15px;"><i class="ri-add-circle-line" style="font-size:20px; vertical-align:middle; margin-right:5px;"></i> Nuovo Appunto</li>';
+    ul.innerHTML = '';
     
-    sermonsDB.forEach(s => {
+    const sortedSermons = [...sermonsDB].reverse();
+    
+    sortedSermons.forEach(s => {
         const li = document.createElement('li');
+        li.className = 'sermon-card';
         li.innerHTML = `
-            <span class="sermon-badge">${s.category || 'Sermone'}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <span class="sermon-badge">${escapeHtml(s.category || 'Sermone')}</span>
+            <div style="display:flex; align-items:center; gap:8px; padding-right: 60px;">
                 <i class="ri-file-list-3-line text-muted"></i> 
-                <span style="font-size:15px;">${s.title || "Senza titolo"}</span>
+                <span style="font-size:15px; font-weight:500;">${escapeHtml(s.title || "Senza titolo")}</span>
             </div>
+            <button class="delete-sermon-from-list" onclick="event.stopPropagation(); deleteSermonFromList('${s.id}')">
+                <i class="ri-delete-bin-line"></i>
+            </button>
         `;
-        li.style.padding = "15px"; li.style.borderBottom = "1px solid var(--border-color)"; li.style.cursor = "pointer"; li.style.display = "flex"; li.style.flexDirection = "column"; li.style.gap = "6px";
         li.onclick = () => {
             activeSermonId = s.id;
-            sTitle.value = s.title; sSpeaker.value = s.speaker; sCategory.value = s.category || "Sermone"; sRefs.value = s.refs || ""; sBody.value = s.body;
+            sTitle.value = s.title || "";
+            sSpeaker.value = s.speaker || "";
+            sCategory.value = s.category || "Sermone";
+            sRefs.value = s.refs || "";
+            sBody.value = s.body || "";
             document.getElementById('deleteSermonBtn').style.display = 'block';
         };
         ul.appendChild(li);
     });
+}
+
+async function deleteSermonFromList(id) {
+    if(confirm("Sei sicuro di voler eliminare questo appunto?")) {
+        try {
+            const { error } = await supabaseClient.from('sermoni').delete().eq('id', id);
+            if (error) throw error;
+            sermonsDB = sermonsDB.filter(s => s.id !== id);
+            if (activeSermonId === id) {
+                newSermon();
+            }
+            renderSermons(); 
+            updateDashboard();
+        } catch (e) {
+            alert("Errore di eliminazione: " + e.message);
+        }
+    }
 }
 
 function renderHighlights() {
@@ -725,7 +887,7 @@ function renderHighlights() {
     [...highlightsDB].reverse().forEach(h => {
         const li = document.createElement('li');
         li.className = 'highlight-item';
-        li.innerHTML = `<strong style="color:#ff9500;">${h.bookName} ${h.chapter}:${h.verse}</strong><br>"${h.text}"`;
+        li.innerHTML = `<strong style="color:#ff9500;">${escapeHtml(h.bookName)} ${h.chapter}:${h.verse}</strong><br>"${escapeHtml(h.text.substring(0, 80))}${h.text.length > 80 ? '...' : ''}"`;
         
         li.onclick = () => {
             const currentText = sBody.value;
@@ -742,14 +904,26 @@ function renderHighlights() {
 }
 
 function newSermon() { 
-    activeSermonId = null; sTitle.value = ""; sSpeaker.value = ""; sCategory.value = "Sermone"; sRefs.value = ""; sBody.value = ""; 
+    activeSermonId = null; 
+    sTitle.value = ""; 
+    sSpeaker.value = ""; 
+    sCategory.value = "Sermone"; 
+    sRefs.value = ""; 
+    sBody.value = ""; 
     document.getElementById('deleteSermonBtn').style.display = 'none';
 }
 
 document.getElementById('saveSermonBtn').onclick = async () => {
     if(!sTitle.value && !sBody.value) return;
     
-    const data = { id: activeSermonId || crypto.randomUUID(), title: sTitle.value, speaker: sSpeaker.value, category: sCategory.value, refs: sRefs.value, body: sBody.value };
+    const data = { 
+        id: activeSermonId || crypto.randomUUID(), 
+        title: sTitle.value, 
+        speaker: sSpeaker.value, 
+        category: sCategory.value, 
+        refs: sRefs.value, 
+        body: sBody.value 
+    };
     
     try {
         const { error } = await supabaseClient.from('sermoni').upsert([data]);
@@ -762,7 +936,8 @@ document.getElementById('saveSermonBtn').onclick = async () => {
             sermonsDB.unshift(data);
             activeSermonId = data.id;
         }
-        renderSermons(); updateDashboard();
+        renderSermons(); 
+        updateDashboard();
         document.getElementById('deleteSermonBtn').style.display = 'block';
         
         const btn = document.getElementById('saveSermonBtn'); 
@@ -779,56 +954,26 @@ document.getElementById('deleteSermonBtn').onclick = async () => {
             const { error } = await supabaseClient.from('sermoni').delete().eq('id', activeSermonId);
             if (error) throw error;
             sermonsDB = sermonsDB.filter(s => s.id !== activeSermonId);
-            newSermon(); renderSermons(); updateDashboard();
+            newSermon(); 
+            renderSermons(); 
+            updateDashboard();
         } catch (e) {
             alert("Errore di eliminazione: " + e.message);
         }
     }
 };
 
-function renderBible(verses) {
-    const container = document.getElementById('bibleContent');
-    container.innerHTML = verses.map(v => `
-        <div class="bible-verse" data-id="${v.id}">
-            <span class="verse-num">${v.number}</span> 
-            <span class="verse-text">${v.text}</span>
-        </div>
-    `).join('');
-}
-
-// Esempio di logica da inserire dopo il login
-function handleUserRole(user) {
-    const body = document.body;
-    
-    // Sostituisci con la tua condizione reale (es. user.email === 'admin@test.com')
-    if (user && user.isAdmin) {
-        body.classList.add('is-admin');
-    } else {
-        body.classList.remove('is-admin');
-    }
-}
-
-// Funzione da chiamare subito dopo il login dell'utente
-function checkAdminPrivileges(userEmail) {
-    const adminEmail = "marraros11@gmail.com";
-    const bodyElement = document.body;
-
-    if (userEmail === adminEmail) {
-        // Se l'email corrisponde, aggiunge la classe che attiva i CSS admin
-        bodyElement.classList.add('is-admin');
-        console.log("Accesso amministratore confermato.");
-    } else {
-        // Altrimenti si assicura che la classe non sia presente
-        bodyElement.classList.remove('is-admin');
-        console.log("Accesso come utente standard.");
-    }
-}
-
-// Esempio di integrazione con Firebase o altro sistema:
-// auth.onAuthStateChanged(user => {
-//    if (user) {
-//        checkAdminPrivileges(user.email);
-//    }
-// });
+// Funzioni globali necessarie
+window.openAvvisoModal = openAvvisoModal;
+window.closeAvvisoModal = closeAvvisoModal;
+window.deleteAvviso = deleteAvviso;
+window.openHymnSlides = openHymnSlides;
+window.toggleFavorite = toggleFavorite;
+window.deleteHymn = deleteHymn;
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.changeChapter = changeChapter;
+window.deleteSermonFromList = deleteSermonFromList;
+window.newSermon = newSermon;
 
 renderSermons();
