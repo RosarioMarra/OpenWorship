@@ -2,7 +2,6 @@
     --bg-app: #f2f2f7; --bg-card: #ffffff; --bg-glass: rgba(255, 255, 255, 0.75);
     --text-main: #1c1c1e; --text-muted: #8e8e93; --accent-color: #007aff;
     --border-color: rgba(60, 60, 67, 0.12); --danger-color: #ff3b30;
-    --heart-color: #ff2d55; /* Nuovo colore per i preferiti */
     --safe-area-bottom: env(safe-area-inset-bottom, 20px);
 }
 
@@ -12,104 +11,281 @@ body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .hidden { display: none !important; }
 
-/* --- LOGIN SCREEN (Invariato) --- */
+/* --- LOGIN SCREEN --- */
 .login-container { position: fixed; width: 100%; height: 100%; background: transparent; display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease;}
 .login-video-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; }
 .login-video-wrapper video { min-width: 100%; min-height: 100%; width: auto; height: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); object-fit: cover; }
 .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(10, 30, 60, 0.7) 0%, rgba(5, 10, 20, 0.9) 100%); }
 .login-card { background: var(--bg-glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); padding: 50px 40px; border-radius: 32px; text-align: center; border: 1px solid rgba(255,255,255,0.4); width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
-.login-icon { background: #ffffff; width: 80px; height: 80px; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; box-shadow: 0 8px 20px rgba(0,0,0,0.1); padding: 10px; }
+
+/* Logo Login Aggiornato */
+.login-icon { 
+    background: #ffffff; 
+    width: 80px; 
+    height: 80px; 
+    border-radius: 20px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin: 0 auto 24px auto; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+    padding: 10px;
+}
+
 .login-card h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px;}
 .login-card p { color: var(--text-muted); margin-bottom: 36px; font-size: 16px;}
 .btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: white; border: 1px solid var(--border-color); padding: 14px; border-radius: 16px; font-size: 16px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .btn-google:active { transform: scale(0.96); }
 .btn-google img { width: 22px; }
+.login-footer-text { font-size: 12px !important; color: #b0b0b5 !important; margin-top: 24px; margin-bottom: 0 !important; }
+.login-footer-text a:hover { text-decoration: underline !important; color: var(--text-main) !important; }
 
 /* --- SIDEBAR DESKTOP --- */
 .sidebar { width: 280px; background: var(--bg-glass); backdrop-filter: blur(20px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 32px 16px; z-index: 100;}
 .sidebar-header { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; padding: 0 10px; }
-.app-icon { background: #ffffff; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); padding: 4px; }
+
+/* Logo Sidebar Aggiornato */
+.app-icon { 
+    background: #ffffff; 
+    width: 36px; 
+    height: 36px; 
+    border-radius: 10px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    border: 1px solid var(--border-color);
+    padding: 4px;
+}
+
 .sidebar-header h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
 .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .sidebar-nav .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: none; background: transparent; border-radius: 12px; color: var(--text-muted); font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.2s ease; text-align: left;}
 .sidebar-nav .nav-item:hover { background: rgba(0,0,0,0.03); }
 .sidebar-nav .nav-item.active { background: rgba(0, 122, 255, 0.1); color: var(--accent-color); font-weight: 600; }
+.btn-logout-desktop { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: rgba(255, 59, 48, 0.08); color: var(--danger-color); border: none; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; transition: 0.2s; margin-top: 15px;}
+.btn-logout-desktop:hover { background: rgba(255, 59, 48, 0.15); }
+
+/* --- MENU MOBILE FLUTTUANTE --- */
+.mobile-nav { display: none; }
 
 /* --- MAIN CONTENT & HEADER --- */
-.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 0 30px 40px; position: relative;}
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg-app); padding: 20px 0 10px; z-index: 50; }
-.section-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; } /* Intestazione più piccola come richiesto */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 0 60px 40px; position: relative;}
+.content-section { display: none; height: 100%; flex-direction: column; }
+.content-section.active { display: flex; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- DASHBOARD HOME AGGIORNATA --- */
-.dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; } /* Card più piccole */
-.dash-card { background: var(--bg-card); padding: 15px; border-radius: 18px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: 0.2s; }
-.dash-card:active { transform: scale(0.96); }
-.dash-card-icon { font-size: 24px; margin-bottom: 8px; color: var(--accent-color); }
-.dash-card h3 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-.dash-stat { font-size: 20px; font-weight: 800; color: var(--text-main); }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; position: sticky; top: 0; background: rgba(242, 242, 247, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 30px 0 15px; z-index: 50; }
+.section-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; }
 
-/* Card Versetto Speciale */
-.verse-card { 
-    grid-column: 1 / -1; height: 180px; border-radius: 22px; position: relative; 
-    overflow: hidden; display: flex; align-items: center; justify-content: center; 
-    color: white; padding: 25px; text-align: center; margin-bottom: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: none;
-}
-.verse-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); z-index: 1; }
-.verse-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
-.verse-content { z-index: 2; position: relative; }
-.verse-text { font-size: 19px; font-weight: 700; line-height: 1.3; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-.verse-ref { font-size: 13px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+/* --- BOTTONI FONT APPLE --- */
+.apple-font-controls { display: flex; align-items: center; background: #e5e5ea; border-radius: 12px; padding: 3px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+.font-btn { background: transparent; border: none; padding: 6px 18px; border-radius: 10px; cursor: pointer; color: var(--text-main); font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center;}
+.font-btn:hover { background: rgba(255,255,255,0.5); }
+.font-btn:active { background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transform: scale(0.95);}
+.font-btn.small-a { font-size: 13px; }
+.font-btn.large-a { font-size: 18px; }
+.font-divider { width: 1px; height: 16px; background: #c7c7cc; margin: 0 2px; }
 
-/* --- SEZIONE CANTICI AGGIORNATA --- */
-.sticky-search { position: sticky; top: 65px; background: var(--bg-app); z-index: 45; padding-bottom: 10px; margin-bottom: 5px; }
-.tabs-container { display: flex; background: rgba(0,0,0,0.05); border-radius: 12px; padding: 3px; margin-bottom: 12px; gap: 4px; }
-.tab-btn { flex: 1; border: none; padding: 8px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-muted); transition: 0.2s; }
-.tab-btn.active { background: white; color: var(--accent-color); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+/* --- DASHBOARD WIDGETS --- */
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.dash-card { background: var(--bg-card); padding: 20px; border-radius: 18px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: center; transition: 0.3s; }
+.dash-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+.widget-primary { background: linear-gradient(135deg, #007aff, #0056b3); color: white; border: none; }
+.widget-primary .dash-sub, .widget-primary h3 { color: rgba(255,255,255,0.8); }
+.dash-card-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; color: var(--text-main); }
+.widget-primary .dash-card-icon { background: rgba(255,255,255,0.2); color: white; }
+.dash-card h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: var(--text-muted); }
+.dash-stat { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; line-height: 1; }
+.dash-sub { font-size: 13px; color: var(--text-muted); font-weight: 500;}
+.verse-card { background: linear-gradient(135deg, #fffaf0, #ffffff); border: 1px solid #ffe6cc; position: relative; overflow: hidden; }
+.verse-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #ff9500; }
+.verse-text { font-size: 20px; font-weight: 600; font-style: italic; line-height: 1.5; color: var(--text-main); margin-bottom: 8px; }
+.verse-ref { font-size: 14px; font-weight: 700; color: #ff9500; text-align: right; }
 
-.hymn-card { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: white; border-bottom: 1px solid var(--border-color); cursor: pointer; }
-.btn-fav { background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; padding: 5px; transition: 0.2s; }
-.btn-fav.active { color: var(--heart-color); animation: heartBeat 0.3s ease-out; }
-@keyframes heartBeat { 0% {transform: scale(1);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
+/* --- AVVISI --- */
+.avvisi-wrapper { display: flex; flex-direction: column; gap: 15px; }
+.avviso-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); position: relative; }
+.avviso-date { font-size: 12px; font-weight: 700; color: var(--accent-color); margin-bottom: 6px; text-transform: uppercase;}
+.avviso-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;}
+.avviso-desc { font-size: 16px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap;}
 
-/* --- SERMONI AGGIORNATI --- */
-.new-sermon-box { display: flex; justify-content: center; margin-bottom: 20px; }
-.btn-new-sermon { background: var(--accent-color); color: white; border: none; padding: 12px 25px; border-radius: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,122,255,0.25); }
-
-.sermon-card-list { background: white; border-radius: 14px; border: 1px solid var(--border-color); padding: 12px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
-.sermon-card-list:active { background: #f9f9fb; transform: scale(0.98); }
-.sermon-card-info { flex: 1; }
-.sermon-card-title { font-weight: 700; font-size: 16px; margin-bottom: 3px; }
-.sermon-card-meta { font-size: 12px; color: var(--text-muted); }
-
-/* --- MOBILE NAV (Titoli sempre visibili) --- */
-.mobile-nav { 
-    display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
-    background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); 
-    border-top: 1px solid var(--border-color); justify-content: space-around; align-items: center; 
-    padding-bottom: env(safe-area-inset-bottom); z-index: 1000;
-}
-.mobile-nav .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; border: none; background: none; cursor: pointer; flex: 1; }
-.mobile-nav .nav-item i { font-size: 22px; }
-.mobile-nav .nav-item span { font-size: 10px; font-weight: 600; display: block !important; opacity: 1 !important; transform: none !important; position: static !important; }
-.mobile-nav .nav-item.active { color: var(--accent-color); }
-
-/* Ripristino altri stili originali... */
-.search-bar { display: flex; align-items: center; background: rgba(118, 118, 128, 0.12); border-radius: 12px; padding: 10px 16px; margin-bottom: 10px; }
+/* --- UTILITIES --- */
+.search-bar { display: flex; align-items: center; background: rgba(118, 118, 128, 0.12); border-radius: 12px; padding: 10px 16px; margin-bottom: 20px; }
 .search-bar input { border: none; background: transparent; width: 100%; font-size: 17px; outline: none; margin-left: 10px;}
-.apple-select { padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: white; font-size: 15px; outline: none; cursor: pointer; color: var(--text-main);}
+.text-danger { color: var(--danger-color) !important; }
+.text-muted { color: var(--text-muted); }
+.apple-select { padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: white; font-size: 15px; outline: none; -webkit-appearance: none; cursor: pointer; color: var(--text-main);}
 .btn-primary { background: var(--accent-color); color: white; padding: 10px 20px; border-radius: 20px; font-weight: 600; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2); transition: 0.2s;}
-.editor-container { flex: 1; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03);}
-.sermon-input-body { flex: 1; border: none; outline: none; resize: none; width: 100%; background: transparent; padding: 25px; font-size: 17px; line-height: 1.6; overflow-y: auto;}
+.btn-primary:active { transform: scale(0.96); }
+.btn-secondary { background: #e5e5ea; color: var(--text-main); padding: 10px 20px; border-radius: 20px; font-weight: 600; border: none; font-size: 15px; cursor: pointer; }
+.btn-text { background: transparent; color: var(--accent-color); font-weight: 600; border: none; font-size: 17px; cursor: pointer; display: flex; align-items: center; gap: 4px;}
+.btn-icon-small { background: white; border: 1px solid var(--border-color); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; transition: 0.2s;}
+.btn-icon-small:active { transform: scale(0.9); }
+.btn-icon-bg { background: rgba(0, 122, 255, 0.1); color: var(--accent-color); width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;}
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);}
+.modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);}
 
-/* Media Queries */
+/* --- ADMIN CONTROLS --- */
+.admin-only-controls { display: flex; align-items: center; gap: 10px; }
+.admin-list-controls { display: flex; gap: 15px; }
+.btn-delete { color: var(--danger-color); background: none; border: none; font-size: 20px; cursor: pointer;}
+.btn-edit { color: var(--accent-color); background: none; border: none; font-size: 20px; cursor: pointer;}
+
+/* --- CANTICI LIST & SLIDES --- */
+.list-container { display: flex; flex-direction: column; gap: 1px; background: var(--bg-card); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.03);}
+.hymn-card { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; background: white; cursor: pointer; border-bottom: 1px solid var(--border-color);}
+.hymn-card:hover { background: #f9f9fb; }
+.reader-view { flex: 1; display: flex; flex-direction: column; height: 100%; background: var(--bg-card); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);}
+.sticky-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #fafafa; border-bottom: 1px solid var(--border-color); z-index: 10; margin-bottom: 0;}
+.reader-top-title { font-size: 16px; font-weight: 600; color: var(--text-muted); }
+
+.slides-wrapper { position: relative; display: flex; flex: 1; align-items: center; overflow: hidden; width: 100%; }
+.slides-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.slides-container::-webkit-scrollbar { display: none; }
+
+.hymn-slide { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: center; display: flex; align-items: center; justify-content: center; padding: 0; overflow-x: hidden; overflow-y: auto; }
+.slide-content { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: auto; font-weight: 600; padding: 0 20px; }
+.hymn-line { white-space: nowrap; line-height: 1.3; min-height: 1.2em; display: block; }
+.slide-chorus { color: var(--accent-color); font-style: italic; }
+
+/* TASTI NAVIGAZIONE CANTICI */
+.hymn-bottom-controls { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 15px; background: #fafafa; border-top: 1px solid var(--border-color); z-index: 10; }
+.hymn-nav-buttons { display: flex; gap: 15px; }
+.slide-nav-btn { background: white; border: 1px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-color); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: 0.2s; flex-shrink: 0;}
+.slide-nav-btn:active { transform: scale(0.9); }
+
+.slide-dots-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;}
+.slide-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d1d6; transition: 0.3s ease; }
+.slide-dot.active { background: var(--accent-color); transform: scale(1.3); }
+
+/* --- VISTA GRIGLIA CANTICI --- */
+.hymn-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 20px; overflow-y: auto; flex: 1; background: var(--bg-app); }
+.hymn-grid-card { background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: 0.2s; height: 150px; overflow: hidden; text-align: left; }
+.hymn-grid-card:hover { border-color: var(--accent-color); transform: scale(1.02); }
+.grid-card-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;}
+.grid-card-preview { font-size: 14px; font-weight: 500; color: var(--text-main); white-space: pre-wrap; line-height: 1.4; }
+
+/* --- BIBBIA & EVIDENZIATORE --- */
+.bible-controls-grid { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr auto; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); background: #fafafa; transition: 0.3s ease; overflow: hidden; min-height: 0;}
+.bible-reader-content { padding: 30px; overflow-y: auto; font-size: 20px; line-height: 1.6; flex: 1; transition: font-size 0.2s;}
+.bible-verse { display: block; margin-bottom: 16px; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; border: 1px solid transparent; }
+.bible-verse:hover { background: rgba(0,0,0,0.02); }
+.bible-verse.highlighted { background: #fffaf0; border-color: #ffe6cc; border-left: 4px solid #ff9500; }
+
+.bible-bottom-controls { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 15px; background: #fafafa; border-top: 1px solid var(--border-color); z-index: 10; }
+
+/* --- SERMONI E HIGHLIGHTS --- */
+.sermons-layout { display: flex; gap: 24px; flex: 1; height: 100%; overflow: hidden; padding-bottom: 20px;}
+.saved-sermons-list { width: 300px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03);}
+.list-header { padding: 16px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); background: #fafafa; position: sticky; top: 0; z-index: 2;}
+.saved-sermons-list ul { list-style: none; }
+.saved-sermons-list li { padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: flex-start; flex-direction: column; gap: 6px; font-weight: 500;}
+.saved-sermons-list li:hover { background: #f9f9fb; }
+.highlight-item { padding: 12px 16px !important; font-size: 13px !important; line-height: 1.5; border-bottom: 1px solid #ffe6cc !important; transition: 0.2s; cursor: pointer; }
+.highlight-item:hover { background: #ffe6cc !important; }
+.sermon-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 6px; border-radius: 4px; background: rgba(0,122,255,0.1); color: var(--accent-color); align-self: flex-start; }
+.editor-container { flex: 1; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03);}
+.editor-header { padding: 24px 32px 16px 32px; border-bottom: 1px solid var(--border-color); background: #fafafa;}
+.sermon-input-title { font-size: 32px; font-weight: 700; border: none; outline: none; width: 100%; background: transparent; margin-bottom: 12px; color: var(--text-main);}
+.speaker-row { display: flex; align-items: center; gap: 8px; }
+.sermon-input-speaker { font-size: 16px; border: none; outline: none; width: 100%; background: transparent; color: var(--text-main); font-weight: 500;}
+.sermon-input-body { flex: 1; border: none; outline: none; resize: none; width: 100%; background: transparent; padding: 32px; font-size: 18px; line-height: 1.7; overflow-y: auto;}
+
+/* --- MOBILE RESPONSIVE --- */
 @media (max-width: 768px) {
     .desktop-only { display: none; }
-    .mobile-nav { display: flex; }
-    .main-content { padding: 0 16px 100px; }
-    .sidebar { display: none; }
+    .main-content { padding: 0 16px 120px !important; } 
+    .section-header { padding: 20px 0 15px; }
+    
+    .mobile-nav { 
+        display: flex; position: fixed; 
+        bottom: calc(env(safe-area-inset-bottom, 20px) + 15px); 
+        left: 10px; right: 10px; width: auto; border-radius: 25px; 
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 8px 2px; 
+        justify-content: space-between; align-items: center; border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .mobile-nav .nav-item { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 45px; background: transparent; border: none; cursor: pointer; width: 16%;}
+    .mobile-nav .nav-icon-wrapper { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); background: transparent; z-index: 2;}
+    .mobile-nav .nav-icon-wrapper i { font-size: 22px; color: var(--text-muted); transition: color 0.3s ease; }
+    .mobile-nav .nav-item.active .nav-icon-wrapper { transform: translateY(-22px); background: var(--accent-color); box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4); border: 3px solid var(--bg-app); }
+    .mobile-nav .nav-item.active .nav-icon-wrapper i { color: white; }
+    .mobile-nav .nav-item.text-danger .nav-icon-wrapper i { color: var(--danger-color); }
+    .mobile-nav .nav-item span { position: absolute; bottom: -5px; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; font-size: 10px; font-weight: 700; color: var(--accent-color);}
+    .mobile-nav .nav-item.active span { opacity: 1; transform: translateY(0); bottom: 1px; }
+
+    .dashboard-grid { grid-template-columns: 1fr; margin-bottom: 30px; }
+    .bible-controls-grid { grid-template-columns: 1fr 1fr; }
+    .bible-controls-grid select { grid-column: span 1; }
+    .bible-controls-grid .btn-primary { grid-column: span 2; justify-content: center;}
+    
+    .sermons-layout { flex-direction: column; overflow: visible; height: auto;}
+    .saved-sermons-list { width: 100%; height: auto; flex-shrink: 0;}
+    #sermonsUl { min-height: 150px; max-height: 250px;}
+    #highlightsUl { min-height: 150px; max-height: 250px;}
+    .editor-container { min-height: 500px; flex-shrink: 0; margin-top: 20px;}
+    
+    .hymn-slide { padding: 0; } 
+    .reader-top-title { max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .hymn-grid-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
-/* Guardrail per Admin */
-.admin-only-controls, body:not(.is-admin) .admin-only-controls { display: none; }
-body.is-admin .admin-only-controls { display: flex !important; }
+/* --- FUNZIONALITÀ DINAMICHE AGGIUNTE --- */
+.bg-yellow { background-color: #fff2ac; border-radius: 4px; padding: 2px 0; }
+.bg-green  { background-color: #c7f0d0; border-radius: 4px; padding: 2px 0; }
+.bg-blue   { background-color: #d1e9ff; border-radius: 4px; padding: 2px 0; }
+.bg-pink   { background-color: #ffd1dc; border-radius: 4px; padding: 2px 0; }
+
+.highlight-menu {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 20px;
+    border-radius: 24px;
+    display: flex;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10001;
+}
+
+.highlight-menu.active { transform: translateX(-50%) translateY(0); }
+
+.color-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.slides-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+
+.slides-container::-webkit-scrollbar { display: none; }
+.bible-verse { animation: fadeIn 0.3s ease forwards; }
+
+/* --- PROTEZIONE CONTROLLI ADMIN --- */
+.admin-only-controls, .admin-list-controls, .btn-delete, .btn-edit, #addHymnBtn, #addNoticeBtn { 
+    display: none !important; 
+}
+
+body.is-admin .admin-only-controls,
+body.is-admin .admin-list-controls,
+body.is-admin .btn-delete,
+body.is-admin .btn-edit,
+body.is-admin #addHymnBtn,
+body.is-admin #addNoticeBtn {
+    display: flex !important;
+}
