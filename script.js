@@ -528,7 +528,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     }
 };
 
-// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli con nome esatto) ---
+// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli con nome "2. Onoriamo la Parola.xml") ---
 function setupExportButton() {
     const exportBtn = document.getElementById('exportHymnsBtn');
     if (!exportBtn) return;
@@ -587,9 +587,8 @@ function exportHymnsToZip() {
   <lyrics>${escapeXml(formattedContent)}</lyrics>
 </song>`;
         
-        // Usa il numero progressivo (con zeri) e il titolo esatto come visualizzato
-        const numero = String(idx + 1).padStart(3, '0');
-        const filename = `${numero}_${sanitizeFilename(hymn.title)}.xml`;
+        // Nome file: "2. Onoriamo la Parola.xml" (numero progressivo senza zeri)
+        const filename = `${idx + 1}. ${sanitizeFilename(hymn.title)}.xml`;
         zip.file(filename, xmlContent);
     });
     
@@ -1169,7 +1168,6 @@ function renderSermons() {
             sCategory.value = s.category || "Sermone";
             sRefs.value = s.refs || "";
             sBody.value = s.body || "";
-            document.getElementById('deleteSermonBtn').style.display = 'block';
         };
         ul.appendChild(li);
     });
@@ -1226,7 +1224,6 @@ function newSermon() {
     sCategory.value = "Sermone"; 
     sRefs.value = ""; 
     sBody.value = ""; 
-    document.getElementById('deleteSermonBtn').style.display = 'none';
 }
 
 document.getElementById('saveSermonBtn').onclick = async () => {
@@ -1254,28 +1251,12 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         }
         renderSermons(); 
         updateDashboard();
-        document.getElementById('deleteSermonBtn').style.display = 'block';
         
         const btn = document.getElementById('saveSermonBtn'); 
         btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
         setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i> Salva", 2000);
     } catch (e) {
         alert("Errore salvataggio appunto: " + e.message);
-    }
-};
-
-document.getElementById('deleteSermonBtn').onclick = async () => {
-    if(confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        try {
-            const { error } = await supabaseClient.from('sermoni').delete().eq('id', activeSermonId);
-            if (error) throw error;
-            sermonsDB = sermonsDB.filter(s => s.id !== activeSermonId);
-            newSermon(); 
-            renderSermons(); 
-            updateDashboard();
-        } catch (e) {
-            alert("Errore di eliminazione: " + e.message);
-        }
     }
 };
 
