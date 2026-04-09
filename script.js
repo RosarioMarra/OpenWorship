@@ -628,12 +628,19 @@ document.getElementById('toggleGridViewBtn').onclick = () => {
         hymnBottomControls.classList.add('hidden');
         gridContainer.classList.remove('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
+        // Nascondi anteprime in griglia
+        const previews = document.getElementById('slidePreviews');
+        if (previews) previews.style.display = 'none';
     } else {
         document.getElementById('slidesWrapperView').classList.remove('hidden');
         hymnBottomControls.classList.remove('hidden');
         gridContainer.classList.add('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
+        // Mostra anteprime
+        const previews = document.getElementById('slidePreviews');
+        if (previews) previews.style.display = 'flex';
         setTimeout(autoFitHymn, 50);
+        setTimeout(updateSlidePreviews, 100);
     }
 };
 
@@ -650,6 +657,10 @@ function openHymnSlides(id) {
     hymnBottomControls.classList.remove('hidden');
     gridContainer.classList.add('hidden');
     document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
+    
+    // Mostra il container delle anteprime
+    const previewsContainer = document.getElementById('slidePreviews');
+    if (previewsContainer) previewsContainer.style.display = 'flex';
 
     slidesContainer.innerHTML = ''; 
     document.getElementById('slideDots').innerHTML = ''; 
@@ -689,11 +700,16 @@ function openHymnSlides(id) {
     slidesContainer.scrollLeft = 0;
     updateSlideVisibility();
     setTimeout(autoFitHymn, 50);
+    setTimeout(updateSlidePreviews, 100);
 }
 
 function scrollToSlide(index) {
     const slideWidth = slidesContainer.clientWidth;
     slidesContainer.scrollLeft = index * slideWidth;
+    setTimeout(() => {
+        updateSlideVisibility();
+        updateSlidePreviews();
+    }, 100);
 }
 
 function updateSlideVisibility() {
@@ -711,6 +727,71 @@ function updateSlideVisibility() {
         slide.style.opacity = opacity;
         slide.style.transform = `scale(${scale})`;
     });
+    
+    updateSlidePreviews();
+}
+
+// Aggiorna le anteprime delle slide precedente e successiva
+function updateSlidePreviews() {
+    const slides = document.querySelectorAll('.hymn-slide');
+    if (slides.length === 0) return;
+    
+    const containerRect = slidesContainer.getBoundingClientRect();
+    const center = containerRect.left + containerRect.width / 2;
+    
+    let currentIndex = -1;
+    slides.forEach((slide, idx) => {
+        const slideRect = slide.getBoundingClientRect();
+        const slideCenter = slideRect.left + slideRect.width / 2;
+        if (Math.abs(slideCenter - center) < 10) {
+            currentIndex = idx;
+        }
+    });
+    
+    const prevContent = document.getElementById('previewPrevContent');
+    const nextContent = document.getElementById('previewNextContent');
+    const previewPrev = document.getElementById('previewPrev');
+    const previewNext = document.getElementById('previewNext');
+    
+    if (!prevContent || !nextContent) return;
+    
+    if (currentIndex > 0) {
+        const prevSlide = slides[currentIndex - 1];
+        const prevText = prevSlide ? prevSlide.querySelector('.slide-content')?.innerText || '—' : '—';
+        prevContent.innerHTML = prevText.substring(0, 100) + (prevText.length > 100 ? '...' : '');
+        previewPrev.style.opacity = '1';
+        previewPrev.style.pointerEvents = 'auto';
+        previewPrev.onclick = () => {
+            slidesContainer.scrollLeft = (currentIndex - 1) * slidesContainer.clientWidth;
+            setTimeout(() => {
+                updateSlideVisibility();
+                updateSlidePreviews();
+            }, 100);
+        };
+    } else {
+        prevContent.innerHTML = '—';
+        previewPrev.style.opacity = '0.5';
+        previewPrev.style.pointerEvents = 'none';
+    }
+    
+    if (currentIndex < slides.length - 1 && currentIndex !== -1) {
+        const nextSlide = slides[currentIndex + 1];
+        const nextText = nextSlide ? nextSlide.querySelector('.slide-content')?.innerText || '—' : '—';
+        nextContent.innerHTML = nextText.substring(0, 100) + (nextText.length > 100 ? '...' : '');
+        previewNext.style.opacity = '1';
+        previewNext.style.pointerEvents = 'auto';
+        previewNext.onclick = () => {
+            slidesContainer.scrollLeft = (currentIndex + 1) * slidesContainer.clientWidth;
+            setTimeout(() => {
+                updateSlideVisibility();
+                updateSlidePreviews();
+            }, 100);
+        };
+    } else {
+        nextContent.innerHTML = '—';
+        previewNext.style.opacity = '0.5';
+        previewNext.style.pointerEvents = 'none';
+    }
 }
 
 function autoFitHymn() {
@@ -759,8 +840,22 @@ document.getElementById('decreaseHymnFont').onclick = () => {
 };
 
 function updateHymnFontSize(size) { document.querySelectorAll('.slide-content').forEach(el => el.style.fontSize = `${size}px`); }
-document.getElementById('nextSlideBtn').onclick = () => { slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' }); setTimeout(updateSlideVisibility, 300); };
-document.getElementById('prevSlideBtn').onclick = () => { slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' }); setTimeout(updateSlideVisibility, 300); };
+
+document.getElementById('nextSlideBtn').onclick = () => { 
+    slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' }); 
+    setTimeout(() => { 
+        updateSlideVisibility(); 
+        updateSlidePreviews(); 
+    }, 300); 
+};
+
+document.getElementById('prevSlideBtn').onclick = () => { 
+    slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' }); 
+    setTimeout(() => { 
+        updateSlideVisibility(); 
+        updateSlidePreviews(); 
+    }, 300); 
+};
 
 slidesContainer.addEventListener('scroll', () => {
     const slideWidth = slidesContainer.clientWidth;
@@ -768,8 +863,16 @@ slidesContainer.addEventListener('scroll', () => {
     const currentSlide = Math.round(slidesContainer.scrollLeft / slideWidth);
     document.querySelectorAll('.slide-dot').forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
     updateSlideVisibility();
+    updateSlidePreviews();
 });
-document.getElementById('backToHymns').onclick = () => { document.getElementById('hymnReaderView').classList.add('hidden'); document.getElementById('hymnsListView').classList.remove('hidden'); };
+
+document.getElementById('backToHymns').onclick = () => { 
+    document.getElementById('hymnReaderView').classList.add('hidden'); 
+    document.getElementById('hymnsListView').classList.remove('hidden');
+    // Nascondi anteprime
+    const previews = document.getElementById('slidePreviews');
+    if (previews) previews.style.display = 'none';
+};
 
 // --- BIBBIA ---
 const bibleBooks = [
