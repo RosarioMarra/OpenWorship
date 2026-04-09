@@ -528,7 +528,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     }
 };
 
-// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli con nome "2. Onoriamo la Parola.xml") ---
+// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli con nome esatto) ---
 function setupExportButton() {
     const exportBtn = document.getElementById('exportHymnsBtn');
     if (!exportBtn) return;
@@ -568,7 +568,7 @@ function exportHymnsToZip() {
     // Ottieni i cantici filtrati (stessi ordine e numeri visualizzati)
     const filtered = getFilteredHymns();
     
-    filtered.forEach((hymn, idx) => {
+    filtered.forEach((hymn) => {
         const blocks = hymn.content.split(/\n\s*\n/);
         let formattedContent = '';
         blocks.forEach((block, blockIdx) => {
@@ -587,8 +587,9 @@ function exportHymnsToZip() {
   <lyrics>${escapeXml(formattedContent)}</lyrics>
 </song>`;
         
-        // Nome file: "2. Onoriamo la Parola.xml" (numero progressivo senza zeri)
-        const filename = `${idx + 1}. ${sanitizeFilename(hymn.title)}.xml`;
+        // Usa il titolo originale come nome file (es. "1. Siamo per grazia.xml")
+        // Senza aggiungere numeri extra
+        const filename = `${sanitizeFilename(hymn.title)}.xml`;
         zip.file(filename, xmlContent);
     });
     
