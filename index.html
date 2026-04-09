@@ -126,7 +126,7 @@
                 <div class="section-header">
                     <h1 class="section-title">Avvisi alla Chiesa</h1>
                     <div class="admin-only-controls">
-                        <button class="btn-primary" onclick="openAvvisoModal()">
+                        <button class="btn-apple" onclick="openAvvisoModal()">
                             <i class="ri-add-line"></i> Nuovo Avviso
                         </button>
                     </div>
@@ -140,14 +140,14 @@
                         <h1 class="section-title">Cantici</h1>
                         <div class="admin-only-controls">
                             <input type="file" id="xmlUpload" accept=".xml,.txt" multiple style="display: none;">
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <button class="favorite-btn" id="uploadHymnsBtn" title="Carica Cantici">
+                            <div style="display: flex; gap: 16px; align-items: center;">
+                                <button class="icon-btn" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
                                     <i class="ri-upload-line"></i>
                                 </button>
-                                <button class="favorite-btn" id="exportHymnsBtn" title="Esporta Cantici">
+                                <button class="icon-btn" id="exportHymnsBtn" title="Esporta Cantici">
                                     <i class="ri-download-line"></i>
                                 </button>
-                                <button class="favorite-btn btn-danger" id="deleteAllHymnsBtn" title="Cancella Tutti i Cantici">
+                                <button class="icon-btn icon-danger" id="deleteAllHymnsBtn" title="Cancella Tutti i Cantici">
                                     <i class="ri-delete-bin-line"></i>
                                 </button>
                             </div>
@@ -227,7 +227,7 @@
                         <select id="bibleBook" class="apple-select"></select>
                         <select id="bibleChapter" class="apple-select"></select>
                         <select id="bibleVerse" class="apple-select"></select>
-                        <button class="btn-primary" id="fetchBibleBtn"><i class="ri-book-read-line"></i> Leggi</button>
+                        <button class="btn-apple" id="fetchBibleBtn"><i class="ri-book-read-line"></i> Leggi</button>
                     </div>
                     
                     <div class="bible-reader-content" id="bibleReaderContent">
@@ -249,11 +249,11 @@
             <section id="sermoni" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        <button class="favorite-btn btn-danger" id="deleteSermonBtn" style="display: none;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <button class="icon-btn icon-danger" id="deleteSermonBtn" style="display: none;">
                             <i class="ri-delete-bin-line"></i>
                         </button>
-                        <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
+                        <button class="btn-apple" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
                     </div>
                 </div>
                 <div class="sermons-layout">
@@ -334,10 +334,10 @@
             <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
 
             <div style="display:flex; justify-content:space-between; align-items: center;">
-                <button class="favorite-btn btn-danger" id="deleteAvvisoBtn" style="display:none;"><i class="ri-delete-bin-line"></i></button>
+                <button class="icon-btn icon-danger" id="deleteAvvisoBtn" style="display:none;"><i class="ri-delete-bin-line"></i></button>
                 <div style="display:flex; gap:10px; margin-left: auto;">
                     <button class="btn-secondary" onclick="closeAvvisoModal()">Annulla</button>
-                    <button class="btn-primary" id="saveAvvisoBtn">Salva</button>
+                    <button class="btn-apple" id="saveAvvisoBtn">Salva</button>
                 </div>
             </div>
         </div>
@@ -350,7 +350,7 @@
             <textarea id="editHymnBody" class="apple-select" style="width:100%; height: 250px; resize:none;"></textarea>
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
                 <button class="btn-secondary" onclick="closeEditModal()">Annulla</button>
-                <button class="btn-primary" id="saveEditHymnBtn">Salva</button>
+                <button class="btn-apple" id="saveEditHymnBtn">Salva</button>
             </div>
         </div>
     </div>

@@ -136,11 +136,6 @@ async function showApp() {
             document.getElementById('sermonTitle').focus();
         });
         
-        // Upload button handler
-        document.getElementById('uploadHymnsBtn').addEventListener('click', () => {
-            document.getElementById('xmlUpload').click();
-        });
-        
         // Search input
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
             searchTerm = e.target.value;
@@ -150,10 +145,18 @@ async function showApp() {
         // Esportazione cantici
         setupExportButton();
         
+        // Saluto con nome utente
+        const greetingMsg = document.getElementById('greetingMessage');
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
+        const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
+        greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
+        
     }, 400);
 }
 
 function updateVerseOfDayImage() {
+    const verseCard = document.querySelector('.verse-card');
     const bgImageDiv = document.querySelector('.verse-bg-image');
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     const imageIndex = dayOfYear % verseImages.length;
@@ -211,10 +214,10 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
 
 // --- DASHBOARD E AVVISI ---
 const dailyVerses = [
-    { text: "Poiché Dio ha tanto amato il mondo, che ha dato il suo unigenito Figlio, affinché chiunque crede in lui non perisca, ma abbia vita eterna.", ref: "Giovanni 3:16" },
+    { text: "Poiché Dio ha tanto amato il mondo...", ref: "Giovanni 3:16" },
     { text: "Io posso ogni cosa in colui che mi fortifica.", ref: "Filippesi 4:13" },
     { text: "Il Signore è il mio pastore: nulla mi manca.", ref: "Salmi 23:1" },
-    { text: "Or la fede è certezza di cose che si sperano, dimostrazione di realtà che non si vedono.", ref: "Ebrei 11:1" },
+    { text: "Or la fede è certezza di cose che si sperano...", ref: "Ebrei 11:1" },
     { text: "Non preoccupatevi di nulla, ma in ogni cosa fate conoscere le vostre richieste a Dio.", ref: "Filippesi 4:6" },
     { text: "Il Signore ti benedica e ti custodisca.", ref: "Numeri 6:24" },
     { text: "Gustate e vedete quanto il Signore è buono!", ref: "Salmi 34:9" }
@@ -222,11 +225,6 @@ const dailyVerses = [
 
 function updateDashboard() {
     const hour = new Date().getHours();
-    const greetingMsg = document.getElementById('greetingMessage');
-    const currentText = greetingMsg.innerHTML;
-    if (!currentText.includes('Buongiorno') && !currentText.includes('Buon pomeriggio') && !currentText.includes('Buonasera')) {
-        greetingMsg.innerHTML = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
-    }
     document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     
     const now = new Date();
@@ -263,9 +261,9 @@ function renderAvvisi() {
         const card = document.createElement('div');
         card.className = 'avviso-card';
         card.innerHTML = `
-            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px;">
-                <button class="favorite-btn" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
-                <button class="favorite-btn btn-danger" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
+            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px;">
+                <button class="btn-edit" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
+                <button class="btn-delete" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
             </div>
             <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}</div>
             <div class="avviso-title">${escapeHtml(avviso.title)}</div>
@@ -469,9 +467,9 @@ function renderHymns() {
                 <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
                     <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                 </button>
-                <div class="admin-list-controls" style="display:flex; gap:8px;">
-                    <button class="favorite-btn" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
-                    <button class="favorite-btn btn-danger" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
+                <div class="admin-list-controls" style="display:flex; gap:12px;">
+                    <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
+                    <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
                 </div>
             </div>
         `;
@@ -552,6 +550,8 @@ function setupExportButton() {
             </div>
         `;
         document.body.appendChild(modal);
+        
+        let selectedFormat = 'zip';
         
         modal.querySelector('#cancelExportBtn').onclick = () => modal.remove();
         modal.querySelector('#confirmExportBtn').onclick = () => {
@@ -925,7 +925,7 @@ function updateBibleFontSize() { document.getElementById('bibleReaderContent').s
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-// --- SERMONI (APPUNTI) ---
+// --- SERMONI ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -1050,7 +1050,7 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
         setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i> Salva", 2000);
     } catch (e) {
-        alert("Errore salvataggio appunto: " + e.message);
+        alert("Errore salvataggio sermone: " + e.message);
     }
 };
 

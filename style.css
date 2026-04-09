@@ -525,3 +525,101 @@ body.is-admin #addNoticeBtn {
     width: 100%;
     height: 100%;
 }
+
+/* ===== NUOVI STILI ICONE MODERNE STILE APPLE ===== */
+
+.icon-btn {
+    background: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 30px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--accent-color);
+    transition: all 0.2s ease;
+}
+
+.icon-btn:active {
+    transform: scale(0.92);
+    background: rgba(0, 122, 255, 0.2);
+}
+
+.icon-btn.icon-danger {
+    color: var(--danger-color);
+    background: rgba(255, 59, 48, 0.1);
+}
+
+.icon-btn.icon-danger:active {
+    background: rgba(255, 59, 48, 0.2);
+}
+
+.btn-apple {
+    background: var(--accent-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-apple:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+}
+
+/* Video login funzionante */
+.login-video-wrapper video {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+/* Versetto del giorno - testo bianco visibile */
+.verse-text {
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.verse-ref {
+    color: #ffd700 !important;
+}
+
+/* Icone nei cantici - stessa spaziatura del cuore */
+.hymn-card .admin-list-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.favorite-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    border-radius: 30px;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #d1d1d6;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.favorite-btn.active {
+    color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+}
+
+.favorite-btn:active {
+    transform: scale(0.92);
+}
