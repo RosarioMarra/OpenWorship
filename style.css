@@ -623,3 +623,119 @@ body.is-admin #addNoticeBtn {
 .favorite-btn:active {
     transform: scale(0.92);
 }
+
+/* ===== STILI UNIFICATI PER TUTTE LE ICONE ===== */
+
+/* Tutte le icone ora hanno lo stesso stile del cuore */
+.favorite-btn,
+.btn-edit,
+.btn-delete,
+#deleteSermonBtn,
+#deleteAvvisoBtn,
+#exportHymnsBtn,
+#deleteAllHymnsBtn,
+#uploadHymnsBtn {
+    background: rgba(0, 122, 255, 0.1);
+    border: none;
+    border-radius: 30px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--accent-color);
+    transition: all 0.2s ease;
+}
+
+.favorite-btn:active,
+.btn-edit:active,
+.btn-delete:active,
+#deleteSermonBtn:active,
+#deleteAvvisoBtn:active,
+#exportHymnsBtn:active,
+#deleteAllHymnsBtn:active,
+#uploadHymnsBtn:active {
+    transform: scale(0.92);
+    background: rgba(0, 122, 255, 0.2);
+}
+
+/* Icone pericolo (delete) in rosso */
+.favorite-btn[style*="color: var(--danger-color)"],
+.btn-delete,
+#deleteSermonBtn,
+#deleteAvvisoBtn,
+#deleteAllHymnsBtn {
+    color: var(--danger-color) !important;
+    background: rgba(255, 59, 48, 0.1) !important;
+}
+
+.favorite-btn[style*="color: var(--danger-color)"]:active,
+.btn-delete:active,
+#deleteSermonBtn:active,
+#deleteAvvisoBtn:active,
+#deleteAllHymnsBtn:active {
+    background: rgba(255, 59, 48, 0.2) !important;
+}
+
+/* Bottone Apple primario */
+.btn-apple {
+    background: var(--accent-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-apple:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+}
+
+.btn-secondary {
+    background: #e5e5ea;
+    color: var(--text-main);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+/* Video login funzionante */
+.login-video-wrapper video {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+/* Versetto del giorno - testo bianco visibile */
+.verse-text {
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.verse-ref {
+    color: #ffd700 !important;
+}
+
+/* Spaziatura icone nella card cantici */
+.hymn-card .admin-list-controls {
+    display: flex;
+    gap: 12px;
+}
+
+/* Icona cuore preferiti (stesso stile) */
+.favorite-btn.active {
+    color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+}

@@ -145,7 +145,7 @@ async function showApp() {
         // Esportazione cantici
         setupExportButton();
         
-        // Saluto con nome utente
+        // Saluto con nome utente Google
         const greetingMsg = document.getElementById('greetingMessage');
         const hour = new Date().getHours();
         const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
@@ -261,9 +261,9 @@ function renderAvvisi() {
         const card = document.createElement('div');
         card.className = 'avviso-card';
         card.innerHTML = `
-            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px;">
-                <button class="btn-edit" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
-                <button class="btn-delete" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
+            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px;">
+                <button class="icon-btn" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
+                <button class="icon-btn icon-danger" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
             </div>
             <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}</div>
             <div class="avviso-title">${escapeHtml(avviso.title)}</div>
@@ -291,7 +291,7 @@ function openAvvisoModal(id = null) {
         document.getElementById('avvisoDate').value = avv.date;
         document.getElementById('avvisoTitle').value = avv.title;
         document.getElementById('avvisoDesc').value = avv.desc;
-        document.getElementById('deleteAvvisoBtn').style.display = 'block';
+        document.getElementById('deleteAvvisoBtn').style.display = 'flex';
         document.getElementById('deleteAvvisoBtn').onclick = () => deleteAvviso(id);
     } else {
         editingAvvisoId = null;
@@ -467,9 +467,9 @@ function renderHymns() {
                 <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
                     <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                 </button>
-                <div class="admin-list-controls" style="display:flex; gap:12px;">
-                    <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
-                    <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
+                <div class="admin-list-controls" style="display:flex; gap:8px;">
+                    <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
+                    <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
                 </div>
             </div>
         `;
@@ -545,13 +545,11 @@ function setupExportButton() {
                 <p style="margin-bottom: 20px; color: var(--text-muted);">Esporta ogni cantico come file XML individuale in uno ZIP</p>
                 <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
                     <button class="btn-secondary" id="cancelExportBtn">Annulla</button>
-                    <button class="btn-primary" id="confirmExportBtn">Esporta ZIP</button>
+                    <button class="btn-apple" id="confirmExportBtn">Esporta ZIP</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
-        
-        let selectedFormat = 'zip';
         
         modal.querySelector('#cancelExportBtn').onclick = () => modal.remove();
         modal.querySelector('#confirmExportBtn').onclick = () => {
@@ -564,7 +562,10 @@ function setupExportButton() {
 function exportHymnsToZip() {
     const zip = new JSZip();
     
-    hymnsDB.forEach((hymn, idx) => {
+    // Ottieni i cantici filtrati (stessi ordine e numeri visualizzati)
+    const filtered = getFilteredHymns();
+    
+    filtered.forEach((hymn, idx) => {
         const blocks = hymn.content.split(/\n\s*\n/);
         let formattedContent = '';
         blocks.forEach((block, blockIdx) => {
@@ -583,6 +584,7 @@ function exportHymnsToZip() {
   <lyrics>${escapeXml(formattedContent)}</lyrics>
 </song>`;
         
+        // Usa lo stesso numero e nome visualizzato nella lista
         const filename = `${String(idx + 1).padStart(3, '0')}_${sanitizeFilename(hymn.title)}.xml`;
         zip.file(filename, xmlContent);
     });
@@ -612,7 +614,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- LETTORE SLIDE CANTICI ---
+// --- LETTORE SLIDE CANTICI CON EFFETTO ANTEPRIMA STROFE ---
 let currentHymnFontSize = 40; 
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
@@ -925,7 +927,7 @@ function updateBibleFontSize() { document.getElementById('bibleReaderContent').s
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if(currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-// --- SERMONI ---
+// --- SERMONI (APPUNTI) ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -1050,7 +1052,7 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         btn.innerHTML = "<i class='ri-check-line'></i> Salvato"; 
         setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i> Salva", 2000);
     } catch (e) {
-        alert("Errore salvataggio sermone: " + e.message);
+        alert("Errore salvataggio appunto: " + e.message);
     }
 };
 
