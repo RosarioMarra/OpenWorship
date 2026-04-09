@@ -136,6 +136,11 @@ async function showApp() {
             document.getElementById('sermonTitle').focus();
         });
         
+        // Upload button handler
+        document.getElementById('uploadHymnsBtn').addEventListener('click', () => {
+            document.getElementById('xmlUpload').click();
+        });
+        
         // Search input
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
             searchTerm = e.target.value;
@@ -149,7 +154,6 @@ async function showApp() {
 }
 
 function updateVerseOfDayImage() {
-    const verseCard = document.querySelector('.verse-card');
     const bgImageDiv = document.querySelector('.verse-bg-image');
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
     const imageIndex = dayOfYear % verseImages.length;
@@ -259,9 +263,9 @@ function renderAvvisi() {
         const card = document.createElement('div');
         card.className = 'avviso-card';
         card.innerHTML = `
-            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px;">
-                <button class="btn-edit" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
-                <button class="btn-delete" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
+            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px;">
+                <button class="favorite-btn" onclick="openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
+                <button class="favorite-btn btn-danger" onclick="deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
             </div>
             <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}</div>
             <div class="avviso-title">${escapeHtml(avviso.title)}</div>
@@ -465,9 +469,9 @@ function renderHymns() {
                 <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
                     <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                 </button>
-                <div class="admin-list-controls" style="display:flex; gap:12px;">
-                    <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
-                    <button class="btn-delete" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
+                <div class="admin-list-controls" style="display:flex; gap:8px;">
+                    <button class="favorite-btn" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
+                    <button class="favorite-btn btn-danger" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
                 </div>
             </div>
         `;
@@ -523,7 +527,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     }
 };
 
-// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP ---
+// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli) ---
 function setupExportButton() {
     const exportBtn = document.getElementById('exportHymnsBtn');
     if (!exportBtn) return;
@@ -540,95 +544,56 @@ function setupExportButton() {
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 350px; text-align: center;">
                 <h3 style="margin-bottom: 20px;">Esporta Cantici</h3>
-                <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli il formato di esportazione:</p>
-                <div class="export-format-selector">
-                    <button class="export-format-btn active" data-format="openlp">OpenLP</button>
-                    <button class="export-format-btn" data-format="json">JSON</button>
-                    <button class="export-format-btn" data-format="txt">Testo</button>
-                    <button class="export-format-btn" data-format="zip">ZIP (singoli file)</button>
-                </div>
+                <p style="margin-bottom: 20px; color: var(--text-muted);">Esporta ogni cantico come file XML individuale in uno ZIP</p>
                 <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
                     <button class="btn-secondary" id="cancelExportBtn">Annulla</button>
-                    <button class="btn-primary" id="confirmExportBtn">Esporta</button>
+                    <button class="btn-primary" id="confirmExportBtn">Esporta ZIP</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
         
-        let selectedFormat = 'openlp';
-        
-        modal.querySelectorAll('.export-format-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                modal.querySelectorAll('.export-format-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedFormat = btn.getAttribute('data-format');
-            });
-        });
-        
         modal.querySelector('#cancelExportBtn').onclick = () => modal.remove();
         modal.querySelector('#confirmExportBtn').onclick = () => {
-            exportHymns(selectedFormat);
+            exportHymnsToZip();
             modal.remove();
         };
     });
 }
 
-function exportHymns(format) {
-    if (format === 'openlp') {
-        let xmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<songs version="1.0">\n`;
-        hymnsDB.forEach(hymn => {
-            let content = hymn.content;
-            const blocks = content.split(/\n\s*\n/);
-            let formattedContent = '';
-            blocks.forEach((block, idx) => {
-                const isChorus = /coro|chorus|rit|ritornello/i.test(block);
-                let cleanBlock = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-                if (isChorus) {
-                    formattedContent += `[chór]\n${cleanBlock}\n[/chór]\n\n`;
-                } else {
-                    formattedContent += `[v${idx + 1}]\n${cleanBlock}\n[/v${idx + 1}]\n\n`;
-                }
-            });
-            xmlContent += `  <song>\n    <title>${escapeXml(hymn.title)}</title>\n    <lyrics>${escapeXml(formattedContent)}</lyrics>\n  </song>\n`;
-        });
-        xmlContent += `</songs>`;
-        downloadFile(xmlContent, 'cantici_openlp.xml', 'application/xml');
-    } else if (format === 'json') {
-        const exportData = hymnsDB.map(h => ({ title: h.title, content: h.content, exportDate: new Date().toISOString() }));
-        const jsonContent = JSON.stringify(exportData, null, 2);
-        downloadFile(jsonContent, 'cantici_export.json', 'application/json');
-    } else if (format === 'txt') {
-        let txtContent = '='.repeat(60) + '\n';
-        txtContent += 'CANTICI ESPORTATI DA OPEN WORSHIP\n';
-        txtContent += `Data esportazione: ${new Date().toLocaleString()}\n`;
-        txtContent += `Totale cantici: ${hymnsDB.length}\n`;
-        txtContent += '='.repeat(60) + '\n\n';
-        
-        hymnsDB.forEach((hymn, idx) => {
-            txtContent += `${idx + 1}. ${hymn.title}\n`;
-            txtContent += '-'.repeat(40) + '\n';
-            txtContent += hymn.content + '\n';
-            txtContent += '\n' + '='.repeat(60) + '\n\n';
-        });
-        downloadFile(txtContent, 'cantici_export.txt', 'text/plain');
-    } else if (format === 'zip') {
-        // Esporta ogni cantico come file singolo in uno ZIP
-        const zip = new JSZip();
-        
-        hymnsDB.forEach((hymn, idx) => {
-            let filename = `${idx + 1}_${sanitizeFilename(hymn.title)}.txt`;
-            let content = `${hymn.title}\n\n${'='.repeat(50)}\n\n${hymn.content}`;
-            zip.file(filename, content);
+function exportHymnsToZip() {
+    const zip = new JSZip();
+    
+    hymnsDB.forEach((hymn, idx) => {
+        const blocks = hymn.content.split(/\n\s*\n/);
+        let formattedContent = '';
+        blocks.forEach((block, blockIdx) => {
+            const isChorus = /coro|chorus|rit|ritornello/i.test(block);
+            let cleanBlock = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+            if (isChorus) {
+                formattedContent += `[chór]\n${cleanBlock}\n[/chór]\n\n`;
+            } else {
+                formattedContent += `[v${blockIdx + 1}]\n${cleanBlock}\n[/v${blockIdx + 1}]\n\n`;
+            }
         });
         
-        zip.generateAsync({ type: "blob" }).then(function(blob) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `cantici_export_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        });
-    }
+        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<song version="1.0">
+  <title>${escapeXml(hymn.title)}</title>
+  <lyrics>${escapeXml(formattedContent)}</lyrics>
+</song>`;
+        
+        const filename = `${String(idx + 1).padStart(3, '0')}_${sanitizeFilename(hymn.title)}.xml`;
+        zip.file(filename, xmlContent);
+    });
+    
+    zip.generateAsync({ type: "blob" }).then(function(blob) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `cantici_export_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
 }
 
 function sanitizeFilename(filename) {
@@ -645,17 +610,6 @@ function escapeXml(unsafe) {
         if (c === '"') return '&quot;';
         return c;
     });
-}
-
-function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
 }
 
 // --- LETTORE SLIDE CANTICI ---

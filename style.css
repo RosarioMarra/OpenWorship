@@ -447,3 +447,81 @@ body.is-admin #addNoticeBtn {
 }
 
 .bible-verse { animation: fadeIn 0.3s ease forwards; }
+
+/* Icone stile cuore per tutte le azioni */
+.favorite-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #d1d1d6;
+    transition: all 0.2s;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+.favorite-btn.active {
+    color: #ff3b30;
+}
+
+.favorite-btn:active {
+    transform: scale(0.9);
+    background: rgba(0,0,0,0.05);
+}
+
+.favorite-btn.btn-danger {
+    color: #d1d1d6;
+}
+
+.favorite-btn.btn-danger:active {
+    color: var(--danger-color);
+    background: rgba(255,59,48,0.1);
+}
+
+.favorite-btn.btn-danger.active {
+    color: var(--danger-color);
+}
+
+/* Upload e Export buttons */
+#uploadHymnsBtn, #exportHymnsBtn, #deleteAllHymnsBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #d1d1d6;
+    transition: all 0.2s;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+#uploadHymnsBtn:hover, #exportHymnsBtn:hover, #deleteAllHymnsBtn:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+#uploadHymnsBtn:active, #exportHymnsBtn:active, #deleteAllHymnsBtn:active {
+    transform: scale(0.9);
+}
+
+#deleteSermonBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #d1d1d6;
+    transition: all 0.2s;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+#deleteSermonBtn:active {
+    transform: scale(0.9);
+    color: var(--danger-color);
+    background: rgba(255,59,48,0.1);
+}
+
+/* Video login funzionante */
+.login-video-wrapper video {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}

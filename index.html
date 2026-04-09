@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007aff">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="shortcut icon" href="icon-192.png">
     
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -17,6 +19,7 @@
         
         <div class="login-video-wrapper">
             <video autoplay muted loop playsinline id="loginVideo">
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-wooden-church-interior-1283-large.mp4" type="video/mp4">
                 <source src="https://cdn.pixabay.com/video/2022/04/17/114251-699946890_large.mp4" type="video/mp4">
             </video>
             <div class="login-overlay"></div>
@@ -137,14 +140,14 @@
                         <h1 class="section-title">Cantici</h1>
                         <div class="admin-only-controls">
                             <input type="file" id="xmlUpload" accept=".xml,.txt" multiple style="display: none;">
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <button class="btn-icon-simple" onclick="document.getElementById('xmlUpload').click()" title="Carica Cantici">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <button class="favorite-btn" id="uploadHymnsBtn" title="Carica Cantici">
                                     <i class="ri-upload-line"></i>
                                 </button>
-                                <button class="btn-icon-simple" id="exportHymnsBtn" title="Esporta Cantici" style="color: #34c759;">
+                                <button class="favorite-btn" id="exportHymnsBtn" title="Esporta Cantici">
                                     <i class="ri-download-line"></i>
                                 </button>
-                                <button class="btn-icon-simple" id="deleteAllHymnsBtn" style="color: var(--danger-color);" title="Cancella Tutti i Cantici">
+                                <button class="favorite-btn btn-danger" id="deleteAllHymnsBtn" title="Cancella Tutti i Cantici">
                                     <i class="ri-delete-bin-line"></i>
                                 </button>
                             </div>
@@ -246,8 +249,8 @@
             <section id="sermoni" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button class="btn-icon-simple" id="deleteSermonBtn" style="display: none; color: var(--danger-color);">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="favorite-btn btn-danger" id="deleteSermonBtn" style="display: none;">
                             <i class="ri-delete-bin-line"></i>
                         </button>
                         <button class="btn-primary" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
@@ -331,7 +334,7 @@
             <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
 
             <div style="display:flex; justify-content:space-between; align-items: center;">
-                <button class="btn-icon-simple" id="deleteAvvisoBtn" style="color:var(--danger-color); display:none;"><i class="ri-delete-bin-line"></i></button>
+                <button class="favorite-btn btn-danger" id="deleteAvvisoBtn" style="display:none;"><i class="ri-delete-bin-line"></i></button>
                 <div style="display:flex; gap:10px; margin-left: auto;">
                     <button class="btn-secondary" onclick="closeAvvisoModal()">Annulla</button>
                     <button class="btn-primary" id="saveAvvisoBtn">Salva</button>
