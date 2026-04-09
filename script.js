@@ -145,6 +145,9 @@ async function showApp() {
         // Esportazione cantici
         setupExportButton();
         
+        // Stampa PDF appunto
+        setupPrintButton();
+        
         // Saluto con nome utente Google
         const greetingMsg = document.getElementById('greetingMessage');
         const hour = new Date().getHours();
@@ -525,7 +528,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     }
 };
 
-// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli) ---
+// --- FUNZIONE ESPORTAZIONE CANTICI IN ZIP (XML singoli con nome esatto) ---
 function setupExportButton() {
     const exportBtn = document.getElementById('exportHymnsBtn');
     if (!exportBtn) return;
@@ -584,8 +587,9 @@ function exportHymnsToZip() {
   <lyrics>${escapeXml(formattedContent)}</lyrics>
 </song>`;
         
-        // Usa lo stesso numero e nome visualizzato nella lista
-        const filename = `${String(idx + 1).padStart(3, '0')}_${sanitizeFilename(hymn.title)}.xml`;
+        // Usa il numero progressivo (con zeri) e il titolo esatto come visualizzato
+        const numero = String(idx + 1).padStart(3, '0');
+        const filename = `${numero}_${sanitizeFilename(hymn.title)}.xml`;
         zip.file(filename, xmlContent);
     });
     
@@ -614,18 +618,137 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- LETTORE SLIDE CANTICI CON EFFETTO ANTEPRIMA STROFE ---
+// --- STAMPA PDF APPUNTO ---
+function setupPrintButton() {
+    const printBtn = document.getElementById('printSermonBtn');
+    if (!printBtn) return;
+    
+    printBtn.addEventListener('click', () => {
+        const title = document.getElementById('sermonTitle').value.trim();
+        const category = document.getElementById('sermonCategory').value;
+        const speaker = document.getElementById('sermonSpeaker').value.trim();
+        const refs = document.getElementById('sermonRefs').value.trim();
+        const body = document.getElementById('sermonBody').value.trim();
+        
+        if (!title && !body) {
+            alert("Nessun appunto da stampare.");
+            return;
+        }
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Stampa Appunto - ${escapeHtml(title) || 'Open Worship'}</title>
+                <meta charset="UTF-8">
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                        background: white;
+                        padding: 40px;
+                    }
+                    .print-container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                    }
+                    .print-header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        border-bottom: 2px solid #007aff;
+                        padding-bottom: 15px;
+                    }
+                    .print-header h1 {
+                        font-size: 24px;
+                        color: #007aff;
+                        margin-bottom: 5px;
+                    }
+                    .print-header p {
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    .print-title {
+                        font-size: 20px;
+                        font-weight: bold;
+                        margin-bottom: 15px;
+                        text-align: center;
+                    }
+                    .print-meta {
+                        margin-bottom: 20px;
+                        padding: 10px;
+                        background: #f5f5f5;
+                        border-radius: 8px;
+                    }
+                    .print-meta p {
+                        margin: 5px 0;
+                        font-size: 12px;
+                    }
+                    .print-body {
+                        font-size: 14px;
+                        line-height: 1.6;
+                        white-space: pre-wrap;
+                    }
+                    .print-footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 10px;
+                        color: #999;
+                        border-top: 1px solid #ddd;
+                        padding-top: 10px;
+                    }
+                    @media print {
+                        body {
+                            padding: 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-container">
+                    <div class="print-header">
+                        <h1>Open Worship</h1>
+                        <p>Appunti delle riunioni</p>
+                    </div>
+                    <div class="print-title">${escapeHtml(title) || 'Senza titolo'}</div>
+                    <div class="print-meta">
+                        <p><strong>Tipo:</strong> ${escapeHtml(category)}</p>
+                        ${speaker ? `<p><strong>Relatore:</strong> ${escapeHtml(speaker)}</p>` : ''}
+                        ${refs ? `<p><strong>Riferimenti biblici:</strong> ${escapeHtml(refs)}</p>` : ''}
+                        <p><strong>Data:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
+                    </div>
+                    <div class="print-body">${escapeHtml(body).replace(/\n/g, '<br>')}</div>
+                    <div class="print-footer">
+                        <p>Documento generato da Open Worship</p>
+                    </div>
+                </div>
+                <script>
+                    window.onload = () => {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    });
+}
+
+// --- LETTORE SLIDE CANTICI CON ANTEPRIMA STROFE ---
 let currentHymnFontSize = 40; 
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
 const gridContainer = document.getElementById('hymnGridContainer');
-const hymnBottomControls = document.getElementById('hymnBottomControls');
 
 document.getElementById('toggleGridViewBtn').onclick = () => {
     isGridView = !isGridView;
     if(isGridView) {
         document.getElementById('slidesWrapperView').classList.add('hidden');
-        hymnBottomControls.classList.add('hidden');
         gridContainer.classList.remove('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
         // Nascondi anteprime in griglia
@@ -633,7 +756,6 @@ document.getElementById('toggleGridViewBtn').onclick = () => {
         if (previews) previews.style.display = 'none';
     } else {
         document.getElementById('slidesWrapperView').classList.remove('hidden');
-        hymnBottomControls.classList.remove('hidden');
         gridContainer.classList.add('hidden');
         document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
         // Mostra anteprime
@@ -654,7 +776,6 @@ function openHymnSlides(id) {
     
     isGridView = false;
     document.getElementById('slidesWrapperView').classList.remove('hidden');
-    hymnBottomControls.classList.remove('hidden');
     gridContainer.classList.add('hidden');
     document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
     
@@ -840,22 +961,6 @@ document.getElementById('decreaseHymnFont').onclick = () => {
 };
 
 function updateHymnFontSize(size) { document.querySelectorAll('.slide-content').forEach(el => el.style.fontSize = `${size}px`); }
-
-document.getElementById('nextSlideBtn').onclick = () => { 
-    slidesContainer.scrollBy({ left: slidesContainer.clientWidth, behavior: 'smooth' }); 
-    setTimeout(() => { 
-        updateSlideVisibility(); 
-        updateSlidePreviews(); 
-    }, 300); 
-};
-
-document.getElementById('prevSlideBtn').onclick = () => { 
-    slidesContainer.scrollBy({ left: -slidesContainer.clientWidth, behavior: 'smooth' }); 
-    setTimeout(() => { 
-        updateSlideVisibility(); 
-        updateSlidePreviews(); 
-    }, 300); 
-};
 
 slidesContainer.addEventListener('scroll', () => {
     const slideWidth = slidesContainer.clientWidth;

@@ -21,6 +21,7 @@
             <video autoplay muted loop playsinline id="loginVideo">
                 <source src="https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_30fps.mp4" type="video/mp4">
                 <source src="https://cdn.pixabay.com/video/2023/06/20/169137-836333344_large.mp4" type="video/mp4">
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-wooden-church-interior-1283-large.mp4" type="video/mp4">
             </video>
             <div class="login-overlay"></div>
         </div>
@@ -83,7 +84,7 @@
                 <div class="dashboard-grid">
                     <div class="dash-card verse-card" style="grid-column: 1 / -1; position: relative; overflow: hidden;">
                         <div class="verse-bg-image"></div>
-                        <div class="verse-overlay"></div>
+                        <div class="verse-overlay" style="background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.5));"></div>
                         <div class="verse-header" style="position: relative; z-index: 2;">
                             <i class="ri-star-smile-fill" style="color: #ffd700; font-size: 18px;"></i>
                             <h3 style="margin-bottom: 0; color: #ffd700;">Versetto del Giorno</h3>
@@ -203,13 +204,7 @@
                         </div>
                     </div>
                     
-                    <div class="hymn-bottom-controls" id="hymnBottomControls">
-                        <div class="hymn-nav-buttons">
-                            <button id="prevSlideBtn" class="slide-nav-btn"><i class="ri-arrow-left-s-line"></i></button>
-                            <button id="nextSlideBtn" class="slide-nav-btn"><i class="ri-arrow-right-s-line"></i></button>
-                        </div>
-                        <div class="slide-dots-container" id="slideDots"></div>
-                    </div>
+                    <div class="slide-dots-container" id="slideDots"></div>
 
                     <div class="hymn-grid-container hidden" id="hymnGridContainer"></div>
                 </div>
@@ -264,6 +259,9 @@
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <button class="icon-btn icon-danger" id="deleteSermonBtn" style="display: none;">
                             <i class="ri-delete-bin-line"></i>
+                        </button>
+                        <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
+                            <i class="ri-printer-line"></i> Stampa PDF
                         </button>
                         <button class="btn-apple" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
                     </div>
