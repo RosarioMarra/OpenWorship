@@ -19,9 +19,11 @@ let searchTerm = "";
 try {
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || [];
     favoritesDB = JSON.parse(localStorage.getItem('favoritesDB')) || [];
+    sermonsDB = JSON.parse(localStorage.getItem('sermonsDB')) || [];
 } catch (e) {
     highlightsDB = [];
     favoritesDB = [];
+    sermonsDB = [];
 }
 
 // Funzioni preferiti
@@ -42,6 +44,11 @@ function toggleFavorite(hymnId) {
 
 function isFavorite(hymnId) {
     return favoritesDB.includes(hymnId);
+}
+
+// Salvataggio sermoni in locale
+function saveSermons() {
+    localStorage.setItem('sermonsDB', JSON.stringify(sermonsDB));
 }
 
 // --- FUNZIONE CONDIVISIONE SOCIAL ---
@@ -171,7 +178,6 @@ async function showApp() {
         // Bottone "Nuovo Appunto" in alto
         document.getElementById('newSermonTopBtn').addEventListener('click', () => {
             newSermon();
-            document.getElementById('sermonTitle').focus();
         });
         
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
@@ -235,9 +241,7 @@ async function loadCloudData() {
         else avvisiDB = avvisi || [];
         renderAvvisi();
 
-        const { data: sermoni, error: sermoniErr } = await supabaseClient.from('sermoni').select('*');
-        if (sermoniErr) console.error("Errore download sermoni", sermoniErr);
-        else sermonsDB = sermoni || [];
+        // Sermoni sono già in localStorage, non vengono dal cloud
         renderSermons();
     } catch (err) {
         console.error("Errore di rete generale", err);
@@ -1185,7 +1189,7 @@ document.getElementById('decreaseBibleFont').onclick = () => {
     updateBibleFontSize();
 };
 
-// --- SERMONI (APPUNTI) ---
+// --- SERMONI (APPUNTI) - SALVATI IN LOCALE ---
 const sTitle = document.getElementById('sermonTitle');
 const sSpeaker = document.getElementById('sermonSpeaker');
 const sCategory = document.getElementById('sermonCategory');
@@ -1226,18 +1230,13 @@ function renderSermons() {
 
 async function deleteSermonFromList(id) {
     if (confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        try {
-            const { error } = await supabaseClient.from('sermoni').delete().eq('id', id);
-            if (error) throw error;
-            sermonsDB = sermonsDB.filter(s => s.id !== id);
-            if (activeSermonId === id) {
-                newSermon();
-            }
-            renderSermons();
-            updateDashboard();
-        } catch (e) {
-            alert("Errore di eliminazione: " + e.message);
+        sermonsDB = sermonsDB.filter(s => s.id !== id);
+        saveSermons();
+        if (activeSermonId === id) {
+            newSermon();
         }
+        renderSermons();
+        updateDashboard();
     }
 }
 
@@ -1278,7 +1277,7 @@ function newSermon() {
     sCategory.value = "Sermone";
     sRefs.value = "";
     sBody.value = "";
-
+    
     // Focus sul titolo e scroll all'editor
     sTitle.focus();
     const editorContainer = document.querySelector('.editor-container');
@@ -1299,26 +1298,21 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         body: sBody.value
     };
     
-    try {
-        const { error } = await supabaseClient.from('sermoni').upsert([data]);
-        if (error) throw error;
-        
-        if (activeSermonId) {
-            const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
-            sermonsDB[idx] = data;
-        } else {
-            sermonsDB.unshift(data);
-            activeSermonId = data.id;
-        }
-        renderSermons();
-        updateDashboard();
-        
-        const btn = document.getElementById('saveSermonBtn');
-        btn.innerHTML = "<i class='ri-check-line'></i>";
-        setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i>", 2000);
-    } catch (e) {
-        alert("Errore salvataggio appunto: " + e.message);
+    if (activeSermonId) {
+        const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
+        if (idx !== -1) sermonsDB[idx] = data;
+        else sermonsDB.unshift(data);
+    } else {
+        sermonsDB.unshift(data);
+        activeSermonId = data.id;
     }
+    saveSermons();
+    renderSermons();
+    updateDashboard();
+    
+    const btn = document.getElementById('saveSermonBtn');
+    btn.innerHTML = "<i class='ri-check-line'></i>";
+    setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i>", 2000);
 };
 
 // Funzioni globali necessarie
