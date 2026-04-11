@@ -1278,6 +1278,13 @@ function newSermon() {
     sCategory.value = "Sermone";
     sRefs.value = "";
     sBody.value = "";
+
+    // Focus sul titolo e scroll all'editor
+    sTitle.focus();
+    const editorContainer = document.querySelector('.editor-container');
+    if (editorContainer) {
+        editorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 document.getElementById('saveSermonBtn').onclick = async () => {

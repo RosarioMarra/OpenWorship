@@ -548,13 +548,13 @@ body {
     margin-left: 10px;
 }
 
-/* Barra di ricerca fissa nei cantici - attaccata alla parte superiore */
+/* Barra di ricerca fissa nei cantici - attaccata in alto senza fessura */
 .search-bar-fixed {
     position: sticky;
     top: 70px;
     background: var(--bg-app);
     z-index: 45;
-    padding: 8px 0 12px 0;
+    padding: 0 0 12px 0;
     margin-bottom: 8px;
 }
 
@@ -1362,6 +1362,7 @@ body.is-admin #addNoticeBtn {
 
     .search-bar-fixed {
         top: 70px;
+        padding: 0 0 10px 0;
     }
     
     .sermon-header-buttons {
