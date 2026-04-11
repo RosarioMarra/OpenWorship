@@ -175,9 +175,9 @@ async function showApp() {
         setupFavoritesTabs();
         setupDashboardCards();
         
-        // Bottone "Nuovo Appunto" in alto
+        // Bottone "Nuovo Appunto" in alto - apre modale
         document.getElementById('newSermonTopBtn').addEventListener('click', () => {
-            newSermon();
+            openSermonModal();
         });
         
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
@@ -241,7 +241,6 @@ async function loadCloudData() {
         else avvisiDB = avvisi || [];
         renderAvvisi();
 
-        // Sermoni sono già in localStorage, non vengono dal cloud
         renderSermons();
     } catch (err) {
         console.error("Errore di rete generale", err);
@@ -721,74 +720,88 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- STAMPA PDF APPUNTO ---
+// --- STAMPA PDF APPUNTO (stampa l'appunto attualmente selezionato o aperto in modale) ---
+let currentPrintSermon = null;
+
 function setupPrintButton() {
     const printBtn = document.getElementById('printSermonBtn');
     if (!printBtn) return;
     
     printBtn.addEventListener('click', () => {
-        const title = document.getElementById('sermonTitle').value.trim();
-        const category = document.getElementById('sermonCategory').value;
-        const speaker = document.getElementById('sermonSpeaker').value.trim();
-        const refs = document.getElementById('sermonRefs').value.trim();
-        const body = document.getElementById('sermonBody').value.trim();
-        
-        if (!title && !body) {
-            alert("Nessun appunto da stampare.");
+        // Se c'è un appunto selezionato (activeSermonId), stampa quello
+        if (activeSermonId) {
+            const sermon = sermonsDB.find(s => s.id === activeSermonId);
+            if (sermon) {
+                printSermon(sermon);
+                return;
+            }
+        }
+        // Altrimenti, se c'è un appunto nel modale aperto
+        if (currentPrintSermon) {
+            printSermon(currentPrintSermon);
             return;
         }
-        
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Stampa Appunto - ${escapeHtml(title) || 'Open Worship'}</title>
-                <meta charset="UTF-8">
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; background: white; padding: 40px; }
-                    .print-container { max-width: 800px; margin: 0 auto; }
-                    .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007aff; padding-bottom: 15px; }
-                    .print-header h1 { font-size: 24px; color: #007aff; margin-bottom: 5px; }
-                    .print-header p { font-size: 12px; color: #666; }
-                    .print-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; }
-                    .print-meta { margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 8px; }
-                    .print-meta p { margin: 5px 0; font-size: 12px; }
-                    .print-body { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
-                    .print-footer { margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }
-                    @media print { body { padding: 0; } }
-                </style>
-            </head>
-            <body>
-                <div class="print-container">
-                    <div class="print-header">
-                        <h1>Open Worship</h1>
-                        <p>Appunti delle riunioni</p>
-                    </div>
-                    <div class="print-title">${escapeHtml(title) || 'Senza titolo'}</div>
-                    <div class="print-meta">
-                        <p><strong>Tipo:</strong> ${escapeHtml(category)}</p>
-                        ${speaker ? `<p><strong>Relatore:</strong> ${escapeHtml(speaker)}</p>` : ''}
-                        ${refs ? `<p><strong>Riferimenti biblici:</strong> ${escapeHtml(refs)}</p>` : ''}
-                        <p><strong>Data:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
-                    </div>
-                    <div class="print-body">${escapeHtml(body).replace(/\n/g, '<br>')}</div>
-                    <div class="print-footer">
-                        <p>Documento generato da Open Worship</p>
-                    </div>
-                </div>
-                <script>
-                    window.onload = () => {
-                        window.print();
-                        setTimeout(() => window.close(), 500);
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
+        alert("Seleziona un appunto dalla lista prima di stampare.");
     });
+}
+
+function printSermon(sermon) {
+    const title = sermon.title || "";
+    const category = sermon.category || "Sermone";
+    const speaker = sermon.speaker || "";
+    const refs = sermon.refs || "";
+    const body = sermon.body || "";
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Stampa Appunto - ${escapeHtml(title) || 'Open Worship'}</title>
+            <meta charset="UTF-8">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; background: white; padding: 40px; }
+                .print-container { max-width: 800px; margin: 0 auto; }
+                .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007aff; padding-bottom: 15px; }
+                .print-header h1 { font-size: 24px; color: #007aff; margin-bottom: 5px; }
+                .print-header p { font-size: 12px; color: #666; }
+                .print-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+                .print-meta { margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 8px; }
+                .print-meta p { margin: 5px 0; font-size: 12px; }
+                .print-body { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+                .print-footer { margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }
+                @media print { body { padding: 0; } }
+            </style>
+        </head>
+        <body>
+            <div class="print-container">
+                <div class="print-header">
+                    <h1>Open Worship</h1>
+                    <p>Appunti delle riunioni</p>
+                </div>
+                <div class="print-title">${escapeHtml(title) || 'Senza titolo'}</div>
+                <div class="print-meta">
+                    <p><strong>Tipo:</strong> ${escapeHtml(category)}</p>
+                    ${speaker ? `<p><strong>Relatore:</strong> ${escapeHtml(speaker)}</p>` : ''}
+                    ${refs ? `<p><strong>Riferimenti biblici:</strong> ${escapeHtml(refs)}</p>` : ''}
+                    <p><strong>Data:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
+                </div>
+                <div class="print-body">${escapeHtml(body).replace(/\n/g, '<br>')}</div>
+                <div class="print-footer">
+                    <p>Documento generato da Open Worship</p>
+                </div>
+            </div>
+            <script>
+                window.onload = () => {
+                    window.print();
+                    setTimeout(() => window.close(), 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
 // --- LETTORE SLIDE CANTICI ---
@@ -1189,13 +1202,9 @@ document.getElementById('decreaseBibleFont').onclick = () => {
     updateBibleFontSize();
 };
 
-// --- SERMONI (APPUNTI) - SALVATI IN LOCALE ---
-const sTitle = document.getElementById('sermonTitle');
-const sSpeaker = document.getElementById('sermonSpeaker');
-const sCategory = document.getElementById('sermonCategory');
-const sRefs = document.getElementById('sermonRefs');
-const sBody = document.getElementById('sermonBody');
+// --- SERMONI (APPUNTI) - MODALE PER NUOVO/MODIFICA ---
 let activeSermonId = null;
+let currentEditingSermonId = null;
 
 function renderSermons() {
     const ul = document.getElementById('sermonsUl');
@@ -1218,11 +1227,8 @@ function renderSermons() {
         `;
         li.onclick = () => {
             activeSermonId = s.id;
-            sTitle.value = s.title || "";
-            sSpeaker.value = s.speaker || "";
-            sCategory.value = s.category || "Sermone";
-            sRefs.value = s.refs || "";
-            sBody.value = s.body || "";
+            // Apre il modale in modalità modifica
+            openSermonModal(s);
         };
         ul.appendChild(li);
     });
@@ -1233,7 +1239,7 @@ async function deleteSermonFromList(id) {
         sermonsDB = sermonsDB.filter(s => s.id !== id);
         saveSermons();
         if (activeSermonId === id) {
-            newSermon();
+            activeSermonId = null;
         }
         renderSermons();
         updateDashboard();
@@ -1254,10 +1260,19 @@ function renderHighlights() {
         li.innerHTML = `<strong style="color:#ff9500;">${escapeHtml(h.bookName)} ${h.chapter}:${h.verse}</strong><br>"${escapeHtml(h.text.substring(0, 80))}${h.text.length > 80 ? '...' : ''}"`;
         
         li.onclick = () => {
-            const currentText = sBody.value;
-            const textToInsert = `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
-            sBody.value = currentText + textToInsert;
-            sBody.focus();
+            // Inserisce il versetto nel modale se aperto, altrimenti copia negli appunti
+            const modalBody = document.getElementById('modalSermonBody');
+            if (modalBody && document.getElementById('sermonModal').classList.contains('hidden') === false) {
+                const currentText = modalBody.value;
+                const textToInsert = `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
+                modalBody.value = currentText + textToInsert;
+                modalBody.focus();
+            } else {
+                // Se modale non aperto, copia negli appunti
+                const textToCopy = `[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"`;
+                navigator.clipboard.writeText(textToCopy);
+                alert("Versetto copiato negli appunti!");
+            }
             
             li.style.background = "#34c759";
             li.style.color = "white";
@@ -1270,50 +1285,86 @@ function renderHighlights() {
     });
 }
 
-function newSermon() {
-    activeSermonId = null;
-    sTitle.value = "";
-    sSpeaker.value = "";
-    sCategory.value = "Sermone";
-    sRefs.value = "";
-    sBody.value = "";
+function openSermonModal(sermon = null) {
+    const modal = document.getElementById('sermonModal');
+    const titleEl = document.getElementById('sermonModalTitle');
+    const inputTitle = document.getElementById('modalSermonTitle');
+    const inputCategory = document.getElementById('modalSermonCategory');
+    const inputSpeaker = document.getElementById('modalSermonSpeaker');
+    const inputRefs = document.getElementById('modalSermonRefs');
+    const inputBody = document.getElementById('modalSermonBody');
     
-    // Focus sul titolo e scroll all'editor
-    sTitle.focus();
-    const editorContainer = document.querySelector('.editor-container');
-    if (editorContainer) {
-        editorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (sermon) {
+        // Modalità modifica
+        currentEditingSermonId = sermon.id;
+        titleEl.textContent = "Modifica Appunto";
+        inputTitle.value = sermon.title || "";
+        inputCategory.value = sermon.category || "Sermone";
+        inputSpeaker.value = sermon.speaker || "";
+        inputRefs.value = sermon.refs || "";
+        inputBody.value = sermon.body || "";
+    } else {
+        // Modalità nuovo
+        currentEditingSermonId = null;
+        titleEl.textContent = "Nuovo Appunto";
+        inputTitle.value = "";
+        inputCategory.value = "Sermone";
+        inputSpeaker.value = "";
+        inputRefs.value = "";
+        inputBody.value = "";
     }
+    
+    modal.classList.remove('hidden');
+    inputTitle.focus();
 }
 
-document.getElementById('saveSermonBtn').onclick = async () => {
-    if (!sTitle.value && !sBody.value) return;
+function closeSermonModal() {
+    document.getElementById('sermonModal').classList.add('hidden');
+    currentEditingSermonId = null;
+}
+
+document.getElementById('closeSermonModalBtn').addEventListener('click', closeSermonModal);
+document.getElementById('saveSermonModalBtn').addEventListener('click', () => {
+    const title = document.getElementById('modalSermonTitle').value.trim();
+    const category = document.getElementById('modalSermonCategory').value;
+    const speaker = document.getElementById('modalSermonSpeaker').value.trim();
+    const refs = document.getElementById('modalSermonRefs').value.trim();
+    const body = document.getElementById('modalSermonBody').value.trim();
+    
+    if (!title && !body) {
+        alert("Inserisci almeno un titolo o del contenuto.");
+        return;
+    }
     
     const data = {
-        id: activeSermonId || crypto.randomUUID(),
-        title: sTitle.value,
-        speaker: sSpeaker.value,
-        category: sCategory.value,
-        refs: sRefs.value,
-        body: sBody.value
+        id: currentEditingSermonId || crypto.randomUUID(),
+        title: title,
+        speaker: speaker,
+        category: category,
+        refs: refs,
+        body: body
     };
     
-    if (activeSermonId) {
-        const idx = sermonsDB.findIndex(s => s.id === activeSermonId);
+    if (currentEditingSermonId) {
+        const idx = sermonsDB.findIndex(s => s.id === currentEditingSermonId);
         if (idx !== -1) sermonsDB[idx] = data;
         else sermonsDB.unshift(data);
     } else {
         sermonsDB.unshift(data);
         activeSermonId = data.id;
     }
+    
     saveSermons();
     renderSermons();
     updateDashboard();
+    closeSermonModal();
     
-    const btn = document.getElementById('saveSermonBtn');
-    btn.innerHTML = "<i class='ri-check-line'></i>";
-    setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i>", 2000);
-};
+    // Feedback visivo
+    const saveBtn = document.getElementById('saveSermonModalBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = "<i class='ri-check-line'></i> Salvato";
+    setTimeout(() => saveBtn.innerHTML = originalText, 1500);
+});
 
 // Funzioni globali necessarie
 window.openAvvisoModal = openAvvisoModal;
@@ -1326,7 +1377,6 @@ window.openEditModal = openEditModal;
 window.closeEditModal = closeEditModal;
 window.changeChapter = changeChapter;
 window.deleteSermonFromList = deleteSermonFromList;
-window.newSermon = newSermon;
 window.openAvvisoDetailModal = openAvvisoDetailModal;
 window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;

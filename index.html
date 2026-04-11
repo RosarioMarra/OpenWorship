@@ -249,17 +249,19 @@
             </section>
 
             <section id="sermoni" class="content-section">
-                <div class="section-header">
-                    <h1 class="section-title">Appunti</h1>
-                    <div class="sermon-header-buttons">
-                        <button class="icon-btn" id="newSermonTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
-                        <div class="sermon-header-actions">
+                <!-- Barra fissa con titolo e pulsanti -->
+                <div class="sticky-sermon-header">
+                    <div class="section-header">
+                        <h1 class="section-title">Appunti</h1>
+                        <div class="sermon-header-buttons">
+                            <button class="icon-btn" id="newSermonTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
                             <button class="icon-btn" id="printSermonBtn" title="Stampa PDF"><i class="ri-printer-line"></i></button>
-                            <button class="icon-btn" id="saveSermonBtn" title="Salva"><i class="ri-save-line"></i></button>
                         </div>
                     </div>
                 </div>
-                <div class="sermons-layout-vertical">
+                
+                <!-- Solo lista appunti e versetti evidenziati, nessun editor visibile -->
+                <div class="sermons-list-only">
                     <div class="saved-sermons-list" id="savedSermonsList">
                         <div class="list-header">I miei appunti</div>
                         <ul id="sermonsUl"></ul>
@@ -268,30 +270,6 @@
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
                         <ul id="highlightsUl"></ul>
-                    </div>
-
-                    <div class="editor-container">
-                        <div class="editor-header">
-                            <input type="text" id="sermonTitle" class="sermon-input-title" placeholder="Titolo dell'appunto...">
-                            <div class="speaker-row" style="margin-bottom: 10px;">
-                                <i class="ri-price-tag-3-line text-muted"></i>
-                                <select id="sermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: none; background: transparent;">
-                                    <option value="Sermone">Sermone</option>
-                                    <option value="Studio Biblico">Studio Biblico</option>
-                                    <option value="Riunione Giovani">Riunione Giovani</option>
-                                    <option value="Nota">Nota Libera</option>
-                                </select>
-                            </div>
-                            <div class="speaker-row">
-                                <i class="ri-user-voice-line text-muted"></i>
-                                <input type="text" id="sermonSpeaker" class="sermon-input-speaker" placeholder="Relatore...">
-                            </div>
-                            <div class="speaker-row" style="margin-top: 10px;">
-                                <i class="ri-book-mark-line text-muted"></i>
-                                <input type="text" id="sermonRefs" class="sermon-input-speaker" placeholder="Riferimenti biblici (es. Giovanni 3:16)...">
-                            </div>
-                        </div>
-                        <textarea id="sermonBody" class="sermon-input-body" placeholder="Scrivi qui i tuoi appunti... (Clicca su un versetto evidenziato per incollarlo qui!)"></textarea>
                     </div>
                 </div>
                 <div class="section-spacer"></div>
@@ -354,6 +332,44 @@
             <p id="detailAvvisoDesc" style="white-space: pre-wrap; line-height: 1.6;"></p>
             <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
                 <button class="btn-secondary" onclick="closeAvvisoDetailModal()">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale per nuovo appunto / modifica appunto -->
+    <div id="sermonModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; width: 90%;">
+            <h2 id="sermonModalTitle">Nuovo Appunto</h2>
+            <div class="sermon-modal-body">
+                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo dell'appunto..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
+                
+                <div style="margin-bottom: 15px;">
+                    <i class="ri-price-tag-3-line text-muted"></i>
+                    <select id="modalSermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: 1px solid var(--border-color); background: white; border-radius: 8px;">
+                        <option value="Sermone">Sermone</option>
+                        <option value="Studio Biblico">Studio Biblico</option>
+                        <option value="Riunione Giovani">Riunione Giovani</option>
+                        <option value="Nota">Nota Libera</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <i class="ri-user-voice-line text-muted"></i>
+                    <input type="text" id="modalSermonSpeaker" class="apple-select" placeholder="Relatore..." style="width:100%;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <i class="ri-book-mark-line text-muted"></i>
+                    <input type="text" id="modalSermonRefs" class="apple-select" placeholder="Riferimenti biblici (es. Giovanni 3:16)..." style="width:100%;">
+                </div>
+                
+                <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">CONTENUTO</label>
+                <textarea id="modalSermonBody" class="apple-select" placeholder="Scrivi qui i tuoi appunti..." style="width:100%; height: 250px; resize:none; margin-bottom: 20px;"></textarea>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="btn-secondary" id="closeSermonModalBtn">Annulla</button>
+                    <button class="btn-apple" id="saveSermonModalBtn">Salva</button>
+                </div>
             </div>
         </div>
     </div>

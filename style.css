@@ -551,7 +551,7 @@ body {
 /* Barra di ricerca fissa nei cantici - attaccata in alto senza fessura */
 .search-bar-fixed {
     position: sticky;
-    top: 70px;
+    top: 68px;
     background: var(--bg-app);
     z-index: 45;
     padding: 0 0 12px 0;
@@ -997,11 +997,17 @@ body.is-admin #addNoticeBtn {
     font-size: 24px;
 }
 
-/* --- SERMONI - LAYOUT VERTICALE RESPONSIVE (una colonna) --- */
-.sermons-layout-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+/* --- SERMONI - solo lista, barra fissa --- */
+.sticky-sermon-header {
+    position: sticky;
+    top: 0;
+    background: rgba(242, 242, 247, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 50;
+    padding: 0 0 8px 0;
+}
+
+.sermons-list-only {
     width: 100%;
 }
 
@@ -1078,71 +1084,31 @@ body.is-admin #addNoticeBtn {
     align-self: flex-start;
 }
 
-.editor-container {
-    width: 100%;
-    background: var(--bg-card);
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    min-height: 500px;
-}
-
-.editor-header {
-    padding: 24px 32px 16px 32px;
-    border-bottom: 1px solid var(--border-color);
-    background: #fafafa;
-}
-
-.sermon-input-title {
-    font-size: 32px;
-    font-weight: 700;
+.delete-sermon-from-list {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 122, 255, 0.1);
     border: none;
-    outline: none;
-    width: 100%;
-    background: transparent;
-    margin-bottom: 12px;
-    color: var(--text-main);
-}
-
-.sermon-input-speaker {
-    font-size: 16px;
-    border: none;
-    outline: none;
-    width: 100%;
-    background: transparent;
-    color: var(--text-main);
-    font-weight: 500;
-}
-
-.sermon-input-body {
-    flex: 1;
-    border: none;
-    outline: none;
-    resize: none;
-    width: 100%;
-    background: transparent;
-    padding: 32px;
-    font-size: 18px;
-    line-height: 1.7;
-    overflow-y: auto;
-    min-height: 300px;
-}
-
-/* Header bottoni appunti - solo icone */
-.sermon-header-buttons {
-    display: flex;
+    border-radius: 30px;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--danger-color);
+    font-size: 18px;
+    transition: all 0.2s ease;
 }
 
-.sermon-header-actions {
-    display: flex;
-    gap: 8px;
+/* Modale per appunti */
+.sermon-modal-body input,
+.sermon-modal-body select,
+.sermon-modal-body textarea {
+    width: 100%;
+    margin-bottom: 15px;
 }
 
 /* --- PREFERITI --- */
@@ -1196,25 +1162,6 @@ body.is-admin #addNoticeBtn {
 
 .favorite-btn:active {
     transform: scale(0.92);
-}
-
-.delete-sermon-from-list {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 122, 255, 0.1);
-    border: none;
-    border-radius: 30px;
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--danger-color);
-    font-size: 18px;
-    transition: all 0.2s ease;
 }
 
 /* Spazio inferiore per evitare che la barra mobile copra i contenuti */
@@ -1340,8 +1287,6 @@ body.is-admin #addNoticeBtn {
         justify-content: center;
     }
 
-    /* Layout verticale appunti già applicato, nessuna modifica aggiuntiva */
-    
     .hymn-slide {
         padding: 0;
     }
@@ -1361,8 +1306,9 @@ body.is-admin #addNoticeBtn {
         font-size: 24px;
     }
 
+    /* Barra di ricerca fissa mobile */
     .search-bar-fixed {
-        top: 60px;
+        top: 58px;
         padding: 0 0 10px 0;
         margin-top: -6px;
     }
@@ -1374,6 +1320,10 @@ body.is-admin #addNoticeBtn {
     .bible-bottom-controls-sticky .icon-btn {
         width: 44px;
         height: 44px;
+    }
+
+    .sticky-sermon-header {
+        top: 0;
     }
 }
 
