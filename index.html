@@ -16,9 +16,8 @@
 </head>
 <body class="">
     <div id="loginScreen" class="login-container">
-        
         <div class="login-video-wrapper">
-            <video autoplay muted loop playsinline id="loginVideo">
+            <video autoplay muted loop playsinline id="loginVideo" poster="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800">
                 <source src="https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_30fps.mp4" type="video/mp4">
                 <source src="https://cdn.pixabay.com/video/2023/06/20/169137-836333344_large.mp4" type="video/mp4">
                 <source src="https://assets.mixkit.co/videos/preview/mixkit-wooden-church-interior-1283-large.mp4" type="video/mp4">
@@ -72,7 +71,6 @@
         </aside>
 
         <main class="main-content">
-            
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
                     <div>
@@ -176,10 +174,12 @@
                         <h3 id="currentHymnTitle" class="reader-top-title">Titolo</h3>
                         
                         <div style="display: flex; gap: 10px; align-items: center;">
+                            <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
+                                <i class="ri-share-line"></i>
+                            </button>
                             <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
                                 <i class="ri-grid-fill" style="font-size: 18px;"></i>
                             </button>
-                            
                             <div class="apple-font-controls">
                                 <button id="decreaseHymnFont" class="font-btn small-a">A</button>
                                 <div class="font-divider"></div>
@@ -192,7 +192,6 @@
                         <div class="slides-container" id="hymnSlidesContainer"></div>
                     </div>
                     
-                    <!-- Anteprima slide precedente e successiva -->
                     <div class="slide-previews" id="slidePreviews">
                         <div class="preview-prev" id="previewPrev">
                             <div class="preview-label">◀ Precedente</div>
@@ -249,7 +248,6 @@
                         <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; min-width: 140px; text-align: center;">Capitolo</span>
                         <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
                     </div>
-
                 </div>
             </section>
 
@@ -257,7 +255,6 @@
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <!-- RIMOSSO il cestino in alto -->
                         <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
                             <i class="ri-printer-line"></i> Stampa PDF
                         </button>
@@ -265,7 +262,6 @@
                     </div>
                 </div>
                 <div class="sermons-layout">
-                    
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
                         <button class="new-sermon-btn" id="newSermonBtnCentral"><i class="ri-add-line"></i> Nuovo Appunto</button>
                         <div class="list-header">Appunti Recenti</div>
@@ -274,14 +270,12 @@
                         <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500; display:flex; align-items:center; gap:6px;">
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
-                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;">
-                            </ul>
+                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;"></ul>
                     </div>
 
                     <div class="editor-container">
                         <div class="editor-header">
                             <input type="text" id="sermonTitle" class="sermon-input-title" placeholder="Titolo dell'appunto...">
-                            
                             <div class="speaker-row" style="margin-bottom: 10px;">
                                 <i class="ri-price-tag-3-line text-muted"></i>
                                 <select id="sermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: none; background: transparent;">
@@ -291,7 +285,6 @@
                                     <option value="Nota">Nota Libera</option>
                                 </select>
                             </div>
-
                             <div class="speaker-row">
                                 <i class="ri-user-voice-line text-muted"></i>
                                 <input type="text" id="sermonSpeaker" class="sermon-input-speaker" placeholder="Relatore...">
@@ -329,6 +322,7 @@
         </nav>
     </div>
     
+    <!-- Modale Avviso (creazione/modifica) -->
     <div id="avvisoModal" class="modal hidden">
         <div class="modal-content">
             <h2 id="avvisoModalTitle">Nuovo Avviso</h2>
@@ -337,6 +331,9 @@
             
             <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">TITOLO</label>
             <input type="text" id="avvisoTitle" class="apple-select" placeholder="Titolo dell'avviso..." style="width:100%; margin-bottom: 15px;">
+            
+            <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">URL IMMAGINE (opzionale)</label>
+            <input type="text" id="avvisoImage" class="apple-select" placeholder="https://esempio.com/immagine.jpg" style="width:100%; margin-bottom: 15px;">
             
             <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">DESCRIZIONE</label>
             <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
@@ -347,6 +344,22 @@
                     <button class="btn-secondary" onclick="closeAvvisoModal()">Annulla</button>
                     <button class="btn-apple" id="saveAvvisoBtn">Salva</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Dettaglio Avviso (visualizzazione) -->
+    <div id="avvisoDetailModal" class="modal hidden">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 id="detailAvvisoTitle">Titolo</h2>
+                <button class="icon-btn" id="shareAvvisoDetailBtn"><i class="ri-share-line"></i></button>
+            </div>
+            <p id="detailAvvisoDate" style="color: var(--accent-color); font-size: 14px; font-weight: 600; margin-bottom: 15px;"></p>
+            <div id="detailAvvisoImage" style="margin-bottom: 15px; max-height: 200px; overflow: hidden; border-radius: 12px;"></div>
+            <p id="detailAvvisoDesc" style="white-space: pre-wrap; line-height: 1.6;"></p>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeAvvisoDetailModal()">Chiudi</button>
             </div>
         </div>
     </div>
@@ -379,6 +392,9 @@
                     });
             });
         }
+        
+        // Forza la riproduzione del video di login
+        document.getElementById('loginVideo')?.play().catch(e => console.log('Autoplay bloccato:', e));
     </script>
 </body>
 </html>
