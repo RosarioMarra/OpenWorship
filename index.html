@@ -119,6 +119,7 @@
                         <p class="dash-sub">Appunti salvati</p>
                     </div>
                 </div>
+                <div class="section-spacer"></div>
             </section>
 
             <section id="avvisi" class="content-section">
@@ -131,8 +132,7 @@
                     </div>
                 </div>
                 <div class="avvisi-wrapper" id="avvisiList"></div>
-                <!-- Spazio extra per evitare che l'ultimo avviso sia coperto dalla barra mobile -->
-                <div style="height: 90px;"></div>
+                <div class="section-spacer"></div>
             </section>
 
             <section id="cantici" class="content-section">
@@ -168,7 +168,7 @@
                     </div>
                     
                     <div class="list-container" id="hymnsList"></div>
-                    <div style="height: 90px;"></div>
+                    <div class="section-spacer"></div>
                 </div>
 
                 <div id="hymnReaderView" class="hidden reader-view">
@@ -222,11 +222,6 @@
                     </div>
                 </div>
                 <div class="bible-card">
-                    <div id="showBibleControlsArea" class="hidden" style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border-color); background: #fafafa;">
-                        <button class="btn-text" id="showBibleControlsBtn" style="margin: 0 auto;">
-                            <i class="ri-search-line"></i> Modifica Ricerca
-                        </button>
-                    </div>
                     <div class="bible-controls-grid" id="bibleControlsArea">
                         <select id="bibleVersion" class="apple-select">
                             <option value="NR06">Nuova Riveduta</option>
@@ -244,26 +239,29 @@
                         </div>
                     </div>
 
-                    <div class="bible-bottom-controls hidden" id="bibleBottomControls">
+                    <div class="bible-bottom-controls" id="bibleBottomControls">
                         <button class="slide-nav-btn" onclick="changeChapter(-1)"><i class="ri-arrow-left-s-line"></i></button>
                         <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; min-width: 140px; text-align: center;">Capitolo</span>
                         <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
                     </div>
                 </div>
+                <div class="section-spacer"></div>
             </section>
 
             <section id="sermoni" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
-                    <div style="display: flex; gap: 12px; align-items: center;">
+                    <div class="sermon-header-buttons">
                         <button class="btn-apple" id="newSermonTopBtn"><i class="ri-add-line"></i> Nuovo Appunto</button>
-                        <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
-                            <i class="ri-printer-line"></i> Stampa PDF
-                        </button>
-                        <button class="btn-apple" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
+                        <div class="sermon-header-actions">
+                            <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
+                                <i class="ri-printer-line"></i> Stampa PDF
+                            </button>
+                            <button class="btn-apple" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
+                        </div>
                     </div>
                 </div>
-                <div class="sermons-layout">
+                <div class="sermons-layout-fixed">
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
                         <div class="list-header">Appunti Recenti</div>
                         <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
@@ -298,6 +296,7 @@
                         <textarea id="sermonBody" class="sermon-input-body" placeholder="Scrivi qui i tuoi appunti... (Clicca su un versetto evidenziato per incollarlo qui!)"></textarea>
                     </div>
                 </div>
+                <div class="section-spacer"></div>
             </section>
         </main>
 

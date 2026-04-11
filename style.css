@@ -257,7 +257,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 0 60px 110px;
+    padding: 0 60px 0;
     position: relative;
 }
 
@@ -547,6 +547,16 @@ body {
     font-size: 17px;
     outline: none;
     margin-left: 10px;
+}
+
+/* Barra di ricerca fissa nei cantici */
+.search-bar-fixed {
+    position: sticky;
+    top: 80px;
+    background: var(--bg-app);
+    z-index: 45;
+    padding: 8px 0 12px 0;
+    margin-bottom: 8px;
 }
 
 .text-danger {
@@ -976,7 +986,7 @@ body.is-admin #addNoticeBtn {
 }
 
 /* --- SERMONI E HIGHLIGHTS --- */
-.sermons-layout {
+.sermons-layout-fixed {
     display: flex;
     gap: 24px;
     flex: 1;
@@ -1107,6 +1117,20 @@ body.is-admin #addNoticeBtn {
     overflow-y: auto;
 }
 
+/* Header bottoni appunti - senza accavallamenti */
+.sermon-header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.sermon-header-actions {
+    display: flex;
+    gap: 12px;
+}
+
 /* --- PREFERITI --- */
 .favorites-header {
     display: flex;
@@ -1179,6 +1203,12 @@ body.is-admin #addNoticeBtn {
     transition: all 0.2s ease;
 }
 
+/* Spazio inferiore per evitare che la barra mobile copra i contenuti */
+.section-spacer {
+    height: 100px;
+    width: 100%;
+}
+
 /* --- MOBILE RESPONSIVE --- */
 @media (max-width: 768px) {
     .desktop-only {
@@ -1186,7 +1216,7 @@ body.is-admin #addNoticeBtn {
     }
 
     .main-content {
-        padding: 0 16px 100px !important;
+        padding: 0 16px 0 !important;
     }
 
     .section-header {
@@ -1296,22 +1326,20 @@ body.is-admin #addNoticeBtn {
         justify-content: center;
     }
 
-    .sermons-layout {
-        flex-direction: column;
-        overflow: visible;
-        height: auto;
+    /* Sezione appunti NON responsive: mantiene il layout a due colonne */
+    .sermons-layout-fixed {
+        flex-direction: row;
+        overflow-x: auto;
     }
 
     .saved-sermons-list {
-        width: 100%;
-        height: auto;
+        width: 280px;
         flex-shrink: 0;
     }
 
     .editor-container {
-        min-height: 500px;
-        flex-shrink: 0;
-        margin-top: 20px;
+        min-width: 300px;
+        flex-shrink: 1;
     }
 
     .hymn-slide {
@@ -1331,6 +1359,20 @@ body.is-admin #addNoticeBtn {
 
     .section-title {
         font-size: 24px;
+    }
+
+    .search-bar-fixed {
+        top: 70px;
+    }
+    
+    .sermon-header-buttons {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+    
+    .sermon-header-actions {
+        gap: 8px;
     }
 }
 

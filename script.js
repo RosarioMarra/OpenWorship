@@ -1117,8 +1117,6 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     if (!chapter) return alert("Seleziona almeno un capitolo.");
     
     reader.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="ri-loader-4-line ri-spin" style="font-size: 32px; color: var(--accent-color);"></i><p style="margin-top:10px; color:var(--text-muted)">Connessione in corso...</p></div>';
-    document.getElementById('bibleControlsArea').classList.add('hidden');
-    document.getElementById('showBibleControlsArea').classList.remove('hidden');
     
     try {
         const data = await fetchBibleData(version, bookId, chapter);
@@ -1145,7 +1143,6 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         updateBibleFontSize();
         
         document.getElementById('bibleCurrentChapterDisplay').textContent = `${bookName} ${chapter}`;
-        document.getElementById('bibleBottomControls').classList.remove('hidden');
         
         document.querySelectorAll('.bible-verse').forEach(el => {
             el.addEventListener('click', function () {
@@ -1185,11 +1182,6 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         console.error("Errore Bibbia:", error);
         reader.innerHTML = `<div style="text-align:center;"><p style="color:var(--danger-color); font-weight:bold;">Errore di Rete.</p><p style="color:var(--text-muted); font-size:16px;">Controlla la tua connessione e riprova.</p></div>`;
     }
-});
-
-document.getElementById('showBibleControlsBtn').addEventListener('click', () => {
-    document.getElementById('bibleControlsArea').classList.remove('hidden');
-    document.getElementById('showBibleControlsArea').classList.add('hidden');
 });
 
 function updateBibleFontSize() {
