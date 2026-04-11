@@ -263,7 +263,6 @@ body {
 
 .content-section {
     display: none;
-    height: 100%;
     flex-direction: column;
 }
 
@@ -549,10 +548,10 @@ body {
     margin-left: 10px;
 }
 
-/* Barra di ricerca fissa nei cantici */
+/* Barra di ricerca fissa nei cantici - attaccata alla parte superiore */
 .search-bar-fixed {
     position: sticky;
-    top: 80px;
+    top: 70px;
     background: var(--bg-app);
     z-index: 45;
     padding: 8px 0 12px 0;
@@ -952,6 +951,7 @@ body.is-admin #addNoticeBtn {
     line-height: 1.6;
     flex: 1;
     transition: font-size 0.2s;
+    min-height: 300px;
 }
 
 .bible-verse {
@@ -974,29 +974,38 @@ body.is-admin #addNoticeBtn {
     border-left: 4px solid #ff9500;
 }
 
-.bible-bottom-controls {
+/* Controlli fissi in basso per la Bibbia - sticky e sempre visibili */
+.bible-bottom-controls-sticky {
+    position: sticky;
+    bottom: 0;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     gap: 20px;
-    padding: 15px;
-    background: #fafafa;
+    padding: 12px 20px;
+    background: rgba(250, 250, 250, 0.95);
+    backdrop-filter: blur(10px);
     border-top: 1px solid var(--border-color);
-    z-index: 10;
+    z-index: 40;
 }
 
-/* --- SERMONI E HIGHLIGHTS --- */
-.sermons-layout-fixed {
+.bible-bottom-controls-sticky .icon-btn {
+    background: rgba(0, 122, 255, 0.15);
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+}
+
+/* --- SERMONI - LAYOUT VERTICALE RESPONSIVE (una colonna) --- */
+.sermons-layout-vertical {
     display: flex;
+    flex-direction: column;
     gap: 24px;
-    flex: 1;
-    height: 100%;
-    overflow: hidden;
-    padding-bottom: 20px;
+    width: 100%;
 }
 
 .saved-sermons-list {
-    width: 300px;
+    width: 100%;
     background: var(--bg-card);
     border-radius: 16px;
     border: 1px solid var(--border-color);
@@ -1024,6 +1033,8 @@ body.is-admin #addNoticeBtn {
 
 .saved-sermons-list ul {
     list-style: none;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .saved-sermons-list li {
@@ -1067,7 +1078,7 @@ body.is-admin #addNoticeBtn {
 }
 
 .editor-container {
-    flex: 1;
+    width: 100%;
     background: var(--bg-card);
     border-radius: 16px;
     border: 1px solid var(--border-color);
@@ -1075,6 +1086,7 @@ body.is-admin #addNoticeBtn {
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    min-height: 500px;
 }
 
 .editor-header {
@@ -1115,20 +1127,21 @@ body.is-admin #addNoticeBtn {
     font-size: 18px;
     line-height: 1.7;
     overflow-y: auto;
+    min-height: 300px;
 }
 
-/* Header bottoni appunti - senza accavallamenti */
+/* Header bottoni appunti - solo icone */
 .sermon-header-buttons {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
 
 .sermon-header-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
 }
 
 /* --- PREFERITI --- */
@@ -1326,22 +1339,8 @@ body.is-admin #addNoticeBtn {
         justify-content: center;
     }
 
-    /* Sezione appunti NON responsive: mantiene il layout a due colonne */
-    .sermons-layout-fixed {
-        flex-direction: row;
-        overflow-x: auto;
-    }
-
-    .saved-sermons-list {
-        width: 280px;
-        flex-shrink: 0;
-    }
-
-    .editor-container {
-        min-width: 300px;
-        flex-shrink: 1;
-    }
-
+    /* Layout verticale appunti già applicato, nessuna modifica aggiuntiva */
+    
     .hymn-slide {
         padding: 0;
     }
@@ -1366,13 +1365,12 @@ body.is-admin #addNoticeBtn {
     }
     
     .sermon-header-buttons {
-        flex-direction: column;
-        align-items: flex-end;
         gap: 8px;
     }
     
-    .sermon-header-actions {
-        gap: 8px;
+    .bible-bottom-controls-sticky .icon-btn {
+        width: 44px;
+        height: 44px;
     }
 }
 

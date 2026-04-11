@@ -239,10 +239,10 @@
                         </div>
                     </div>
 
-                    <div class="bible-bottom-controls" id="bibleBottomControls">
-                        <button class="slide-nav-btn" onclick="changeChapter(-1)"><i class="ri-arrow-left-s-line"></i></button>
-                        <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; min-width: 140px; text-align: center;">Capitolo</span>
-                        <button class="slide-nav-btn" onclick="changeChapter(1)"><i class="ri-arrow-right-s-line"></i></button>
+                    <div class="bible-bottom-controls-sticky" id="bibleBottomControls">
+                        <button class="icon-btn" onclick="changeChapter(-1)" id="biblePrevBtn"><i class="ri-arrow-left-s-line"></i></button>
+                        <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; text-align: center;">Capitolo</span>
+                        <button class="icon-btn" onclick="changeChapter(1)" id="bibleNextBtn"><i class="ri-arrow-right-s-line"></i></button>
                     </div>
                 </div>
                 <div class="section-spacer"></div>
@@ -252,24 +252,22 @@
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
                     <div class="sermon-header-buttons">
-                        <button class="btn-apple" id="newSermonTopBtn"><i class="ri-add-line"></i> Nuovo Appunto</button>
+                        <button class="icon-btn" id="newSermonTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
                         <div class="sermon-header-actions">
-                            <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
-                                <i class="ri-printer-line"></i> Stampa PDF
-                            </button>
-                            <button class="btn-apple" id="saveSermonBtn"><i class="ri-save-line"></i> Salva</button>
+                            <button class="icon-btn" id="printSermonBtn" title="Stampa PDF"><i class="ri-printer-line"></i></button>
+                            <button class="icon-btn" id="saveSermonBtn" title="Salva"><i class="ri-save-line"></i></button>
                         </div>
                     </div>
                 </div>
-                <div class="sermons-layout-fixed">
-                    <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
+                <div class="sermons-layout-vertical">
+                    <div class="saved-sermons-list" id="savedSermonsList">
                         <div class="list-header">Appunti Recenti</div>
-                        <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
+                        <ul id="sermonsUl"></ul>
                         
-                        <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500; display:flex; align-items:center; gap:6px;">
+                        <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500;">
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
-                        <ul id="highlightsUl" style="height: 250px; overflow-y:auto; background: #fffaf0;"></ul>
+                        <ul id="highlightsUl"></ul>
                     </div>
 
                     <div class="editor-container">

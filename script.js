@@ -1318,8 +1318,8 @@ document.getElementById('saveSermonBtn').onclick = async () => {
         updateDashboard();
         
         const btn = document.getElementById('saveSermonBtn');
-        btn.innerHTML = "<i class='ri-check-line'></i> Salvato";
-        setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i> Salva", 2000);
+        btn.innerHTML = "<i class='ri-check-line'></i>";
+        setTimeout(() => btn.innerHTML = "<i class='ri-save-line'></i>", 2000);
     } catch (e) {
         alert("Errore salvataggio appunto: " + e.message);
     }
