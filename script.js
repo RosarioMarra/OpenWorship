@@ -61,7 +61,6 @@ async function shareContent(title, text, url) {
             return false;
         }
     } else {
-        // Fallback: copia negli appunti
         const fullText = `${title}\n\n${text}`;
         await navigator.clipboard.writeText(fullText);
         alert('Testo copiato negli appunti! Puoi incollarlo dove vuoi.');
@@ -124,58 +123,17 @@ const verseImages = [
     'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800'
 ];
 
-// Mappa versioni Bibbia per API
-const bibleVersionMap = {
-    'NR06': 'NR06',
-    'Diodati': 'DBG',
-    'Luzzi': 'LUZZI'
-};
-
-// API alternativa per Diodati e Luzzi
-async function fetchBibleFallback(version, bookId, chapter) {
-    const bookNames = {
-        1: "Genesi", 2: "Esodo", 3: "Levitico", 4: "Numeri", 5: "Deuteronomio",
-        6: "Giosuè", 7: "Giudici", 8: "Rut", 9: "1 Samuele", 10: "2 Samuele",
-        11: "1 Re", 12: "2 Re", 13: "1 Cronache", 14: "2 Cronache", 15: "Esdra",
-        16: "Neemia", 17: "Ester", 18: "Giobbe", 19: "Salmi", 20: "Proverbi",
-        21: "Ecclesiaste", 22: "Cantico", 23: "Isaia", 24: "Geremia", 25: "Lamentazioni",
-        26: "Ezechiele", 27: "Daniele", 28: "Osea", 29: "Gioele", 30: "Amos",
-        31: "Abdia", 32: "Giona", 33: "Michea", 34: "Naum", 35: "Abacuc",
-        36: "Sofonia", 37: "Aggeo", 38: "Zaccaria", 39: "Malachia",
-        40: "Matteo", 41: "Marco", 42: "Luca", 43: "Giovanni", 44: "Atti",
-        45: "Romani", 46: "1 Corinzi", 47: "2 Corinzi", 48: "Galati", 49: "Efesini",
-        50: "Filippesi", 51: "Colossesi", 52: "1 Tessalonicesi", 53: "2 Tessalonicesi",
-        54: "1 Timoteo", 55: "2 Timoteo", 56: "Tito", 57: "Filemone", 58: "Ebrei",
-        59: "Giacomo", 60: "1 Pietro", 61: "2 Pietro", 62: "1 Giovanni", 63: "2 Giovanni",
-        64: "3 Giovanni", 65: "Giuda", 66: "Apocalisse"
-    };
-    
-    const bookName = bookNames[bookId];
-    if (!bookName) throw new Error("Libro non trovato");
-    
-    // Usa getbible.net API (supporta molte versioni)
-    const versionCode = version === 'Diodati' ? 'diord' : (version === 'Luzzi' ? 'luzzi' : 'nr06');
-    const url = `https://getbible.net/json?translation=${versionCode}&book=${encodeURIComponent(bookName)}&chapter=${chapter}`;
-    
+// Solo Nuova Riveduta
+async function fetchBibleData(version, bookId, chapter) {
+    const directUrl = `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("API fallita");
+        const response = await fetch(directUrl);
+        if (!response.ok) throw new Error("API limit");
         const data = await response.json();
-        
-        // Parse della risposta getbible.net
-        const verses = [];
-        const chapterData = data[versionCode]?.[bookName]?.[chapter];
-        if (chapterData) {
-            for (let v = 1; v <= 150; v++) {
-                if (chapterData[v]) {
-                    verses.push({ verse: v, text: chapterData[v] });
-                }
-            }
-        }
-        if (verses.length === 0) throw new Error("Nessun versetto trovato");
-        return verses;
+        if (data && data.length > 0) return data;
+        throw new Error("Nessun dato");
     } catch (e) {
-        console.error("Fallback API error:", e);
+        console.error("Errore fetch Bibbia:", e);
         throw new Error("Impossibile caricare la Bibbia. Verifica la connessione.");
     }
 }
@@ -210,7 +168,8 @@ async function showApp() {
         setupFavoritesTabs();
         setupDashboardCards();
         
-        document.getElementById('newSermonBtnCentral').addEventListener('click', () => {
+        // Bottone "Nuovo Appunto" in alto
+        document.getElementById('newSermonTopBtn').addEventListener('click', () => {
             newSermon();
             document.getElementById('sermonTitle').focus();
         });
@@ -234,12 +193,10 @@ async function showApp() {
 }
 
 function setupShareButtons() {
-    // Condivisione cantico corrente (nel reader)
     const shareHymnBtn = document.getElementById('shareHymnBtn');
     if (shareHymnBtn) {
         shareHymnBtn.addEventListener('click', () => {
             const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
-            // Prendi il testo della slide attiva
             const activeSlide = document.querySelector('.hymn-slide .slide-content');
             const text = activeSlide ? activeSlide.innerText : 'Cantico spirituale';
             shareContent(title, text);
@@ -1148,22 +1105,6 @@ window.changeChapter = function (direction) {
         document.getElementById('fetchBibleBtn').click();
     }
 };
-
-async function fetchBibleData(version, bookId, chapter) {
-    // Prima prova con bolls.life
-    const mappedVersion = bibleVersionMap[version] || 'NR06';
-    const directUrl = `https://bolls.life/get-chapter/${mappedVersion}/${bookId}/${chapter}/`;
-    try {
-        const response = await fetch(directUrl);
-        if (!response.ok) throw new Error("API limit");
-        const data = await response.json();
-        if (data && data.length > 0) return data;
-        throw new Error("Nessun dato");
-    } catch (e) {
-        console.log("Bolls.life fallita, uso fallback:", e);
-        return await fetchBibleFallback(version, bookId, chapter);
-    }
-}
 
 document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     const version = document.getElementById('bibleVersion').value;

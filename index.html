@@ -131,6 +131,8 @@
                     </div>
                 </div>
                 <div class="avvisi-wrapper" id="avvisiList"></div>
+                <!-- Spazio extra per evitare che l'ultimo avviso sia coperto dalla barra mobile -->
+                <div style="height: 90px;"></div>
             </section>
 
             <section id="cantici" class="content-section">
@@ -166,6 +168,7 @@
                     </div>
                     
                     <div class="list-container" id="hymnsList"></div>
+                    <div style="height: 90px;"></div>
                 </div>
 
                 <div id="hymnReaderView" class="hidden reader-view">
@@ -227,8 +230,6 @@
                     <div class="bible-controls-grid" id="bibleControlsArea">
                         <select id="bibleVersion" class="apple-select">
                             <option value="NR06">Nuova Riveduta</option>
-                            <option value="Diodati">Diodati</option>
-                            <option value="Luzzi">Luzzi</option>
                         </select>
                         <select id="bibleBook" class="apple-select"></select>
                         <select id="bibleChapter" class="apple-select"></select>
@@ -239,7 +240,7 @@
                     <div class="bible-reader-content" id="bibleReaderContent">
                         <div class="empty-state">
                             <i class="ri-book-3-line"></i>
-                            <p>Seleziona Versione, Libro e Capitolo per leggere.</p>
+                            <p>Seleziona Libro e Capitolo per leggere.</p>
                         </div>
                     </div>
 
@@ -255,6 +256,7 @@
                 <div class="section-header">
                     <h1 class="section-title">Appunti</h1>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="btn-apple" id="newSermonTopBtn"><i class="ri-add-line"></i> Nuovo Appunto</button>
                         <button class="btn-apple" id="printSermonBtn" title="Stampa PDF">
                             <i class="ri-printer-line"></i> Stampa PDF
                         </button>
@@ -263,7 +265,6 @@
                 </div>
                 <div class="sermons-layout">
                     <div class="saved-sermons-list" id="savedSermonsList" style="display:flex; flex-direction:column;">
-                        <button class="new-sermon-btn" id="newSermonBtnCentral"><i class="ri-add-line"></i> Nuovo Appunto</button>
                         <div class="list-header">Appunti Recenti</div>
                         <ul id="sermonsUl" style="flex: 1; overflow-y:auto; min-height: 200px;"></ul>
                         
