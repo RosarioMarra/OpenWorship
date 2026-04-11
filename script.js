@@ -334,13 +334,6 @@ function openAvvisoDetailModal(id) {
     document.getElementById('detailAvvisoDate').textContent = dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('detailAvvisoDesc').textContent = avviso.desc;
     
-    const imgContainer = document.getElementById('detailAvvisoImage');
-    if (avviso.image && avviso.image.trim() !== '') {
-        imgContainer.innerHTML = `<img src="${avviso.image}" style="width:100%; border-radius:12px;" onerror="this.style.display='none'">`;
-    } else {
-        imgContainer.innerHTML = '';
-    }
-    
     const shareBtn = document.getElementById('shareAvvisoDetailBtn');
     shareBtn.onclick = () => shareAvviso(id);
     
@@ -376,7 +369,6 @@ function openAvvisoModal(id = null) {
         document.getElementById('avvisoModalTitle').textContent = "Modifica Avviso";
         document.getElementById('avvisoDate').value = avv.date;
         document.getElementById('avvisoTitle').value = avv.title;
-        document.getElementById('avvisoImage').value = avv.image || '';
         document.getElementById('avvisoDesc').value = avv.desc;
         document.getElementById('deleteAvvisoBtn').style.display = 'flex';
         document.getElementById('deleteAvvisoBtn').onclick = () => deleteAvviso(id);
@@ -385,7 +377,6 @@ function openAvvisoModal(id = null) {
         document.getElementById('avvisoModalTitle').textContent = "Nuovo Avviso";
         document.getElementById('avvisoDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('avvisoTitle').value = "";
-        document.getElementById('avvisoImage').value = "";
         document.getElementById('avvisoDesc').value = "";
         document.getElementById('deleteAvvisoBtn').style.display = 'none';
     }
@@ -399,7 +390,6 @@ function closeAvvisoModal() {
 document.getElementById('saveAvvisoBtn').onclick = async () => {
     const title = document.getElementById('avvisoTitle').value.trim();
     const date = document.getElementById('avvisoDate').value;
-    const image = document.getElementById('avvisoImage').value.trim();
     const desc = document.getElementById('avvisoDesc').value.trim();
     if (!title || !date) return;
     
@@ -407,7 +397,6 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
         id: editingAvvisoId || crypto.randomUUID(),
         date,
         title,
-        image: image || null,
         desc
     };
     
