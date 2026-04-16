@@ -17,7 +17,7 @@ let currentTab = "all";
 let searchTerm = "";
 let showChords = false;
 let currentUser = null;
-let avvisiSubscription = null;
+let avvisiChannel = null; // nome più chiaro
 
 // Caricamento dati locali
 try {
@@ -125,13 +125,14 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     }
 });
 
-// --- FUNZIONE LOGOUT ROBUSTA ---
+// --- FUNZIONE LOGOUT CORRETTA ---
 async function handleLogout() {
     console.log("Logout chiamato");
     try {
-        if (avvisiSubscription) {
-            supabaseClient.removeSubscription(avvisiSubscription);
-            avvisiSubscription = null;
+        // Chiudi il canale real-time se esiste
+        if (avvisiChannel) {
+            await avvisiChannel.unsubscribe();
+            avvisiChannel = null;
         }
         const { error } = await supabaseClient.auth.signOut();
         if (error) {
@@ -147,22 +148,24 @@ async function handleLogout() {
         // Chiudi eventuali modali
         const accountModal = document.getElementById('accountModal');
         if (accountModal) accountModal.classList.add('hidden');
-        // Forza ricaricamento della pagina per pulire tutto (opzionale, ma utile)
-        // window.location.reload();
     } catch (err) {
         console.error("Eccezione in logout:", err);
         alert("Errore durante il logout: " + err.message);
     }
 }
 
-// Aggiungi listener per logout desktop e mobile
+// Listener per logout desktop
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-document.getElementById('mobileLogoutBtnModal').addEventListener('click', async () => {
-    // Chiudi il modale prima del logout
-    const accountModal = document.getElementById('accountModal');
-    if (accountModal) accountModal.classList.add('hidden');
-    await handleLogout();
-});
+// Listener per logout mobile (nel modale)
+const mobileLogoutBtn = document.getElementById('mobileLogoutBtnModal');
+if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener('click', async () => {
+        // Chiudi il modale prima del logout
+        const accountModal = document.getElementById('accountModal');
+        if (accountModal) accountModal.classList.add('hidden');
+        await handleLogout();
+    });
+}
 
 // --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
@@ -209,11 +212,12 @@ function setupRealtimeAvvisi() {
 
     if (Notification.permission !== 'granted') return;
 
-    if (avvisiSubscription) {
-        supabaseClient.removeSubscription(avvisiSubscription);
+    if (avvisiChannel) {
+        avvisiChannel.unsubscribe();
+        avvisiChannel = null;
     }
 
-    avvisiSubscription = supabaseClient
+    avvisiChannel = supabaseClient
         .channel('avvisi-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
             const newAvviso = payload.new;
@@ -348,9 +352,9 @@ async function showApp() {
                         setupRealtimeAvvisi();
                     }
                 } else {
-                    if (avvisiSubscription) {
-                        supabaseClient.removeSubscription(avvisiSubscription);
-                        avvisiSubscription = null;
+                    if (avvisiChannel) {
+                        avvisiChannel.unsubscribe();
+                        avvisiChannel = null;
                     }
                 }
             });
