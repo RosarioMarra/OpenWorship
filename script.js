@@ -134,7 +134,10 @@ async function handleLogout() {
     document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
-    setTimeout(() => loginScreen.style.opacity = '1', 50);
+    loginScreen.style.opacity = '1';
+    // Chiudi eventuali modali aperti
+    const accountModal = document.getElementById('accountModal');
+    if (accountModal) accountModal.classList.add('hidden');
 }
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 
@@ -309,7 +312,12 @@ async function showApp() {
         
         const mobileLogoutModal = document.getElementById('mobileLogoutBtnModal');
         if (mobileLogoutModal) {
-            mobileLogoutModal.addEventListener('click', handleLogout);
+            mobileLogoutModal.addEventListener('click', async () => {
+                // Chiudi il modale prima di eseguire il logout
+                const accountModal = document.getElementById('accountModal');
+                if (accountModal) accountModal.classList.add('hidden');
+                await handleLogout();
+            });
         }
         
         const notificationsSwitch = document.getElementById('notificationsSwitch');
