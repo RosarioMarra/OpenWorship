@@ -15,6 +15,7 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body class="">
+    <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
         <div class="login-video-wrapper">
             <video autoplay muted loop playsinline id="loginVideo" poster="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800">
@@ -24,14 +25,12 @@
             </video>
             <div class="login-overlay"></div>
         </div>
-
         <div class="login-card">
             <div class="login-icon">
                 <img src="icon-192.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
             <h1>Open Worship</h1>
             <p>Entra nelle risorse della tua chiesa</p>
-            
             <button id="googleLoginBtn" class="btn-google">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
                 Continua con Google
@@ -40,7 +39,9 @@
         </div>
     </div>
 
+    <!-- Main App -->
     <div class="app-container hidden" id="mainApp">
+        <!-- Sidebar Desktop -->
         <aside class="sidebar desktop-only">
             <div class="user-profile-box" style="display: flex; align-items: center; gap: 12px; padding: 15px; background: rgba(0,0,0,0.03); border-radius: 18px; margin-bottom: 25px; border: 1px solid var(--border-color);">
                 <img id="userProfileImg" src="" class="hidden" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
@@ -49,7 +50,6 @@
                     <p style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Account Google</p>
                 </div>
             </div>
-
             <div class="sidebar-header">
                 <div class="app-icon">
                     <img src="icon-192.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain;">
@@ -61,7 +61,7 @@
                 <button class="nav-item" data-target="avvisi"><i class="ri-notification-3-line"></i> Avvisi</button>
                 <button class="nav-item" data-target="cantici"><i class="ri-music-2-line"></i> Cantici</button>
                 <button class="nav-item" data-target="bibbia"><i class="ri-book-read-line"></i> Bibbia</button>
-                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Appunti</button>
+                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Prediche</button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logoutBtn" class="btn-logout-desktop">
@@ -70,7 +70,9 @@
             </div>
         </aside>
 
+        <!-- Main Content -->
         <main class="main-content">
+            <!-- Dashboard -->
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
                     <div>
@@ -78,7 +80,6 @@
                         <p class="text-muted" id="currentDateDisplay" style="margin-top: 5px;"></p>
                     </div>
                 </div>
-                
                 <div class="dashboard-grid">
                     <div class="dash-card verse-card" style="grid-column: 1 / -1; position: relative; overflow: hidden;">
                         <div class="verse-bg-image"></div>
@@ -90,31 +91,27 @@
                         <p id="dailyVerseText" class="verse-text" style="position: relative; z-index: 2; color: white;">"Caricamento..."</p>
                         <p id="dailyVerseRef" class="verse-ref" style="position: relative; z-index: 2; color: #ffd700;">-</p>
                     </div>
-
                     <div class="dash-card clickable-card" data-section="avvisi">
                         <div class="dash-card-icon"><i class="ri-notification-3-line"></i></div>
                         <h3>Ultimo Avviso</h3>
                         <div class="dash-stat" id="dashNextEvent" style="font-size: 18px; font-weight: 700;">Nessuno</div>
                         <p class="dash-sub" id="dashNextEventDate">Nessuna comunicazione recente</p>
                     </div>
-
                     <div class="dash-card clickable-card" data-section="cantici">
                         <div class="dash-card-icon" style="color: #ff9500; background: rgba(255,149,0,0.1);"><i class="ri-music-2-fill"></i></div>
                         <h3>Archivio Cantici</h3>
                         <div class="dash-stat" id="dashHymnsCount">0</div>
                         <p class="dash-sub">Cantici salvati</p>
                     </div>
-                    
                     <div class="dash-card clickable-card" data-section="bibbia">
                         <div class="dash-card-icon" style="color: #34c759; background: rgba(52,199,89,0.1);"><i class="ri-book-read-line"></i></div>
                         <h3>Bibbia</h3>
                         <div class="dash-stat"><i class="ri-book-open-line"></i></div>
                         <p class="dash-sub">Leggi la Parola</p>
                     </div>
-                    
                     <div class="dash-card clickable-card" data-section="sermoni">
                         <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
-                        <h3>Appunti</h3>
+                        <h3>Prediche</h3>
                         <div class="dash-stat" id="dashSermonsCount">0</div>
                         <p class="dash-sub">Appunti personali</p>
                     </div>
@@ -122,12 +119,16 @@
                 <div class="section-spacer"></div>
             </section>
 
+            <!-- Avvisi -->
             <section id="avvisi" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Avvisi alla Chiesa</h1>
-                    <div class="admin-only-controls">
-                        <button class="btn-apple" onclick="openAvvisoModal()">
-                            <i class="ri-add-line"></i> Nuovo Avviso
+                    <div class="admin-only-controls" style="display: flex; gap: 8px;">
+                        <button class="icon-btn" onclick="openAvvisoModal()" title="Nuovo Avviso">
+                            <i class="ri-add-line"></i>
+                        </button>
+                        <button class="icon-btn" id="projectAvvisiBtn" title="Proietta Avvisi">
+                            <i class="ri-projector-line"></i>
                         </button>
                     </div>
                 </div>
@@ -135,6 +136,7 @@
                 <div class="section-spacer"></div>
             </section>
 
+            <!-- Cantici -->
             <section id="cantici" class="content-section">
                 <div id="hymnsListView" class="view-container">
                     <div class="section-header">
@@ -154,31 +156,34 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="favorites-header">
                         <button class="favorites-tab active" data-tab="all"><i class="ri-book-open-line"></i> Tutti i Cantici</button>
                         <button class="favorites-tab" data-tab="favorites"><i class="ri-heart-line"></i> Preferiti</button>
                     </div>
-                    
                     <div class="search-bar-fixed">
                         <div class="search-bar">
                             <i class="ri-search-line"></i>
                             <input type="text" id="hymnSearch" placeholder="Cerca cantico...">
                         </div>
                     </div>
-                    
                     <div class="list-container" id="hymnsList"></div>
                     <div class="section-spacer"></div>
                 </div>
 
+                <!-- Hymn Reader View -->
                 <div id="hymnReaderView" class="hidden reader-view">
                     <div class="reader-header sticky-header">
                         <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
                         <h3 id="currentHymnTitle" class="reader-top-title">Titolo</h3>
-                        
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
                                 <i class="ri-share-line"></i>
+                            </button>
+                            <button id="toggleChordsBtn" class="icon-btn" title="Mostra/Nascondi Accordi">
+                                <i class="ri-music-2-line"></i>
+                            </button>
+                            <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta Cantico">
+                                <i class="ri-projector-line"></i>
                             </button>
                             <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
                                 <i class="ri-grid-fill" style="font-size: 18px;"></i>
@@ -190,11 +195,9 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="slides-wrapper" id="slidesWrapperView">
                         <div class="slides-container" id="hymnSlidesContainer"></div>
                     </div>
-                    
                     <div class="slide-previews" id="slidePreviews">
                         <div class="preview-prev" id="previewPrev">
                             <div class="preview-label">◀ Precedente</div>
@@ -205,13 +208,12 @@
                             <div class="preview-content" id="previewNextContent"></div>
                         </div>
                     </div>
-                    
                     <div class="slide-dots-container" id="slideDots"></div>
-
                     <div class="hymn-grid-container hidden" id="hymnGridContainer"></div>
                 </div>
             </section>
 
+            <!-- Bibbia -->
             <section id="bibbia" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Bibbia</h1>
@@ -231,14 +233,12 @@
                         <select id="bibleVerse" class="apple-select"></select>
                         <button class="btn-apple" id="fetchBibleBtn"><i class="ri-book-read-line"></i> Leggi</button>
                     </div>
-                    
                     <div class="bible-reader-content" id="bibleReaderContent">
                         <div class="empty-state">
                             <i class="ri-book-3-line"></i>
                             <p>Seleziona Libro e Capitolo per leggere.</p>
                         </div>
                     </div>
-
                     <div class="bible-bottom-controls-sticky" id="bibleBottomControls">
                         <button class="icon-btn" onclick="changeChapter(-1)" id="biblePrevBtn"><i class="ri-arrow-left-s-line"></i></button>
                         <span id="bibleCurrentChapterDisplay" style="font-weight: 700; color: var(--text-main); font-size: 16px; text-align: center;">Capitolo</span>
@@ -248,24 +248,20 @@
                 <div class="section-spacer"></div>
             </section>
 
+            <!-- Prediche (ex Sermoni) -->
             <section id="sermoni" class="content-section">
-                <!-- Barra fissa con titolo e pulsanti -->
                 <div class="sticky-sermon-header">
                     <div class="section-header">
-                        <h1 class="section-title">Appunti</h1>
+                        <h1 class="section-title">Prediche</h1>
                         <div class="sermon-header-buttons">
-                            <button class="icon-btn" id="newSermonTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
-                            <button class="icon-btn" id="printSermonBtn" title="Stampa PDF"><i class="ri-printer-line"></i></button>
+                            <button class="icon-btn" id="newSermonTopBtn" title="Nuova Predica"><i class="ri-add-line"></i></button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Solo lista appunti e versetti evidenziati, nessun editor visibile -->
                 <div class="sermons-list-only">
                     <div class="saved-sermons-list" id="savedSermonsList">
-                        <div class="list-header">I miei appunti</div>
+                        <div class="list-header">Le mie prediche</div>
                         <ul id="sermonsUl"></ul>
-                        
                         <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500;">
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
@@ -276,6 +272,7 @@
             </section>
         </main>
 
+        <!-- Mobile Navigation with Avatar -->
         <nav class="mobile-nav">
             <button class="nav-item active" data-target="dashboard">
                 <div class="nav-icon-wrapper"><i class="ri-dashboard-line"></i></div><span>Home</span>
@@ -290,27 +287,47 @@
                 <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
             </button>
             <button class="nav-item" data-target="sermoni">
-                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Appunti</span>
+                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Prediche</span>
             </button>
-            <button class="nav-item text-danger" id="mobileLogoutBtn">
-                <div class="nav-icon-wrapper"><i class="ri-logout-box-r-line"></i></div><span>Esci</span>
+            <button class="nav-item" id="mobileAccountBtn">
+                <div class="nav-icon-wrapper"><img id="mobileAvatarImg" src="" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"></div>
+                <span>Account</span>
             </button>
         </nav>
     </div>
-    
-    <!-- Modale Avviso (creazione/modifica) - SENZA IMMAGINE -->
+
+    <!-- Modale Account Mobile -->
+    <div id="accountModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 320px; text-align: center;">
+            <div style="margin-bottom: 20px;">
+                <img id="modalAvatarImg" src="" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--accent-color);">
+                <h3 id="modalUserName" style="margin-top: 12px;"></h3>
+                <p style="color: var(--text-muted); font-size: 14px;">Account Google</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+                <span style="font-weight: 500;">Notifiche</span>
+                <label class="switch">
+                    <input type="checkbox" id="notificationsSwitch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <button id="mobileLogoutBtnModal" class="btn-logout-desktop" style="justify-content: center; margin-top: 0;">
+                <i class="ri-logout-box-r-line"></i> Esci
+            </button>
+            <button class="btn-secondary" onclick="closeAccountModal()" style="margin-top: 12px; width: 100%;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Avviso -->
     <div id="avvisoModal" class="modal hidden">
         <div class="modal-content">
             <h2 id="avvisoModalTitle">Nuovo Avviso</h2>
             <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">DATA AVVISO</label>
             <input type="date" id="avvisoDate" class="apple-select" style="width:100%; margin-bottom: 15px;">
-            
             <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">TITOLO</label>
             <input type="text" id="avvisoTitle" class="apple-select" placeholder="Titolo dell'avviso..." style="width:100%; margin-bottom: 15px;">
-            
             <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">DESCRIZIONE</label>
             <textarea id="avvisoDesc" class="apple-select" placeholder="Scrivi i dettagli dell'avviso..." style="width:100%; height: 120px; resize:none; margin-bottom: 20px;"></textarea>
-
             <div style="display:flex; justify-content:space-between; align-items: center;">
                 <button class="icon-btn icon-danger" id="deleteAvvisoBtn" style="display:none;"><i class="ri-delete-bin-line"></i></button>
                 <div style="display:flex; gap:10px; margin-left: auto;">
@@ -321,7 +338,7 @@
         </div>
     </div>
 
-    <!-- Modale Dettaglio Avviso (visualizzazione) - SENZA IMMAGINE -->
+    <!-- Modale Dettaglio Avviso -->
     <div id="avvisoDetailModal" class="modal hidden">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -336,36 +353,31 @@
         </div>
     </div>
 
-    <!-- Modale per nuovo appunto / modifica appunto -->
+    <!-- Modale Predica (Nuovo/Modifica) -->
     <div id="sermonModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
-            <h2 id="sermonModalTitle">Nuovo Appunto</h2>
+            <h2 id="sermonModalTitle">Nuova Predica</h2>
             <div class="sermon-modal-body">
-                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo dell'appunto..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
-                
+                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo della predica..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
                 <div style="margin-bottom: 15px;">
                     <i class="ri-price-tag-3-line text-muted"></i>
                     <select id="modalSermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: 1px solid var(--border-color); background: white; border-radius: 8px;">
-                        <option value="Sermone">Sermone</option>
+                        <option value="Predica">Predica</option>
                         <option value="Studio Biblico">Studio Biblico</option>
                         <option value="Riunione Giovani">Riunione Giovani</option>
                         <option value="Nota">Nota Libera</option>
                     </select>
                 </div>
-                
                 <div style="margin-bottom: 15px;">
                     <i class="ri-user-voice-line text-muted"></i>
-                    <input type="text" id="modalSermonSpeaker" class="apple-select" placeholder="Relatore..." style="width:100%;">
+                    <input type="text" id="modalSermonSpeaker" class="apple-select" placeholder="Predicatore..." style="width:100%;">
                 </div>
-                
                 <div style="margin-bottom: 15px;">
                     <i class="ri-book-mark-line text-muted"></i>
                     <input type="text" id="modalSermonRefs" class="apple-select" placeholder="Riferimenti biblici (es. Giovanni 3:16)..." style="width:100%;">
                 </div>
-                
                 <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">CONTENUTO</label>
                 <textarea id="modalSermonBody" class="apple-select" placeholder="Scrivi qui i tuoi appunti..." style="width:100%; height: 250px; resize:none; margin-bottom: 20px;"></textarea>
-                
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button class="btn-secondary" id="closeSermonModalBtn">Annulla</button>
                     <button class="btn-apple" id="saveSermonModalBtn">Salva</button>
@@ -374,6 +386,25 @@
         </div>
     </div>
 
+    <!-- Modale Visualizzazione Predica (Sola Lettura) -->
+    <div id="sermonViewModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 id="viewSermonTitle">Titolo</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button id="editSermonFromViewBtn" class="icon-btn"><i class="ri-pencil-line"></i></button>
+                    <button id="printSermonFromViewBtn" class="icon-btn"><i class="ri-printer-line"></i></button>
+                    <button class="icon-btn" onclick="closeSermonViewModal()"><i class="ri-close-line"></i></button>
+                </div>
+            </div>
+            <div id="viewSermonCategory" style="font-size: 12px; font-weight: 600; color: var(--accent-color); margin-bottom: 10px;"></div>
+            <div id="viewSermonSpeaker" style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;"></div>
+            <div id="viewSermonRefs" style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;"></div>
+            <div id="viewSermonBody" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Modale per Modifica Cantico -->
     <div id="editModal" class="modal hidden">
         <div class="modal-content">
             <h2>Modifica Cantico</h2>
@@ -386,10 +417,26 @@
         </div>
     </div>
 
+    <!-- Presentation Overlay for Avvisi / Cantici -->
+    <div id="presentationOverlay" class="presentation-overlay hidden">
+        <div class="presentation-header">
+            <button id="exitPresentationBtn" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>
+            <div class="presentation-controls">
+                <button id="presPrevBtn" class="presentation-nav"><i class="ri-arrow-left-s-line"></i></button>
+                <span id="presCounter">1 / 1</span>
+                <button id="presNextBtn" class="presentation-nav"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+        </div>
+        <div class="presentation-slides-container" id="presentationSlidesContainer"></div>
+        <div class="presentation-previews">
+            <div id="presPreviewPrev" class="pres-preview-prev"></div>
+            <div id="presPreviewNext" class="pres-preview-next"></div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="script.js"></script>
-
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -402,8 +449,6 @@
                     });
             });
         }
-        
-        // Forza la riproduzione del video di login
         document.getElementById('loginVideo')?.play().catch(e => console.log('Autoplay bloccato:', e));
     </script>
 </body>
