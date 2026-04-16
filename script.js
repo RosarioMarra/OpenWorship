@@ -15,6 +15,8 @@ let favoritesDB = [];
 let isAdmin = false;
 let currentTab = "all";
 let searchTerm = "";
+let showChords = false;          // Toggle accordi nel lettore cantici
+let currentHymnId = null;        // ID del cantico attualmente aperto
 
 try {
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || [];
@@ -109,7 +111,7 @@ async function handleLogout() {
     setTimeout(() => loginScreen.style.opacity = '1', 50);
 }
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-document.getElementById('mobileLogoutBtn').addEventListener('click', handleLogout);
+// mobile logout è gestito dal modale account
 
 // --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
@@ -175,7 +177,7 @@ async function showApp() {
         setupFavoritesTabs();
         setupDashboardCards();
         
-        // Bottone "Nuovo Appunto" in alto - apre modale
+        // Bottone "Nuova Predica" in alto - apre modale
         document.getElementById('newSermonTopBtn').addEventListener('click', () => {
             openSermonModal();
         });
@@ -186,8 +188,27 @@ async function showApp() {
         });
         
         setupExportButton();
-        setupPrintButton();
         setupShareButtons();
+        
+        // Pulsante proiezione avvisi (solo admin)
+        const projectAvvisiBtn = document.getElementById('projectAvvisiBtn');
+        if (projectAvvisiBtn) projectAvvisiBtn.addEventListener('click', projectAvvisi);
+        
+        // Pulsante proiezione cantico nel lettore
+        const projectHymnBtn = document.getElementById('projectHymnBtn');
+        if (projectHymnBtn) projectHymnBtn.addEventListener('click', projectCurrentHymn);
+        
+        // Pulsante toggle accordi
+        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
+        if (toggleChordsBtn) toggleChordsBtn.addEventListener('click', () => {
+            showChords = !showChords;
+            toggleChordsBtn.style.opacity = showChords ? '1' : '0.5';
+            if (currentHymnId) {
+                // Ricarica le slide con la stessa logica (aggiorna il DOM)
+                const hymn = hymnsDB.find(h => h.id === currentHymnId);
+                if (hymn) rebuildSlides(hymn);
+            }
+        });
         
         const greetingMsg = document.getElementById('greetingMessage');
         const hour = new Date().getHours();
@@ -260,6 +281,11 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
             document.getElementById('hymnReaderView').classList.add('hidden');
             document.getElementById('hymnsListView').classList.remove('hidden');
         }
+        if (target === 'prediche') {
+            // Torna alla lista quando si entra in prediche
+            document.getElementById('sermonDetailView').classList.add('hidden');
+            document.getElementById('sermonsListContainer').classList.remove('hidden');
+        }
     });
 });
 
@@ -298,10 +324,11 @@ function updateDashboard() {
 
 let editingAvvisoId = null;
 
+// AVVISI: ordinamento dal più vicino (data crescente) al più lontano
 function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
-    const sortedAvvisi = [...avvisiDB].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedAvvisi = [...avvisiDB].sort((a, b) => new Date(a.date) - new Date(b.date));
     if (sortedAvvisi.length === 0) {
         list.innerHTML = '<p class="text-muted">Nessun avviso presente al momento.</p>';
         return;
@@ -436,6 +463,135 @@ async function deleteAvviso(id) {
     }
 }
 
+// --- PROIEZIONE AVVISI (solo admin) ---
+async function projectAvvisi() {
+    if (!isAdmin) return;
+    const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
+    if (sorted.length === 0) return alert("Nessun avviso da proiettare.");
+    
+    const win = window.open('', '_blank', 'width=1200,height=800');
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Proiezione Avvisi</title><meta charset="UTF-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { background: black; color: white; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; overflow: hidden; }
+            .projector-container { position: relative; height: 100vh; width: 100%; overflow: hidden; }
+            .slide { position: absolute; top:0; left:0; width:100%; height:100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+            .slide.active { opacity: 1; pointer-events: auto; }
+            h1 { font-size: 4rem; margin-bottom: 20px; }
+            .date { font-size: 1.8rem; color: #aaa; margin-bottom: 40px; }
+            .desc { font-size: 2.2rem; line-height: 1.4; white-space: pre-wrap; max-width: 90%; }
+            .controls { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 40px; margin: 0 auto; width: fit-content; gap: 20px; z-index: 10; }
+            .controls button { background: none; border: none; color: white; font-size: 2rem; padding: 10px 20px; cursor: pointer; }
+            .dots { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; z-index: 10; }
+            .dot { width: 12px; height: 12px; border-radius: 50%; background: #444; }
+            .dot.active { background: white; }
+            @media (max-width: 768px) {
+                h1 { font-size: 2rem; }
+                .desc { font-size: 1.2rem; }
+                .date { font-size: 1rem; }
+            }
+        </style>
+        </head>
+        <body>
+        <div class="projector-container" id="projectorContainer"></div>
+        <div class="controls"><button id="prevBtn">◀</button><button id="nextBtn">▶</button></div>
+        <div class="dots" id="dotsContainer"></div>
+        <script>
+            const slidesData = ${JSON.stringify(sorted.map(a => ({ title: a.title, date: a.date, desc: a.desc })))};
+            let current = 0;
+            function render() {
+                const container = document.getElementById('projectorContainer');
+                container.innerHTML = slidesData.map((s, i) => \`
+                    <div class="slide \${i === current ? 'active' : ''}">
+                        <h1>\${escapeHtml(s.title)}</h1>
+                        <div class="date">\${new Date(s.date).toLocaleDateString('it-IT')}</div>
+                        <div class="desc">\${escapeHtml(s.desc).replace(/\\n/g, '<br>')}</div>
+                    </div>
+                \`).join('');
+                const dotsHtml = slidesData.map((_, i) => \`<div class="dot \${i === current ? 'active' : ''}"></div>\`).join('');
+                document.getElementById('dotsContainer').innerHTML = dotsHtml;
+            }
+            function escapeHtml(s) { return s.replace(/[&<>]/g, function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}); }
+            function next() { if(current < slidesData.length-1) { current++; render(); } }
+            function prev() { if(current > 0) { current--; render(); } }
+            document.getElementById('nextBtn').onclick = next;
+            document.getElementById('prevBtn').onclick = prev;
+            document.addEventListener('keydown', (e) => { if(e.key === 'ArrowRight') next(); if(e.key === 'ArrowLeft') prev(); });
+            render();
+        <\/script>
+        </body>
+        </html>
+    `);
+}
+
+// --- PROIEZIONE CANTICO CORRENTE ---
+function projectCurrentHymn() {
+    if (!isAdmin) return;
+    const hymn = hymnsDB.find(h => h.id === currentHymnId);
+    if (!hymn) return alert("Nessun cantico aperto.");
+    const blocks = hymn.content.split(/\n\s*\n/);
+    const slides = blocks.filter(b => b.trim()).map((block, idx) => {
+        const isChorus = /coro|chorus|rit|ritornello/i.test(block);
+        let text = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+        return { text, isChorus, index: idx };
+    });
+    
+    const win = window.open('', '_blank', 'width=1200,height=800');
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Proiezione Cantico - ${escapeHtml(hymn.title)}</title><meta charset="UTF-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { background: black; color: white; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; overflow: hidden; }
+            .projector-container { position: relative; height: 100vh; width: 100%; overflow: hidden; }
+            .slide { position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; flex-direction: column; }
+            .slide.active { opacity: 1; pointer-events: auto; }
+            .slide-content { font-size: 3rem; line-height: 1.4; max-width: 90%; }
+            .chorus { color: #007aff; font-style: italic; }
+            .controls { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 40px; margin: 0 auto; width: fit-content; gap: 20px; z-index: 10; }
+            .controls button { background: none; border: none; color: white; font-size: 2rem; padding: 10px 20px; cursor: pointer; }
+            .dots { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; z-index: 10; }
+            .dot { width: 12px; height: 12px; border-radius: 50%; background: #444; }
+            .dot.active { background: white; }
+            @media (max-width: 768px) {
+                .slide-content { font-size: 1.8rem; }
+            }
+        </style>
+        </head>
+        <body>
+        <div class="projector-container" id="projectorContainer"></div>
+        <div class="controls"><button id="prevBtn">◀</button><button id="nextBtn">▶</button></div>
+        <div class="dots" id="dotsContainer"></div>
+        <script>
+            const slidesData = ${JSON.stringify(slides)};
+            let current = 0;
+            function render() {
+                const container = document.getElementById('projectorContainer');
+                container.innerHTML = slidesData.map((s, i) => \`
+                    <div class="slide \${i === current ? 'active' : ''}">
+                        <div class="slide-content \${s.isChorus ? 'chorus' : ''}">\${escapeHtml(s.text).replace(/\\n/g, '<br>')}</div>
+                    </div>
+                \`).join('');
+                const dotsHtml = slidesData.map((_, i) => \`<div class="dot \${i === current ? 'active' : ''}"></div>\`).join('');
+                document.getElementById('dotsContainer').innerHTML = dotsHtml;
+            }
+            function escapeHtml(s) { return s.replace(/[&<>]/g, function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}); }
+            function next() { if(current < slidesData.length-1) { current++; render(); } }
+            function prev() { if(current > 0) { current--; render(); } }
+            document.getElementById('nextBtn').onclick = next;
+            document.getElementById('prevBtn').onclick = prev;
+            document.addEventListener('keydown', (e) => { if(e.key === 'ArrowRight') next(); if(e.key === 'ArrowLeft') prev(); });
+            render();
+        <\/script>
+        </body>
+        </html>
+    `);
+}
+
 // --- CANTICI: XML PARSER E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if (hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
@@ -507,7 +663,7 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                 }
             }
             
-            const newHymn = { id: crypto.randomUUID(), title: title, content: content };
+            const newHymn = { id: crypto.randomUUID(), title: title, content: content, chords: "" };
             
             const { error } = await supabaseClient.from('cantici').insert([newHymn]);
             if (error) {
@@ -611,6 +767,7 @@ function openEditModal(id) {
     const hymn = hymnsDB.find(h => h.id === id);
     document.getElementById('editHymnTitle').value = hymn.title;
     document.getElementById('editHymnBody').value = hymn.content;
+    document.getElementById('editHymnChords').value = hymn.chords || "";
     document.getElementById('editModal').classList.remove('hidden');
 }
 function closeEditModal() {
@@ -621,12 +778,14 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
         const i = hymnsDB.findIndex(h => h.id === editHymnId);
         const updatedTitle = document.getElementById('editHymnTitle').value;
         const updatedContent = document.getElementById('editHymnBody').value;
+        const updatedChords = document.getElementById('editHymnChords').value;
         
-        const { error } = await supabaseClient.from('cantici').update({ title: updatedTitle, content: updatedContent }).eq('id', editHymnId);
+        const { error } = await supabaseClient.from('cantici').update({ title: updatedTitle, content: updatedContent, chords: updatedChords }).eq('id', editHymnId);
         if (error) throw error;
         
         hymnsDB[i].title = updatedTitle;
         hymnsDB[i].content = updatedContent;
+        hymnsDB[i].chords = updatedChords;
         renderHymns();
         closeEditModal();
     } catch (e) {
@@ -720,34 +879,10 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- STAMPA PDF APPUNTO (stampa l'appunto attualmente selezionato o aperto in modale) ---
-let currentPrintSermon = null;
-
-function setupPrintButton() {
-    const printBtn = document.getElementById('printSermonBtn');
-    if (!printBtn) return;
-    
-    printBtn.addEventListener('click', () => {
-        // Se c'è un appunto selezionato (activeSermonId), stampa quello
-        if (activeSermonId) {
-            const sermon = sermonsDB.find(s => s.id === activeSermonId);
-            if (sermon) {
-                printSermon(sermon);
-                return;
-            }
-        }
-        // Altrimenti, se c'è un appunto nel modale aperto
-        if (currentPrintSermon) {
-            printSermon(currentPrintSermon);
-            return;
-        }
-        alert("Seleziona un appunto dalla lista prima di stampare.");
-    });
-}
-
+// --- STAMPA PREDICA (da vista dettaglio) ---
 function printSermon(sermon) {
     const title = sermon.title || "";
-    const category = sermon.category || "Sermone";
+    const category = sermon.category || "Predica";
     const speaker = sermon.speaker || "";
     const refs = sermon.refs || "";
     const body = sermon.body || "";
@@ -757,7 +892,7 @@ function printSermon(sermon) {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Stampa Appunto - ${escapeHtml(title) || 'Open Worship'}</title>
+            <title>Stampa Predica - ${escapeHtml(title) || 'Open Worship'}</title>
             <meta charset="UTF-8">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -778,7 +913,7 @@ function printSermon(sermon) {
             <div class="print-container">
                 <div class="print-header">
                     <h1>Open Worship</h1>
-                    <p>Appunti delle riunioni</p>
+                    <p>Prediche e appunti</p>
                 </div>
                 <div class="print-title">${escapeHtml(title) || 'Senza titolo'}</div>
                 <div class="print-meta">
@@ -804,52 +939,28 @@ function printSermon(sermon) {
     printWindow.document.close();
 }
 
-// --- LETTORE SLIDE CANTICI ---
+// --- LETTORE SLIDE CANTICI con accordi ---
 let currentHymnFontSize = 40;
 let isGridView = false;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
 const gridContainer = document.getElementById('hymnGridContainer');
 
-document.getElementById('toggleGridViewBtn').onclick = () => {
-    isGridView = !isGridView;
-    if (isGridView) {
-        document.getElementById('slidesWrapperView').classList.add('hidden');
-        gridContainer.classList.remove('hidden');
-        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
-        const previews = document.getElementById('slidePreviews');
-        if (previews) previews.style.display = 'none';
-    } else {
-        document.getElementById('slidesWrapperView').classList.remove('hidden');
-        gridContainer.classList.add('hidden');
-        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
-        const previews = document.getElementById('slidePreviews');
-        if (previews) previews.style.display = 'flex';
-        setTimeout(autoFitHymn, 50);
-        setTimeout(updateSlidePreviews, 100);
-    }
-};
-
-function openHymnSlides(id) {
-    const hymn = hymnsDB.find(h => h.id === id);
+function rebuildSlides(hymn) {
     if (!hymn) return;
-    
-    document.getElementById('hymnsListView').classList.add('hidden');
-    document.getElementById('hymnReaderView').classList.remove('hidden');
-    document.getElementById('currentHymnTitle').textContent = hymn.title;
-    
-    isGridView = false;
-    document.getElementById('slidesWrapperView').classList.remove('hidden');
-    gridContainer.classList.add('hidden');
-    document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
-    
-    const previewsContainer = document.getElementById('slidePreviews');
-    if (previewsContainer) previewsContainer.style.display = 'flex';
-    
     slidesContainer.innerHTML = '';
     document.getElementById('slideDots').innerHTML = '';
     gridContainer.innerHTML = '';
     
     const blocks = hymn.content.split(/\n\s*\n/);
+    const chordsData = hymn.chords || "";
+    // parsing semplice degli accordi: supponiamo formato [Acc]Testo
+    function applyChords(line) {
+        if (!showChords || !chordsData) return line;
+        // Sostituisce [Acc]Testo con <span class="chord-line">Testo con accordi sopra</span>
+        // Versione semplificata: cerchiamo pattern [G]C [Am]D
+        let result = line.replace(/\[([A-Za-z#bm]+)\]([^\[]*)/g, '<span class="chord-line"><span class="chord">$1</span>$2</span>');
+        return result;
+    }
     
     blocks.forEach((block, index) => {
         const cleanBlock = block.trim();
@@ -858,7 +969,11 @@ function openHymnSlides(id) {
         const textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
         const formattedLines = textToDisplay.split('\n').map(line => {
-            return `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`;
+            let displayLine = escapeHtml(line);
+            if (showChords && chordsData) {
+                displayLine = displayLine.replace(/\[([A-Za-z#bm]+)\]/g, '<span class="chord">$1</span>');
+            }
+            return `<div class="hymn-line">${displayLine || '&nbsp;'}</div>`;
         }).join('');
         
         const slide = document.createElement('div');
@@ -887,6 +1002,45 @@ function openHymnSlides(id) {
     updateSlideVisibility();
     setTimeout(autoFitHymn, 50);
     setTimeout(updateSlidePreviews, 100);
+}
+
+document.getElementById('toggleGridViewBtn').onclick = () => {
+    isGridView = !isGridView;
+    if (isGridView) {
+        document.getElementById('slidesWrapperView').classList.add('hidden');
+        gridContainer.classList.remove('hidden');
+        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
+        const previews = document.getElementById('slidePreviews');
+        if (previews) previews.style.display = 'none';
+    } else {
+        document.getElementById('slidesWrapperView').classList.remove('hidden');
+        gridContainer.classList.add('hidden');
+        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
+        const previews = document.getElementById('slidePreviews');
+        if (previews) previews.style.display = 'flex';
+        setTimeout(autoFitHymn, 50);
+        setTimeout(updateSlidePreviews, 100);
+    }
+};
+
+function openHymnSlides(id) {
+    const hymn = hymnsDB.find(h => h.id === id);
+    if (!hymn) return;
+    currentHymnId = id;
+    
+    document.getElementById('hymnsListView').classList.add('hidden');
+    document.getElementById('hymnReaderView').classList.remove('hidden');
+    document.getElementById('currentHymnTitle').textContent = hymn.title;
+    
+    isGridView = false;
+    document.getElementById('slidesWrapperView').classList.remove('hidden');
+    gridContainer.classList.add('hidden');
+    document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
+    
+    const previewsContainer = document.getElementById('slidePreviews');
+    if (previewsContainer) previewsContainer.style.display = 'flex';
+    
+    rebuildSlides(hymn);
 }
 
 function scrollToSlide(index) {
@@ -1060,6 +1214,7 @@ document.getElementById('backToHymns').onclick = () => {
     document.getElementById('hymnsListView').classList.remove('hidden');
     const previews = document.getElementById('slidePreviews');
     if (previews) previews.style.display = 'none';
+    currentHymnId = null;
 };
 
 // --- BIBBIA ---
@@ -1202,7 +1357,7 @@ document.getElementById('decreaseBibleFont').onclick = () => {
     updateBibleFontSize();
 };
 
-// --- SERMONI (APPUNTI) - MODALE PER NUOVO/MODIFICA ---
+// --- PREDICHE (ex Sermoni) - Vista dettaglio, modifica solo su pulsante ---
 let activeSermonId = null;
 let currentEditingSermonId = null;
 
@@ -1216,7 +1371,7 @@ function renderSermons() {
         const li = document.createElement('li');
         li.className = 'sermon-card';
         li.innerHTML = `
-            <span class="sermon-badge">${escapeHtml(s.category || 'Sermone')}</span>
+            <span class="sermon-badge">${escapeHtml(s.category || 'Predica')}</span>
             <div style="display:flex; align-items:center; gap:8px; padding-right: 60px;">
                 <i class="ri-file-list-3-line text-muted"></i> 
                 <span style="font-size:15px; font-weight:500;">${escapeHtml(s.title || "Senza titolo")}</span>
@@ -1226,20 +1381,46 @@ function renderSermons() {
             </button>
         `;
         li.onclick = () => {
-            activeSermonId = s.id;
-            // Apre il modale in modalità modifica
-            openSermonModal(s);
+            // Apre la vista dettaglio invece del modale diretto
+            showSermonDetail(s);
         };
         ul.appendChild(li);
     });
 }
 
+function showSermonDetail(sermon) {
+    activeSermonId = sermon.id;
+    document.getElementById('sermonsListContainer').classList.add('hidden');
+    document.getElementById('sermonDetailView').classList.remove('hidden');
+    
+    document.getElementById('sermonDetailTitle').textContent = sermon.title || "Senza titolo";
+    const metaHtml = `
+        <p><strong>Tipo:</strong> ${escapeHtml(sermon.category || 'Predica')}</p>
+        ${sermon.speaker ? `<p><strong>Relatore:</strong> ${escapeHtml(sermon.speaker)}</p>` : ''}
+        ${sermon.refs ? `<p><strong>Riferimenti biblici:</strong> ${escapeHtml(sermon.refs)}</p>` : ''}
+        <p><strong>Data:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
+    `;
+    document.getElementById('sermonDetailMeta').innerHTML = metaHtml;
+    document.getElementById('sermonDetailBody').innerHTML = escapeHtml(sermon.body || "").replace(/\n/g, '<br>');
+    
+    // Pulsanti nella vista dettaglio
+    document.getElementById('editSermonFromDetailBtn').onclick = () => openSermonModal(sermon);
+    document.getElementById('printSermonFromDetailBtn').onclick = () => printSermon(sermon);
+    document.getElementById('backToSermonsListBtn').onclick = () => {
+        document.getElementById('sermonDetailView').classList.add('hidden');
+        document.getElementById('sermonsListContainer').classList.remove('hidden');
+        activeSermonId = null;
+    };
+}
+
 async function deleteSermonFromList(id) {
-    if (confirm("Sei sicuro di voler eliminare questo appunto?")) {
+    if (confirm("Sei sicuro di voler eliminare questa predica?")) {
         sermonsDB = sermonsDB.filter(s => s.id !== id);
         saveSermons();
         if (activeSermonId === id) {
             activeSermonId = null;
+            document.getElementById('sermonDetailView').classList.add('hidden');
+            document.getElementById('sermonsListContainer').classList.remove('hidden');
         }
         renderSermons();
         updateDashboard();
@@ -1260,7 +1441,6 @@ function renderHighlights() {
         li.innerHTML = `<strong style="color:#ff9500;">${escapeHtml(h.bookName)} ${h.chapter}:${h.verse}</strong><br>"${escapeHtml(h.text.substring(0, 80))}${h.text.length > 80 ? '...' : ''}"`;
         
         li.onclick = () => {
-            // Inserisce il versetto nel modale se aperto, altrimenti copia negli appunti
             const modalBody = document.getElementById('modalSermonBody');
             if (modalBody && document.getElementById('sermonModal').classList.contains('hidden') === false) {
                 const currentText = modalBody.value;
@@ -1268,7 +1448,6 @@ function renderHighlights() {
                 modalBody.value = currentText + textToInsert;
                 modalBody.focus();
             } else {
-                // Se modale non aperto, copia negli appunti
                 const textToCopy = `[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"`;
                 navigator.clipboard.writeText(textToCopy);
                 alert("Versetto copiato negli appunti!");
@@ -1295,20 +1474,18 @@ function openSermonModal(sermon = null) {
     const inputBody = document.getElementById('modalSermonBody');
     
     if (sermon) {
-        // Modalità modifica
         currentEditingSermonId = sermon.id;
-        titleEl.textContent = "Modifica Appunto";
+        titleEl.textContent = "Modifica Predica";
         inputTitle.value = sermon.title || "";
-        inputCategory.value = sermon.category || "Sermone";
+        inputCategory.value = sermon.category || "Predica";
         inputSpeaker.value = sermon.speaker || "";
         inputRefs.value = sermon.refs || "";
         inputBody.value = sermon.body || "";
     } else {
-        // Modalità nuovo
         currentEditingSermonId = null;
-        titleEl.textContent = "Nuovo Appunto";
+        titleEl.textContent = "Nuova Predica";
         inputTitle.value = "";
-        inputCategory.value = "Sermone";
+        inputCategory.value = "Predica";
         inputSpeaker.value = "";
         inputRefs.value = "";
         inputBody.value = "";
@@ -1359,11 +1536,48 @@ document.getElementById('saveSermonModalBtn').addEventListener('click', () => {
     updateDashboard();
     closeSermonModal();
     
-    // Feedback visivo
+    // Se la vista dettaglio è aperta per lo stesso sermone, aggiornala
+    if (activeSermonId === data.id && !document.getElementById('sermonDetailView').classList.contains('hidden')) {
+        showSermonDetail(data);
+    }
+    
     const saveBtn = document.getElementById('saveSermonModalBtn');
     const originalText = saveBtn.innerHTML;
     saveBtn.innerHTML = "<i class='ri-check-line'></i> Salvato";
     setTimeout(() => saveBtn.innerHTML = originalText, 1500);
+});
+
+// --- MODALE ACCOUNT MOBILE ---
+function openAccountModal() {
+    const modal = document.getElementById('accountModal');
+    const avatar = document.getElementById('accountModalAvatar');
+    const nameEl = document.getElementById('accountModalName');
+    supabaseClient.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+            avatar.src = user.user_metadata.avatar_url || 'icon-192.png';
+            nameEl.textContent = user.user_metadata.full_name || user.email;
+        }
+    });
+    const notifSwitch = document.getElementById('notificationsSwitch');
+    const saved = localStorage.getItem('notificationsEnabled') === 'true';
+    notifSwitch.checked = saved;
+    notifSwitch.onchange = (e) => {
+        localStorage.setItem('notificationsEnabled', e.target.checked);
+        if (e.target.checked && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    };
+    modal.classList.remove('hidden');
+}
+
+function closeAccountModal() {
+    document.getElementById('accountModal').classList.add('hidden');
+}
+
+document.getElementById('mobileAccountBtn').addEventListener('click', openAccountModal);
+document.getElementById('logoutFromModal').addEventListener('click', () => {
+    closeAccountModal();
+    handleLogout();
 });
 
 // Funzioni globali necessarie
@@ -1382,4 +1596,5 @@ window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;
 window.shareHymn = shareHymn;
 
+// Inizializza rendering prediche
 renderSermons();

@@ -61,7 +61,7 @@
                 <button class="nav-item" data-target="avvisi"><i class="ri-notification-3-line"></i> Avvisi</button>
                 <button class="nav-item" data-target="cantici"><i class="ri-music-2-line"></i> Cantici</button>
                 <button class="nav-item" data-target="bibbia"><i class="ri-book-read-line"></i> Bibbia</button>
-                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Appunti</button>
+                <button class="nav-item" data-target="prediche"><i class="ri-file-text-line"></i> Prediche</button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logoutBtn" class="btn-logout-desktop">
@@ -112,9 +112,9 @@
                         <p class="dash-sub">Leggi la Parola</p>
                     </div>
                     
-                    <div class="dash-card clickable-card" data-section="sermoni">
+                    <div class="dash-card clickable-card" data-section="prediche">
                         <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
-                        <h3>Appunti</h3>
+                        <h3>Prediche</h3>
                         <div class="dash-stat" id="dashSermonsCount">0</div>
                         <p class="dash-sub">Appunti personali</p>
                     </div>
@@ -125,9 +125,12 @@
             <section id="avvisi" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Avvisi alla Chiesa</h1>
-                    <div class="admin-only-controls">
+                    <div class="admin-only-controls" style="display: flex; gap: 12px;">
                         <button class="btn-apple" onclick="openAvvisoModal()">
                             <i class="ri-add-line"></i> Nuovo Avviso
+                        </button>
+                        <button id="projectAvvisiBtn" class="btn-apple" style="background: #000; color: white;">
+                            <i class="ri-projector-line"></i> Proietta
                         </button>
                     </div>
                 </div>
@@ -179,6 +182,12 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
                                 <i class="ri-share-line"></i>
+                            </button>
+                            <button id="toggleChordsBtn" class="icon-btn" title="Mostra/Nascondi Accordi">
+                                <i class="ri-guitar-line"></i>
+                            </button>
+                            <button id="projectHymnBtn" class="icon-btn" title="Proietta Cantico">
+                                <i class="ri-projector-line"></i>
                             </button>
                             <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
                                 <i class="ri-grid-fill" style="font-size: 18px;"></i>
@@ -248,22 +257,20 @@
                 <div class="section-spacer"></div>
             </section>
 
-            <section id="sermoni" class="content-section">
-                <!-- Barra fissa con titolo e pulsanti -->
+            <section id="prediche" class="content-section">
                 <div class="sticky-sermon-header">
                     <div class="section-header">
-                        <h1 class="section-title">Appunti</h1>
+                        <h1 class="section-title">Prediche</h1>
                         <div class="sermon-header-buttons">
-                            <button class="icon-btn" id="newSermonTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
-                            <button class="icon-btn" id="printSermonBtn" title="Stampa PDF"><i class="ri-printer-line"></i></button>
+                            <button class="icon-btn" id="newSermonTopBtn" title="Nuova Predica"><i class="ri-add-line"></i></button>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Solo lista appunti e versetti evidenziati, nessun editor visibile -->
-                <div class="sermons-list-only">
-                    <div class="saved-sermons-list" id="savedSermonsList">
-                        <div class="list-header">I miei appunti</div>
+                <!-- Lista prediche -->
+                <div class="sermons-list-only" id="sermonsListContainer">
+                    <div class="saved-sermons-list">
+                        <div class="list-header">Le mie prediche</div>
                         <ul id="sermonsUl"></ul>
                         
                         <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500;">
@@ -271,6 +278,20 @@
                         </div>
                         <ul id="highlightsUl"></ul>
                     </div>
+                </div>
+
+                <!-- Vista dettaglio predica (nascosta inizialmente) -->
+                <div id="sermonDetailView" class="hidden sermon-detail-view">
+                    <div class="sermon-detail-header">
+                        <h2 id="sermonDetailTitle" class="sermon-detail-title"></h2>
+                        <div style="display: flex; gap: 12px;">
+                            <button id="editSermonFromDetailBtn" class="icon-btn"><i class="ri-pencil-line"></i> Modifica</button>
+                            <button id="printSermonFromDetailBtn" class="icon-btn"><i class="ri-printer-line"></i> Stampa</button>
+                            <button id="backToSermonsListBtn" class="btn-text"><i class="ri-arrow-left-s-line"></i> Indietro</button>
+                        </div>
+                    </div>
+                    <div class="sermon-detail-meta" id="sermonDetailMeta"></div>
+                    <div class="sermon-detail-body" id="sermonDetailBody"></div>
                 </div>
                 <div class="section-spacer"></div>
             </section>
@@ -289,16 +310,16 @@
             <button class="nav-item" data-target="bibbia">
                 <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
             </button>
-            <button class="nav-item" data-target="sermoni">
-                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Appunti</span>
+            <button class="nav-item" data-target="prediche">
+                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Prediche</span>
             </button>
-            <button class="nav-item text-danger" id="mobileLogoutBtn">
-                <div class="nav-icon-wrapper"><i class="ri-logout-box-r-line"></i></div><span>Esci</span>
+            <button class="nav-item" id="mobileAccountBtn">
+                <div class="nav-icon-wrapper"><i class="ri-account-circle-line"></i></div><span>Account</span>
             </button>
         </nav>
     </div>
     
-    <!-- Modale Avviso (creazione/modifica) - SENZA IMMAGINE -->
+    <!-- Modale Avviso -->
     <div id="avvisoModal" class="modal hidden">
         <div class="modal-content">
             <h2 id="avvisoModalTitle">Nuovo Avviso</h2>
@@ -321,7 +342,6 @@
         </div>
     </div>
 
-    <!-- Modale Dettaglio Avviso (visualizzazione) - SENZA IMMAGINE -->
     <div id="avvisoDetailModal" class="modal hidden">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -336,17 +356,17 @@
         </div>
     </div>
 
-    <!-- Modale per nuovo appunto / modifica appunto -->
+    <!-- Modale per nuova predica / modifica -->
     <div id="sermonModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
-            <h2 id="sermonModalTitle">Nuovo Appunto</h2>
+            <h2 id="sermonModalTitle">Nuova Predica</h2>
             <div class="sermon-modal-body">
-                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo dell'appunto..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
+                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo della predica..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
                 
                 <div style="margin-bottom: 15px;">
                     <i class="ri-price-tag-3-line text-muted"></i>
                     <select id="modalSermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: 1px solid var(--border-color); background: white; border-radius: 8px;">
-                        <option value="Sermone">Sermone</option>
+                        <option value="Predica">Predica</option>
                         <option value="Studio Biblico">Studio Biblico</option>
                         <option value="Riunione Giovani">Riunione Giovani</option>
                         <option value="Nota">Nota Libera</option>
@@ -374,14 +394,41 @@
         </div>
     </div>
 
+    <!-- Modale di modifica cantico (con accordi) -->
     <div id="editModal" class="modal hidden">
         <div class="modal-content">
             <h2>Modifica Cantico</h2>
             <input type="text" id="editHymnTitle" class="apple-select" style="width:100%; margin: 15px 0;">
-            <textarea id="editHymnBody" class="apple-select" style="width:100%; height: 250px; resize:none;"></textarea>
+            <textarea id="editHymnBody" class="apple-select" style="width:100%; height: 200px; resize:none;"></textarea>
+            <label style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Accordi (opzionale)</label>
+            <textarea id="editHymnChords" class="apple-select" style="width:100%; height: 100px; resize:none;" placeholder="Inserisci gli accordi sopra le parole... (es. [G]lo[Am]ria)"></textarea>
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
                 <button class="btn-secondary" onclick="closeEditModal()">Annulla</button>
                 <button class="btn-apple" id="saveEditHymnBtn">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale account mobile -->
+    <div id="accountModal" class="modal hidden" style="align-items: flex-end;">
+        <div class="account-sheet">
+            <div class="account-header">
+                <img id="accountModalAvatar" src="" class="account-avatar">
+                <div class="account-info">
+                    <h3 id="accountModalName"></h3>
+                    <p>Account Google</p>
+                </div>
+            </div>
+            <div class="account-menu-item">
+                <span class="switch-label"><i class="ri-notification-line"></i> Notifiche</span>
+                <label class="switch">
+                    <input type="checkbox" id="notificationsSwitch">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="account-menu-item" id="logoutFromModal">
+                <span><i class="ri-logout-box-r-line"></i> Esci</span>
+                <i class="ri-arrow-right-s-line"></i>
             </div>
         </div>
     </div>
@@ -403,7 +450,6 @@
             });
         }
         
-        // Forza la riproduzione del video di login
         document.getElementById('loginVideo')?.play().catch(e => console.log('Autoplay bloccato:', e));
     </script>
 </body>
