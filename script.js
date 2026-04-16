@@ -17,7 +17,7 @@ let currentTab = "all";
 let searchTerm = "";
 let showChords = false;
 let currentUser = null;
-let avvisiChannel = null; // nome più chiaro
+let avvisiChannel = null;
 
 // Caricamento dati locali
 try {
@@ -125,46 +125,50 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     }
 });
 
-// --- FUNZIONE LOGOUT CORRETTA ---
+// --- FUNZIONE LOGOUT CORRETTA E ROBUSTA ---
 async function handleLogout() {
     console.log("Logout chiamato");
-    try {
-        // Chiudi il canale real-time se esiste
-        if (avvisiChannel) {
+    // Chiudi il modale se aperto
+    const accountModal = document.getElementById('accountModal');
+    if (accountModal) accountModal.classList.add('hidden');
+    
+    // Rimuovi il canale real-time in modo sicuro
+    if (avvisiChannel) {
+        try {
             await avvisiChannel.unsubscribe();
-            avvisiChannel = null;
+        } catch (e) {
+            console.warn("Errore nella rimozione del canale:", e);
         }
+        avvisiChannel = null;
+    }
+    
+    // Effettua il logout da Supabase
+    try {
         const { error } = await supabaseClient.auth.signOut();
         if (error) {
             console.error("Errore durante logout:", error);
-            alert("Errore durante il logout: " + error.message);
-            return;
+            // Non mostriamo alert, procediamo comunque con il reset UI
         }
-        // Resetta stato UI
-        document.body.classList.remove('admin-mode-active');
-        mainApp.classList.add('hidden');
-        loginScreen.style.display = 'flex';
-        loginScreen.style.opacity = '1';
-        // Chiudi eventuali modali
-        const accountModal = document.getElementById('accountModal');
-        if (accountModal) accountModal.classList.add('hidden');
     } catch (err) {
-        console.error("Eccezione in logout:", err);
-        alert("Errore durante il logout: " + err.message);
+        console.error("Eccezione in signOut:", err);
     }
+    
+    // Resetta lo stato dell'applicazione
+    document.body.classList.remove('admin-mode-active');
+    mainApp.classList.add('hidden');
+    loginScreen.style.display = 'flex';
+    loginScreen.style.opacity = '1';
+    
+    // Opzionale: ricarica la pagina per pulire completamente lo stato (evita residui)
+    // window.location.reload();
 }
 
 // Listener per logout desktop
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-// Listener per logout mobile (nel modale)
+// Listener per logout mobile
 const mobileLogoutBtn = document.getElementById('mobileLogoutBtnModal');
 if (mobileLogoutBtn) {
-    mobileLogoutBtn.addEventListener('click', async () => {
-        // Chiudi il modale prima del logout
-        const accountModal = document.getElementById('accountModal');
-        if (accountModal) accountModal.classList.add('hidden');
-        await handleLogout();
-    });
+    mobileLogoutBtn.addEventListener('click', handleLogout);
 }
 
 // --- FUNZIONE PER ORDINAMENTO NUMERICO ---
