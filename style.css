@@ -1455,7 +1455,7 @@ input:checked + .slider:before {
         font-size: 14px;
         width: 100%;
     }
-    /* Menu a tre puntini per AVVISI mobile - angolo superiore destro */
+    /* Menu a tre puntini per AVVISI mobile - STESSO STILE DEI CANTICI */
     .avviso-card {
         position: relative;
         padding-right: 50px;
@@ -1467,13 +1467,20 @@ input:checked + .slider:before {
         margin: 0;
     }
     .avviso-card .mobile-avvisi-menu-btn {
-        background: rgba(0,0,0,0.05);
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
         border-radius: 50%;
         width: 36px;
         height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-muted);
+    }
+    .avviso-card .mobile-avvisi-menu-btn:active {
+        background: rgba(0, 0, 0, 0.1);
     }
     .avviso-card .mobile-avvisi-menu-dropdown {
         position: absolute;
@@ -1499,6 +1506,10 @@ input:checked + .slider:before {
         gap: 10px;
         font-size: 14px;
         width: 100%;
+        cursor: pointer;
+    }
+    .avviso-card .mobile-avvisi-menu-dropdown button:active {
+        background: #f2f2f7;
     }
 }
 
