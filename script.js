@@ -8,7 +8,7 @@ const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
-let notesDB = [];        // rinominato da sermonsDB
+let notesDB = [];
 let avvisiDB = [];
 let highlightsDB = [];
 let favoritesDB = [];
@@ -16,7 +16,8 @@ let isAdmin = false;
 let currentTab = "all";
 let searchTerm = "";
 let showChords = false;
-let currentUser = null;  // memorizza l'utente corrente
+let currentUser = null;
+let avvisiSubscription = null; // per realtime
 
 // Caricamento dati locali
 try {
@@ -125,6 +126,10 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
 });
 
 async function handleLogout() {
+    if (avvisiSubscription) {
+        supabaseClient.removeSubscription(avvisiSubscription);
+        avvisiSubscription = null;
+    }
     await supabaseClient.auth.signOut();
     document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
@@ -165,6 +170,45 @@ async function fetchBibleData(version, bookId, chapter) {
         console.error("Errore fetch Bibbia:", e);
         throw new Error("Impossibile caricare la Bibbia. Verifica la connessione.");
     }
+}
+
+// --- NOTIFICHE IN TEMPO REALE PER NUOVI AVVISI ---
+function setupRealtimeAvvisi() {
+    const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+    if (!notificationsEnabled) return;
+
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+    }
+
+    if (Notification.permission !== 'granted') return;
+
+    if (avvisiSubscription) {
+        supabaseClient.removeSubscription(avvisiSubscription);
+    }
+
+    avvisiSubscription = supabaseClient
+        .channel('avvisi-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
+            const newAvviso = payload.new;
+            showAvvisoNotification(newAvviso);
+        })
+        .subscribe();
+}
+
+function showAvvisoNotification(avviso) {
+    if (!avviso) return;
+    const title = `📢 Nuovo avviso: ${avviso.title}`;
+    const body = `${avviso.desc.substring(0, 100)}${avviso.desc.length > 100 ? '…' : ''}\nData: ${new Date(avviso.date).toLocaleDateString('it-IT')}`;
+    const icon = '/icon-192.png';
+
+    const notification = new Notification(title, { body, icon });
+    notification.onclick = () => {
+        window.focus();
+        document.querySelector('.nav-item[data-target="avvisi"]').click();
+        openAvvisoDetailModal(avviso.id);
+        notification.close();
+    };
 }
 
 // Mostra app principale dopo login
@@ -208,6 +252,7 @@ async function showApp() {
         updateVerseOfDayImage();
         setupFavoritesTabs();
         setupDashboardCards();
+        setupRealtimeAvvisi(); // ATTIVA NOTIFICHE REAL-TIME
         
         // Ascolta cambiamenti real-time su avvisi e cantici (semplice refresh periodico)
         setInterval(() => {
@@ -235,7 +280,7 @@ async function showApp() {
             });
         }
         
-        // Pulsante proietta cantico (nella vista lettura) - FIXATO
+        // Pulsante proietta cantico (nella vista lettura)
         const projectHymnBtn = document.getElementById('projectHymnBtn');
         if (projectHymnBtn) {
             projectHymnBtn.addEventListener('click', () => {
@@ -275,7 +320,16 @@ async function showApp() {
                 localStorage.setItem('notificationsEnabled', e.target.checked);
                 if (e.target.checked) {
                     if ('Notification' in window && Notification.permission === 'default') {
-                        Notification.requestPermission();
+                        Notification.requestPermission().then(perm => {
+                            if (perm === 'granted') setupRealtimeAvvisi();
+                        });
+                    } else if (Notification.permission === 'granted') {
+                        setupRealtimeAvvisi();
+                    }
+                } else {
+                    if (avvisiSubscription) {
+                        supabaseClient.removeSubscription(avvisiSubscription);
+                        avvisiSubscription = null;
                     }
                 }
             });
@@ -347,7 +401,6 @@ async function loadCloudData() {
         else console.error("Errore download avvisi", avvisiErr);
         renderAvvisi();
 
-        // Carica solo gli appunti dell'utente corrente
         if (currentUser) {
             const { data: appunti, error: appuntiErr } = await supabaseClient
                 .from('appunti')
@@ -379,6 +432,13 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
         if (target !== 'cantici') {
             document.getElementById('hymnReaderView').classList.add('hidden');
             document.getElementById('hymnsListView').classList.remove('hidden');
+        }
+        if (target === 'bibbia') {
+            // opzionale: controlla se c'è un capitolo attivo per mostrare i controlli
+            const bottomControls = document.getElementById('bibleBottomControls');
+            const hasActiveChapter = document.getElementById('bibleCurrentChapterDisplay')?.textContent !== 'Capitolo';
+            if (hasActiveChapter) bottomControls.classList.remove('hidden');
+            else bottomControls.classList.add('hidden');
         }
     });
 });
@@ -439,23 +499,60 @@ function renderAvvisi() {
         const dateObj = new Date(avviso.date);
         const card = document.createElement('div');
         card.className = 'avviso-card';
-        card.innerHTML = `
-            <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px; z-index:10;">
-                <button class="icon-btn" onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
-                <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
-            </div>
-            <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
-            <div class="avviso-title">${escapeHtml(avviso.title)}</div>
-            <div class="avviso-desc">${escapeHtml(avviso.desc.substring(0, 150))}${avviso.desc.length > 150 ? '...' : ''}</div>
-            <div style="margin-top: 12px; display: flex; gap: 12px;">
-                <button class="btn-text" onclick="event.stopPropagation(); openAvvisoDetailModal('${avviso.id}')">Leggi tutto <i class="ri-arrow-right-s-line"></i></button>
-                <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
-            </div>
-        `;
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            // Versione mobile con menu a tre puntini
+            card.innerHTML = `
+                <div style="flex:1">
+                    <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div class="avviso-title">${escapeHtml(avviso.title)}</div>
+                    <div class="avviso-desc">${escapeHtml(avviso.desc.substring(0, 150))}${avviso.desc.length > 150 ? '...' : ''}</div>
+                    <div style="margin-top: 12px;">
+                        <button class="btn-text" onclick="event.stopPropagation(); openAvvisoDetailModal('${avviso.id}')">Leggi tutto <i class="ri-arrow-right-s-line"></i></button>
+                    </div>
+                </div>
+                <div class="mobile-avvisi-menu" style="position:relative;">
+                    <button class="mobile-avvisi-menu-btn" onclick="event.stopPropagation(); toggleAvvisiMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
+                    <div class="mobile-avvisi-menu-dropdown hidden">
+                        <button onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i> Condividi</button>
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            // Versione desktop
+            card.innerHTML = `
+                <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px; z-index:10;">
+                    <button class="icon-btn" onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
+                    <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
+                </div>
+                <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                <div class="avviso-title">${escapeHtml(avviso.title)}</div>
+                <div class="avviso-desc">${escapeHtml(avviso.desc.substring(0, 150))}${avviso.desc.length > 150 ? '...' : ''}</div>
+                <div style="margin-top: 12px; display: flex; gap: 12px;">
+                    <button class="btn-text" onclick="event.stopPropagation(); openAvvisoDetailModal('${avviso.id}')">Leggi tutto <i class="ri-arrow-right-s-line"></i></button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
+                </div>
+            `;
+        }
         card.onclick = () => openAvvisoDetailModal(avviso.id);
         list.appendChild(card);
     });
 }
+
+function toggleAvvisiMobileMenu(btn) {
+    const dropdown = btn.nextElementSibling;
+    document.querySelectorAll('.mobile-avvisi-menu-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.mobile-avvisi-menu')) {
+        document.querySelectorAll('.mobile-avvisi-menu-dropdown').forEach(d => d.classList.add('hidden'));
+    }
+});
 
 function openAvvisoDetailModal(id) {
     const avviso = avvisiDB.find(a => a.id === id);
@@ -1259,6 +1356,16 @@ window.changeChapter = function (direction) {
     }
 };
 
+function updateBibleControlsVisibility() {
+    const bottomControls = document.getElementById('bibleBottomControls');
+    const currentChapterDisplay = document.getElementById('bibleCurrentChapterDisplay').textContent;
+    if (currentChapterDisplay && currentChapterDisplay !== 'Capitolo') {
+        bottomControls.classList.remove('hidden');
+    } else {
+        bottomControls.classList.add('hidden');
+    }
+}
+
 document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     const version = document.getElementById('bibleVersion').value;
     const bookId = bookSelect.value;
@@ -1283,6 +1390,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         reader.innerHTML = html;
         updateBibleFontSize();
         document.getElementById('bibleCurrentChapterDisplay').textContent = `${bookName} ${chapter}`;
+        updateBibleControlsVisibility(); // Mostra i controlli
         document.querySelectorAll('.bible-verse').forEach(el => {
             el.addEventListener('click', function () {
                 const bId = this.dataset.book;
@@ -1355,7 +1463,6 @@ function renderNotes() {
 
 async function deleteNoteFromList(id) {
     if (confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        // Elimina da Supabase
         await supabaseClient.from('appunti').delete().eq('id', id);
         notesDB = notesDB.filter(n => n.id !== id);
         saveNotes();
@@ -1536,5 +1643,6 @@ window.startHymnPresentation = startHymnPresentation;
 window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
+window.toggleAvvisiMobileMenu = toggleAvvisiMobileMenu;
 
 renderNotes();
