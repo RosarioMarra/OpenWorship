@@ -8,26 +8,27 @@ const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
-let sermonsDB = [];
+let notesDB = [];        // rinominato da sermonsDB
 let avvisiDB = [];
 let highlightsDB = [];
 let favoritesDB = [];
 let isAdmin = false;
 let currentTab = "all";
 let searchTerm = "";
-let showChords = false; // Toggle accordi
+let showChords = false;
+let currentUser = null;  // memorizza l'utente corrente
 
 // Caricamento dati locali
 try {
     highlightsDB = JSON.parse(localStorage.getItem('highlightsDB')) || [];
     favoritesDB = JSON.parse(localStorage.getItem('favoritesDB')) || [];
-    const storedSermons = localStorage.getItem('sermonsDB');
-    if (storedSermons) sermonsDB = JSON.parse(storedSermons);
-    else sermonsDB = [];
+    const storedNotes = localStorage.getItem('notesDB');
+    if (storedNotes) notesDB = JSON.parse(storedNotes);
+    else notesDB = [];
 } catch (e) {
     highlightsDB = [];
     favoritesDB = [];
-    sermonsDB = [];
+    notesDB = [];
 }
 
 // Funzioni preferiti
@@ -50,17 +51,27 @@ function isFavorite(hymnId) {
     return favoritesDB.includes(hymnId);
 }
 
-// Salvataggio sermoni su Supabase e locale
-async function saveSermonsToCloud() {
-    for (const sermon of sermonsDB) {
-        const { error } = await supabaseClient.from('sermoni').upsert([sermon]);
-        if (error) console.error("Errore salvataggio sermone su cloud:", error);
+// Salvataggio appunti su Supabase (per utente)
+async function saveNotesToCloud() {
+    if (!currentUser) return;
+    for (const note of notesDB) {
+        const { error } = await supabaseClient.from('appunti').upsert([{
+            id: note.id,
+            user_id: currentUser.id,
+            title: note.title,
+            speaker: note.speaker,
+            category: note.category,
+            refs: note.refs,
+            body: note.body,
+            updated_at: new Date()
+        }]);
+        if (error) console.error("Errore salvataggio appunto su cloud:", error);
     }
 }
 
-function saveSermons() {
-    localStorage.setItem('sermonsDB', JSON.stringify(sermonsDB));
-    saveSermonsToCloud();
+function saveNotes() {
+    localStorage.setItem('notesDB', JSON.stringify(notesDB));
+    saveNotesToCloud();
 }
 
 // --- FUNZIONE CONDIVISIONE SOCIAL ---
@@ -93,6 +104,7 @@ const mainApp = document.getElementById('mainApp');
 async function checkUser() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
+        currentUser = session.user;
         showApp();
     } else {
         loginScreen.style.opacity = '1';
@@ -158,6 +170,7 @@ async function fetchBibleData(version, bookId, chapter) {
 // Mostra app principale dopo login
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
+    currentUser = user;
     isAdmin = adminEmails.includes(user.email);
     
     loginScreen.style.opacity = '0';
@@ -202,8 +215,8 @@ async function showApp() {
         }, 30000);
         
         // Eventi vari
-        document.getElementById('newSermonTopBtn').addEventListener('click', () => {
-            openSermonModal();
+        document.getElementById('newNoteTopBtn').addEventListener('click', () => {
+            openNoteModal();
         });
         
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
@@ -222,7 +235,7 @@ async function showApp() {
             });
         }
         
-        // Pulsante proietta cantico (nella vista lettura)
+        // Pulsante proietta cantico (nella vista lettura) - FIXATO
         const projectHymnBtn = document.getElementById('projectHymnBtn');
         if (projectHymnBtn) {
             projectHymnBtn.addEventListener('click', () => {
@@ -261,7 +274,6 @@ async function showApp() {
             notificationsSwitch.addEventListener('change', (e) => {
                 localStorage.setItem('notificationsEnabled', e.target.checked);
                 if (e.target.checked) {
-                    // Richiedi permesso notifiche (se supportato)
                     if ('Notification' in window && Notification.permission === 'default') {
                         Notification.requestPermission();
                     }
@@ -297,6 +309,13 @@ function setupShareButtons() {
     }
 }
 
+function shareCurrentHymn() {
+    const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
+    const activeSlide = document.querySelector('.hymn-slide .slide-content');
+    const text = activeSlide ? activeSlide.innerText : 'Cantico spirituale';
+    shareContent(title, text);
+}
+
 function updateVerseOfDayImage() {
     const bgImageDiv = document.querySelector('.verse-bg-image');
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
@@ -328,14 +347,20 @@ async function loadCloudData() {
         else console.error("Errore download avvisi", avvisiErr);
         renderAvvisi();
 
-        const { data: sermoni, error: sermoniErr } = await supabaseClient.from('sermoni').select('*');
-        if (!sermoniErr && sermoni) {
-            sermonsDB = sermoni;
-            localStorage.setItem('sermonsDB', JSON.stringify(sermonsDB));
-        } else {
-            console.error("Errore download sermoni", sermoniErr);
+        // Carica solo gli appunti dell'utente corrente
+        if (currentUser) {
+            const { data: appunti, error: appuntiErr } = await supabaseClient
+                .from('appunti')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            if (!appuntiErr && appunti) {
+                notesDB = appunti;
+                localStorage.setItem('notesDB', JSON.stringify(notesDB));
+            } else {
+                console.error("Errore download appunti", appuntiErr);
+            }
         }
-        renderSermons();
+        renderNotes();
         updateDashboard();
     } catch (err) {
         console.error("Errore di rete generale", err);
@@ -378,9 +403,8 @@ function updateDashboard() {
     document.getElementById('dailyVerseText').innerHTML = `"${verse.text}"`;
     document.getElementById('dailyVerseRef').innerHTML = `- ${verse.ref}`;
     document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
-    document.getElementById('dashSermonsCount').textContent = sermonsDB.length;
+    document.getElementById('dashNotesCount').textContent = notesDB.length;
 
-    // Avviso più vicino (ordinamento per data crescente - dal più vicino)
     const sortedAvvisi = [...avvisiDB].sort((a, b) => new Date(a.date) - new Date(b.date));
     const oggi = new Date().toISOString().slice(0,10);
     let prossimo = sortedAvvisi.find(a => a.date >= oggi);
@@ -399,7 +423,6 @@ let editingAvvisoId = null;
 function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
-    // Ordina per data dal più vicino (oggi in poi) e poi più lontano
     const oggi = new Date().toISOString().slice(0,10);
     const sortedAvvisi = [...avvisiDB].sort((a,b) => {
         const da = new Date(a.date);
@@ -548,7 +571,10 @@ function startAvvisiPresentation() {
 
 function startHymnPresentation(hymnId) {
     const hymn = hymnsDB.find(h => h.id === hymnId);
-    if (!hymn) return;
+    if (!hymn) {
+        console.error("Cantico non trovato");
+        return;
+    }
     const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
     const slides = blocks.map((block, idx) => {
         const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
@@ -595,7 +621,6 @@ function showPresentation(type, items, hymnTitle = '') {
             slide.style.transform = i === currentIndex ? 'scale(1)' : 'scale(0.95)';
             slide.style.opacity = i === currentIndex ? '1' : '0.5';
         });
-        // Anteprime
         if (currentIndex > 0) {
             const prevItem = items[currentIndex-1];
             previewPrev.innerHTML = type === 'avvisi' ? 
@@ -761,7 +786,6 @@ function renderHymns() {
         const card = document.createElement('div');
         card.className = 'hymn-card';
         const favActive = isFavorite(hymn.id);
-        // Mobile: se schermo piccolo, raggruppa in menu a tre punti
         const isMobile = window.innerWidth < 768;
         if (isMobile) {
             card.innerHTML = `
@@ -811,6 +835,19 @@ function toggleMobileMenu(btn) {
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.mobile-menu')) {
         document.querySelectorAll('.mobile-menu-dropdown').forEach(d => d.classList.add('hidden'));
+    }
+});
+
+function toggleReaderMobileMenu(btn) {
+    const dropdown = btn.nextElementSibling;
+    document.querySelectorAll('.mobile-menu-reader-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.mobile-menu-reader')) {
+        document.querySelectorAll('.mobile-menu-reader-dropdown').forEach(d => d.classList.add('hidden'));
     }
 });
 
@@ -956,7 +993,7 @@ function escapeXml(unsafe) {
 // --- LETTORE SLIDE CANTICI ---
 let currentHymnFontSize = 40;
 let isGridView = false;
-let currentHymnId = null;
+window.currentHymnId = null;
 const slidesContainer = document.getElementById('hymnSlidesContainer');
 const gridContainer = document.getElementById('hymnGridContainer');
 
@@ -982,7 +1019,7 @@ document.getElementById('toggleGridViewBtn').onclick = () => {
 function openHymnSlides(id) {
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
-    currentHymnId = id;
+    window.currentHymnId = id;
     document.getElementById('hymnsListView').classList.add('hidden');
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
@@ -1005,7 +1042,7 @@ function openHymnSlides(id) {
         const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
         let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
-        // Accordi fittizi (esempio)
+        // Accordi fittizi (esempio) - resi piccoli e grassetto
         const chords = ['Do', 'Sol', 'Lam', 'Mi', 'Fa', 'Do', 'Sol', 'Do'];
         const lines = textToDisplay.split('\n');
         let formattedLines = '';
@@ -1288,40 +1325,42 @@ function updateBibleFontSize() {
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if (currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-// --- PREDICHE (ex Sermoni) ---
-let activeSermonId = null;
-let currentEditingSermonId = null;
+// --- APPUNTI (ex Prediche) ---
+let activeNoteId = null;
+let currentEditingNoteId = null;
 
-function renderSermons() {
-    const ul = document.getElementById('sermonsUl');
+function renderNotes() {
+    const ul = document.getElementById('notesUl');
     ul.innerHTML = '';
-    const sortedSermons = [...sermonsDB].reverse();
-    sortedSermons.forEach(s => {
+    const sortedNotes = [...notesDB].reverse();
+    sortedNotes.forEach(n => {
         const li = document.createElement('li');
         li.className = 'sermon-card';
         li.innerHTML = `
-            <span class="sermon-badge">${escapeHtml(s.category || 'Predica')}</span>
+            <span class="sermon-badge">${escapeHtml(n.category || 'Appunto')}</span>
             <div style="display:flex; align-items:center; gap:8px; padding-right: 60px;">
                 <i class="ri-file-list-3-line text-muted"></i> 
-                <span style="font-size:15px; font-weight:500;">${escapeHtml(s.title || "Senza titolo")}</span>
+                <span style="font-size:15px; font-weight:500;">${escapeHtml(n.title || "Senza titolo")}</span>
             </div>
-            <button class="delete-sermon-from-list" onclick="event.stopPropagation(); deleteSermonFromList('${s.id}')">
+            <button class="delete-sermon-from-list" onclick="event.stopPropagation(); deleteNoteFromList('${n.id}')">
                 <i class="ri-delete-bin-line"></i>
             </button>
         `;
         li.onclick = () => {
-            openSermonViewModal(s);
+            openNoteViewModal(n);
         };
         ul.appendChild(li);
     });
 }
 
-async function deleteSermonFromList(id) {
-    if (confirm("Sei sicuro di voler eliminare questa predica?")) {
-        sermonsDB = sermonsDB.filter(s => s.id !== id);
-        saveSermons();
-        if (activeSermonId === id) activeSermonId = null;
-        renderSermons();
+async function deleteNoteFromList(id) {
+    if (confirm("Sei sicuro di voler eliminare questo appunto?")) {
+        // Elimina da Supabase
+        await supabaseClient.from('appunti').delete().eq('id', id);
+        notesDB = notesDB.filter(n => n.id !== id);
+        saveNotes();
+        if (activeNoteId === id) activeNoteId = null;
+        renderNotes();
         updateDashboard();
     }
 }
@@ -1338,8 +1377,8 @@ function renderHighlights() {
         li.className = 'highlight-item';
         li.innerHTML = `<strong style="color:#ff9500;">${escapeHtml(h.bookName)} ${h.chapter}:${h.verse}</strong><br>"${escapeHtml(h.text.substring(0, 80))}${h.text.length > 80 ? '...' : ''}"`;
         li.onclick = () => {
-            const modalBody = document.getElementById('modalSermonBody');
-            if (modalBody && document.getElementById('sermonModal').classList.contains('hidden') === false) {
+            const modalBody = document.getElementById('modalNoteBody');
+            if (modalBody && document.getElementById('noteModal').classList.contains('hidden') === false) {
                 const currentText = modalBody.value;
                 modalBody.value = currentText + `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
                 modalBody.focus();
@@ -1356,34 +1395,34 @@ function renderHighlights() {
     });
 }
 
-function openSermonViewModal(sermon) {
-    document.getElementById('viewSermonTitle').textContent = sermon.title || "Senza titolo";
-    document.getElementById('viewSermonCategory').textContent = sermon.category || "Predica";
-    document.getElementById('viewSermonSpeaker').innerHTML = sermon.speaker ? `<i class="ri-user-voice-line"></i> ${escapeHtml(sermon.speaker)}` : '';
-    document.getElementById('viewSermonRefs').innerHTML = sermon.refs ? `<i class="ri-book-mark-line"></i> ${escapeHtml(sermon.refs)}` : '';
-    document.getElementById('viewSermonBody').textContent = sermon.body || "";
-    const editBtn = document.getElementById('editSermonFromViewBtn');
-    const printBtn = document.getElementById('printSermonFromViewBtn');
+function openNoteViewModal(note) {
+    document.getElementById('viewNoteTitle').textContent = note.title || "Senza titolo";
+    document.getElementById('viewNoteCategory').textContent = note.category || "Appunto";
+    document.getElementById('viewNoteSpeaker').innerHTML = note.speaker ? `<i class="ri-user-voice-line"></i> ${escapeHtml(note.speaker)}` : '';
+    document.getElementById('viewNoteRefs').innerHTML = note.refs ? `<i class="ri-book-mark-line"></i> ${escapeHtml(note.refs)}` : '';
+    document.getElementById('viewNoteBody').textContent = note.body || "";
+    const editBtn = document.getElementById('editNoteFromViewBtn');
+    const printBtn = document.getElementById('printNoteFromViewBtn');
     editBtn.onclick = () => {
-        closeSermonViewModal();
-        openSermonModal(sermon);
+        closeNoteViewModal();
+        openNoteModal(note);
     };
     printBtn.onclick = () => {
-        printSermon(sermon);
+        printNote(note);
     };
-    document.getElementById('sermonViewModal').classList.remove('hidden');
+    document.getElementById('noteViewModal').classList.remove('hidden');
 }
 
-function closeSermonViewModal() {
-    document.getElementById('sermonViewModal').classList.add('hidden');
+function closeNoteViewModal() {
+    document.getElementById('noteViewModal').classList.add('hidden');
 }
 
-function printSermon(sermon) {
+function printNote(note) {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
-        <head><title>Stampa Predica - ${escapeHtml(sermon.title)}</title>
+        <head><title>Stampa Appunto - ${escapeHtml(note.title)}</title>
         <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
             h1 { color: #007aff; }
@@ -1392,9 +1431,9 @@ function printSermon(sermon) {
         </style>
         </head>
         <body>
-            <h1>${escapeHtml(sermon.title)}</h1>
-            <div class="meta">${sermon.category || 'Predica'}${sermon.speaker ? ' · ' + escapeHtml(sermon.speaker) : ''}${sermon.refs ? ' · ' + escapeHtml(sermon.refs) : ''}</div>
-            <div class="content">${escapeHtml(sermon.body).replace(/\n/g, '<br>')}</div>
+            <h1>${escapeHtml(note.title)}</h1>
+            <div class="meta">${note.category || 'Appunto'}${note.speaker ? ' · ' + escapeHtml(note.speaker) : ''}${note.refs ? ' · ' + escapeHtml(note.refs) : ''}</div>
+            <div class="content">${escapeHtml(note.body).replace(/\n/g, '<br>')}</div>
             <p style="margin-top: 40px; font-size: 12px; color: #999;">Generato da Open Worship</p>
         </body>
         </html>
@@ -1403,27 +1442,27 @@ function printSermon(sermon) {
     printWindow.print();
 }
 
-function openSermonModal(sermon = null) {
-    const modal = document.getElementById('sermonModal');
-    const titleEl = document.getElementById('sermonModalTitle');
-    const inputTitle = document.getElementById('modalSermonTitle');
-    const inputCategory = document.getElementById('modalSermonCategory');
-    const inputSpeaker = document.getElementById('modalSermonSpeaker');
-    const inputRefs = document.getElementById('modalSermonRefs');
-    const inputBody = document.getElementById('modalSermonBody');
-    if (sermon) {
-        currentEditingSermonId = sermon.id;
-        titleEl.textContent = "Modifica Predica";
-        inputTitle.value = sermon.title || "";
-        inputCategory.value = sermon.category || "Predica";
-        inputSpeaker.value = sermon.speaker || "";
-        inputRefs.value = sermon.refs || "";
-        inputBody.value = sermon.body || "";
+function openNoteModal(note = null) {
+    const modal = document.getElementById('noteModal');
+    const titleEl = document.getElementById('noteModalTitle');
+    const inputTitle = document.getElementById('modalNoteTitle');
+    const inputCategory = document.getElementById('modalNoteCategory');
+    const inputSpeaker = document.getElementById('modalNoteSpeaker');
+    const inputRefs = document.getElementById('modalNoteRefs');
+    const inputBody = document.getElementById('modalNoteBody');
+    if (note) {
+        currentEditingNoteId = note.id;
+        titleEl.textContent = "Modifica Appunto";
+        inputTitle.value = note.title || "";
+        inputCategory.value = note.category || "Appunto";
+        inputSpeaker.value = note.speaker || "";
+        inputRefs.value = note.refs || "";
+        inputBody.value = note.body || "";
     } else {
-        currentEditingSermonId = null;
-        titleEl.textContent = "Nuova Predica";
+        currentEditingNoteId = null;
+        titleEl.textContent = "Nuovo Appunto";
         inputTitle.value = "";
-        inputCategory.value = "Predica";
+        inputCategory.value = "Appunto";
         inputSpeaker.value = "";
         inputRefs.value = "";
         inputBody.value = "";
@@ -1432,40 +1471,47 @@ function openSermonModal(sermon = null) {
     inputTitle.focus();
 }
 
-function closeSermonModal() {
-    document.getElementById('sermonModal').classList.add('hidden');
-    currentEditingSermonId = null;
+function closeNoteModal() {
+    document.getElementById('noteModal').classList.add('hidden');
+    currentEditingNoteId = null;
 }
 
-document.getElementById('closeSermonModalBtn').addEventListener('click', closeSermonModal);
-document.getElementById('saveSermonModalBtn').addEventListener('click', async () => {
-    const title = document.getElementById('modalSermonTitle').value.trim();
-    const category = document.getElementById('modalSermonCategory').value;
-    const speaker = document.getElementById('modalSermonSpeaker').value.trim();
-    const refs = document.getElementById('modalSermonRefs').value.trim();
-    const body = document.getElementById('modalSermonBody').value.trim();
+document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
+document.getElementById('saveNoteModalBtn').addEventListener('click', async () => {
+    const title = document.getElementById('modalNoteTitle').value.trim();
+    const category = document.getElementById('modalNoteCategory').value;
+    const speaker = document.getElementById('modalNoteSpeaker').value.trim();
+    const refs = document.getElementById('modalNoteRefs').value.trim();
+    const body = document.getElementById('modalNoteBody').value.trim();
     if (!title && !body) { alert("Inserisci almeno un titolo o del contenuto."); return; }
     const data = {
-        id: currentEditingSermonId || crypto.randomUUID(),
+        id: currentEditingNoteId || crypto.randomUUID(),
+        user_id: currentUser.id,
         title: title,
         speaker: speaker,
         category: category,
         refs: refs,
-        body: body
+        body: body,
+        updated_at: new Date()
     };
-    if (currentEditingSermonId) {
-        const idx = sermonsDB.findIndex(s => s.id === currentEditingSermonId);
-        if (idx !== -1) sermonsDB[idx] = data;
-        else sermonsDB.unshift(data);
-    } else {
-        sermonsDB.unshift(data);
-        activeSermonId = data.id;
+    const { error } = await supabaseClient.from('appunti').upsert([data]);
+    if (error) {
+        alert("Errore salvataggio: " + error.message);
+        return;
     }
-    saveSermons();
-    renderSermons();
+    if (currentEditingNoteId) {
+        const idx = notesDB.findIndex(n => n.id === currentEditingNoteId);
+        if (idx !== -1) notesDB[idx] = data;
+        else notesDB.unshift(data);
+    } else {
+        notesDB.unshift(data);
+        activeNoteId = data.id;
+    }
+    saveNotes();
+    renderNotes();
     updateDashboard();
-    closeSermonModal();
-    const saveBtn = document.getElementById('saveSermonModalBtn');
+    closeNoteModal();
+    const saveBtn = document.getElementById('saveNoteModalBtn');
     const originalText = saveBtn.innerHTML;
     saveBtn.innerHTML = "<i class='ri-check-line'></i> Salvato";
     setTimeout(() => saveBtn.innerHTML = originalText, 1500);
@@ -1481,12 +1527,14 @@ window.deleteHymn = deleteHymn;
 window.openEditModal = openEditModal;
 window.closeEditModal = closeEditModal;
 window.changeChapter = changeChapter;
-window.deleteSermonFromList = deleteSermonFromList;
+window.deleteNoteFromList = deleteNoteFromList;
 window.openAvvisoDetailModal = openAvvisoDetailModal;
 window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;
 window.shareHymn = shareHymn;
 window.startHymnPresentation = startHymnPresentation;
 window.closeAccountModal = closeAccountModal;
+window.toggleReaderMobileMenu = toggleReaderMobileMenu;
+window.shareCurrentHymn = shareCurrentHymn;
 
-renderSermons();
+renderNotes();

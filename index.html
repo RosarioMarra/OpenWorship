@@ -61,7 +61,7 @@
                 <button class="nav-item" data-target="avvisi"><i class="ri-notification-3-line"></i> Avvisi</button>
                 <button class="nav-item" data-target="cantici"><i class="ri-music-2-line"></i> Cantici</button>
                 <button class="nav-item" data-target="bibbia"><i class="ri-book-read-line"></i> Bibbia</button>
-                <button class="nav-item" data-target="sermoni"><i class="ri-file-text-line"></i> Prediche</button>
+                <button class="nav-item" data-target="appunti"><i class="ri-file-text-line"></i> Appunti</button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logoutBtn" class="btn-logout-desktop">
@@ -109,11 +109,11 @@
                         <div class="dash-stat"><i class="ri-book-open-line"></i></div>
                         <p class="dash-sub">Leggi la Parola</p>
                     </div>
-                    <div class="dash-card clickable-card" data-section="sermoni">
+                    <div class="dash-card clickable-card" data-section="appunti">
                         <div class="dash-card-icon" style="color: #af52de; background: rgba(175,82,222,0.1);"><i class="ri-file-text-line"></i></div>
-                        <h3>Prediche</h3>
-                        <div class="dash-stat" id="dashSermonsCount">0</div>
-                        <p class="dash-sub">Appunti personali</p>
+                        <h3>Appunti</h3>
+                        <div class="dash-stat" id="dashNotesCount">0</div>
+                        <p class="dash-sub">Note personali</p>
                     </div>
                 </div>
                 <div class="section-spacer"></div>
@@ -176,15 +176,29 @@
                         <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
                         <h3 id="currentHymnTitle" class="reader-top-title">Titolo</h3>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
-                                <i class="ri-share-line"></i>
-                            </button>
-                            <button id="toggleChordsBtn" class="icon-btn" title="Mostra/Nascondi Accordi">
-                                <i class="ri-music-2-line"></i>
-                            </button>
-                            <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta Cantico">
-                                <i class="ri-projector-line"></i>
-                            </button>
+                            <!-- Desktop buttons -->
+                            <div class="desktop-only" style="display: flex; gap: 8px;">
+                                <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
+                                    <i class="ri-share-line"></i>
+                                </button>
+                                <button id="toggleChordsBtn" class="icon-btn" title="Mostra/Nascondi Accordi">
+                                    <i class="ri-music-2-line"></i>
+                                </button>
+                                <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta Cantico">
+                                    <i class="ri-projector-line"></i>
+                                </button>
+                            </div>
+                            <!-- Mobile three-dot menu -->
+                            <div class="mobile-menu-reader" style="position: relative; display: none;">
+                                <button class="mobile-menu-reader-btn icon-btn" onclick="event.stopPropagation(); toggleReaderMobileMenu(this)">
+                                    <i class="ri-more-2-fill"></i>
+                                </button>
+                                <div class="mobile-menu-reader-dropdown hidden" style="position: absolute; right: 0; top: 45px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 100; min-width: 160px; padding: 8px;">
+                                    <button onclick="event.stopPropagation(); shareCurrentHymn()"><i class="ri-share-line"></i> Condividi</button>
+                                    <button onclick="event.stopPropagation(); document.getElementById('toggleChordsBtn').click()"><i class="ri-music-2-line"></i> Accordi</button>
+                                    <button onclick="event.stopPropagation(); document.getElementById('projectHymnBtn').click()" class="admin-only-controls"><i class="ri-projector-line"></i> Proietta</button>
+                                </div>
+                            </div>
                             <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
                                 <i class="ri-grid-fill" style="font-size: 18px;"></i>
                             </button>
@@ -248,20 +262,20 @@
                 <div class="section-spacer"></div>
             </section>
 
-            <!-- Prediche (ex Sermoni) -->
-            <section id="sermoni" class="content-section">
+            <!-- Appunti (ex Prediche) -->
+            <section id="appunti" class="content-section">
                 <div class="sticky-sermon-header">
                     <div class="section-header">
-                        <h1 class="section-title">Prediche</h1>
+                        <h1 class="section-title">Appunti</h1>
                         <div class="sermon-header-buttons">
-                            <button class="icon-btn" id="newSermonTopBtn" title="Nuova Predica"><i class="ri-add-line"></i></button>
+                            <button class="icon-btn" id="newNoteTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
                         </div>
                     </div>
                 </div>
                 <div class="sermons-list-only">
-                    <div class="saved-sermons-list" id="savedSermonsList">
-                        <div class="list-header">Le mie prediche</div>
-                        <ul id="sermonsUl"></ul>
+                    <div class="saved-sermons-list" id="savedNotesList">
+                        <div class="list-header">I miei appunti</div>
+                        <ul id="notesUl"></ul>
                         <div class="list-header" style="border-top: 1px solid var(--border-color); background: #fffaf0; color: #ff9500;">
                             <i class="ri-mark-pen-fill"></i> Versetti Evidenziati
                         </div>
@@ -286,8 +300,8 @@
             <button class="nav-item" data-target="bibbia">
                 <div class="nav-icon-wrapper"><i class="ri-book-read-line"></i></div><span>Bibbia</span>
             </button>
-            <button class="nav-item" data-target="sermoni">
-                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Prediche</span>
+            <button class="nav-item" data-target="appunti">
+                <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Appunti</span>
             </button>
             <button class="nav-item" id="mobileAccountBtn">
                 <div class="nav-icon-wrapper"><img id="mobileAvatarImg" src="" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"></div>
@@ -353,15 +367,15 @@
         </div>
     </div>
 
-    <!-- Modale Predica (Nuovo/Modifica) -->
-    <div id="sermonModal" class="modal hidden">
+    <!-- Modale Appunto (Nuovo/Modifica) -->
+    <div id="noteModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
-            <h2 id="sermonModalTitle">Nuova Predica</h2>
+            <h2 id="noteModalTitle">Nuovo Appunto</h2>
             <div class="sermon-modal-body">
-                <input type="text" id="modalSermonTitle" class="apple-select" placeholder="Titolo della predica..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
+                <input type="text" id="modalNoteTitle" class="apple-select" placeholder="Titolo dell'appunto..." style="width:100%; margin-bottom: 15px; font-size: 20px; font-weight: 600;">
                 <div style="margin-bottom: 15px;">
                     <i class="ri-price-tag-3-line text-muted"></i>
-                    <select id="modalSermonCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: 1px solid var(--border-color); background: white; border-radius: 8px;">
+                    <select id="modalNoteCategory" class="apple-select" style="width: auto; padding: 5px 10px; font-weight: 600; color: var(--accent-color); border: 1px solid var(--border-color); background: white; border-radius: 8px;">
                         <option value="Predica">Predica</option>
                         <option value="Studio Biblico">Studio Biblico</option>
                         <option value="Riunione Giovani">Riunione Giovani</option>
@@ -370,37 +384,37 @@
                 </div>
                 <div style="margin-bottom: 15px;">
                     <i class="ri-user-voice-line text-muted"></i>
-                    <input type="text" id="modalSermonSpeaker" class="apple-select" placeholder="Predicatore..." style="width:100%;">
+                    <input type="text" id="modalNoteSpeaker" class="apple-select" placeholder="Predicatore / Autore..." style="width:100%;">
                 </div>
                 <div style="margin-bottom: 15px;">
                     <i class="ri-book-mark-line text-muted"></i>
-                    <input type="text" id="modalSermonRefs" class="apple-select" placeholder="Riferimenti biblici (es. Giovanni 3:16)..." style="width:100%;">
+                    <input type="text" id="modalNoteRefs" class="apple-select" placeholder="Riferimenti biblici (es. Giovanni 3:16)..." style="width:100%;">
                 </div>
                 <label style="font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px;">CONTENUTO</label>
-                <textarea id="modalSermonBody" class="apple-select" placeholder="Scrivi qui i tuoi appunti..." style="width:100%; height: 250px; resize:none; margin-bottom: 20px;"></textarea>
+                <textarea id="modalNoteBody" class="apple-select" placeholder="Scrivi qui i tuoi appunti..." style="width:100%; height: 250px; resize:none; margin-bottom: 20px;"></textarea>
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="btn-secondary" id="closeSermonModalBtn">Annulla</button>
-                    <button class="btn-apple" id="saveSermonModalBtn">Salva</button>
+                    <button class="btn-secondary" id="closeNoteModalBtn">Annulla</button>
+                    <button class="btn-apple" id="saveNoteModalBtn">Salva</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modale Visualizzazione Predica (Sola Lettura) -->
-    <div id="sermonViewModal" class="modal hidden">
+    <!-- Modale Visualizzazione Appunto (Sola Lettura) -->
+    <div id="noteViewModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 id="viewSermonTitle">Titolo</h2>
+                <h2 id="viewNoteTitle">Titolo</h2>
                 <div style="display: flex; gap: 10px;">
-                    <button id="editSermonFromViewBtn" class="icon-btn"><i class="ri-pencil-line"></i></button>
-                    <button id="printSermonFromViewBtn" class="icon-btn"><i class="ri-printer-line"></i></button>
-                    <button class="icon-btn" onclick="closeSermonViewModal()"><i class="ri-close-line"></i></button>
+                    <button id="editNoteFromViewBtn" class="icon-btn"><i class="ri-pencil-line"></i></button>
+                    <button id="printNoteFromViewBtn" class="icon-btn"><i class="ri-printer-line"></i></button>
+                    <button class="icon-btn" onclick="closeNoteViewModal()"><i class="ri-close-line"></i></button>
                 </div>
             </div>
-            <div id="viewSermonCategory" style="font-size: 12px; font-weight: 600; color: var(--accent-color); margin-bottom: 10px;"></div>
-            <div id="viewSermonSpeaker" style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;"></div>
-            <div id="viewSermonRefs" style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;"></div>
-            <div id="viewSermonBody" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+            <div id="viewNoteCategory" style="font-size: 12px; font-weight: 600; color: var(--accent-color); margin-bottom: 10px;"></div>
+            <div id="viewNoteSpeaker" style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;"></div>
+            <div id="viewNoteRefs" style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;"></div>
+            <div id="viewNoteBody" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
         </div>
     </div>
 

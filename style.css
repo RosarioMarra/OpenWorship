@@ -1474,3 +1474,38 @@ input:checked + .slider:before {
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
     }
 }
+
+/* --- ACCORDI PICCOLI E IN GRASSETTO --- */
+.chord-line {
+    font-size: 0.65rem !important;
+    font-weight: bold !important;
+    color: var(--accent-color);
+    margin-bottom: 4px;
+    font-family: monospace;
+    letter-spacing: 1px;
+}
+
+/* --- Menu a tre puntini nel lettore cantici (mobile) --- */
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+    .mobile-menu-reader {
+        display: inline-block !important;
+    }
+    .mobile-menu-reader-dropdown button {
+        width: 100%;
+        padding: 10px 12px;
+        text-align: left;
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .mobile-menu-reader-dropdown button:hover {
+        background: #f2f2f7;
+    }
+}
