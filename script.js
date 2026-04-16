@@ -125,21 +125,44 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     }
 });
 
+// --- FUNZIONE LOGOUT ROBUSTA ---
 async function handleLogout() {
-    if (avvisiSubscription) {
-        supabaseClient.removeSubscription(avvisiSubscription);
-        avvisiSubscription = null;
+    console.log("Logout chiamato");
+    try {
+        if (avvisiSubscription) {
+            supabaseClient.removeSubscription(avvisiSubscription);
+            avvisiSubscription = null;
+        }
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            console.error("Errore durante logout:", error);
+            alert("Errore durante il logout: " + error.message);
+            return;
+        }
+        // Resetta stato UI
+        document.body.classList.remove('admin-mode-active');
+        mainApp.classList.add('hidden');
+        loginScreen.style.display = 'flex';
+        loginScreen.style.opacity = '1';
+        // Chiudi eventuali modali
+        const accountModal = document.getElementById('accountModal');
+        if (accountModal) accountModal.classList.add('hidden');
+        // Forza ricaricamento della pagina per pulire tutto (opzionale, ma utile)
+        // window.location.reload();
+    } catch (err) {
+        console.error("Eccezione in logout:", err);
+        alert("Errore durante il logout: " + err.message);
     }
-    await supabaseClient.auth.signOut();
-    document.body.classList.remove('admin-mode-active');
-    mainApp.classList.add('hidden');
-    loginScreen.style.display = 'flex';
-    loginScreen.style.opacity = '1';
-    // Chiudi eventuali modali aperti
+}
+
+// Aggiungi listener per logout desktop e mobile
+document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+document.getElementById('mobileLogoutBtnModal').addEventListener('click', async () => {
+    // Chiudi il modale prima del logout
     const accountModal = document.getElementById('accountModal');
     if (accountModal) accountModal.classList.add('hidden');
-}
-document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    await handleLogout();
+});
 
 // --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
@@ -307,16 +330,6 @@ async function showApp() {
         if (mobileAccountBtn) {
             mobileAccountBtn.addEventListener('click', () => {
                 openAccountModal();
-            });
-        }
-        
-        const mobileLogoutModal = document.getElementById('mobileLogoutBtnModal');
-        if (mobileLogoutModal) {
-            mobileLogoutModal.addEventListener('click', async () => {
-                // Chiudi il modale prima di eseguire il logout
-                const accountModal = document.getElementById('accountModal');
-                if (accountModal) accountModal.classList.add('hidden');
-                await handleLogout();
             });
         }
         
