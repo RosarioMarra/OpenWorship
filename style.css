@@ -1455,16 +1455,25 @@ input:checked + .slider:before {
         font-size: 14px;
         width: 100%;
     }
-    /* Menu a tre puntini per AVVISI mobile */
-    .avviso-card .mobile-avvisi-menu {
+    /* Menu a tre puntini per AVVISI mobile - angolo superiore destro */
+    .avviso-card {
         position: relative;
+        padding-right: 50px;
+    }
+    .avviso-card .mobile-avvisi-menu {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        margin: 0;
     }
     .avviso-card .mobile-avvisi-menu-btn {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 8px;
+        background: rgba(0,0,0,0.05);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .avviso-card .mobile-avvisi-menu-dropdown {
         position: absolute;
