@@ -496,7 +496,6 @@ let editingAvvisoId = null;
 function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
-    const oggi = new Date().toISOString().slice(0,10);
     const sortedAvvisi = [...avvisiDB].sort((a,b) => {
         const da = new Date(a.date);
         const db = new Date(b.date);
@@ -683,119 +682,29 @@ function choosePresentationScreen(type, hymnId = null) {
     const onChoose = (useOther) => {
         modal.remove();
         if (useOther) {
-            // Apre una nuova finestra da trascinare sul secondo schermo
-            const newWindow = window.open('', '_blank', 'width=1200,height=800,toolbar=no,menubar=no,location=no');
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head><title>Open Worship - Presentazione</title>
-                <style>
-                    body { margin:0; background:#000; color:white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-                    .presentation-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; flex-direction:column; }
-                    .presentation-header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:15px 20px; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); z-index:20001; }
-                    .presentation-exit { background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 16px; border-radius:20px; cursor:pointer; }
-                    .presentation-controls { display:flex; gap:20px; align-items:center; }
-                    .presentation-nav { background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:24px; }
-                    .presentation-slides-container { display:flex; width:100%; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; }
-                    .presentation-slide { flex:0 0 100%; scroll-snap-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 40px 60px; text-align:center; background:#000; color:white; }
-                    .presentation-slide h1 { font-size:48px; margin-bottom:20px; }
-                    .presentation-slide .date { font-size:24px; color:#ccc; margin-bottom:30px; }
-                    .presentation-slide .desc { font-size:32px; line-height:1.4; white-space:pre-wrap; }
-                    .presentation-previews { position:fixed; bottom:20px; left:0; right:0; display:flex; justify-content:space-between; padding:0 20px; pointer-events:none; z-index:20001; }
-                    .pres-preview-prev, .pres-preview-next { background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:12px; padding:10px; max-width:200px; color:white; font-size:12px; pointer-events:auto; cursor:pointer; }
-                </style>
-                </head>
-                <body>
-                <div id="presentationRoot" class="presentation-overlay">
-                    <div class="presentation-header">
-                        <button id="exitPres" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>
-                        <div class="presentation-controls">
-                            <button id="prevBtn" class="presentation-nav"><i class="ri-arrow-left-s-line"></i></button>
-                            <span id="counter">1 / 1</span>
-                            <button id="nextBtn" class="presentation-nav"><i class="ri-arrow-right-s-line"></i></button>
-                        </div>
-                    </div>
-                    <div id="slidesContainer" class="presentation-slides-container"></div>
-                    <div class="presentation-previews">
-                        <div id="previewPrev" class="pres-preview-prev"></div>
-                        <div id="previewNext" class="pres-preview-next"></div>
-                    </div>
-                </div>
-                <script>
-                    let items = ${JSON.stringify(type === 'avvisi' ? avvisiDB.map(a => ({type:'avvisi', title:a.title, date:a.date, desc:a.desc})) : (() => { const hymn = hymnsDB.find(h => h.id === hymnId); if(!hymn) return []; const blocks = hymn.content.split(/\\n\\s*\\n/).filter(b=>b.trim()); return blocks.map((block,idx)=>({type:'cantico', title: idx===0 ? hymn.title : 'Strofa '+(idx+1), content: block.replace(/^(Coro|Chorus|Rit|Ritornello)\\s*[:\\-]?\\s*/i,'').trim() })); })())};
-                    let currentIndex = 0;
-                    const container = document.getElementById('slidesContainer');
-                    const counterSpan = document.getElementById('counter');
-                    const prevBtn = document.getElementById('prevBtn');
-                    const nextBtn = document.getElementById('nextBtn');
-                    const exitBtn = document.getElementById('exitPres');
-                    const previewPrevDiv = document.getElementById('previewPrev');
-                    const previewNextDiv = document.getElementById('previewNext');
-                    function renderSlides() {
-                        container.innerHTML = '';
-                        items.forEach((item, i) => {
-                            const slide = document.createElement('div');
-                            slide.className = 'presentation-slide';
-                            if (item.type === 'avvisi') {
-                                slide.innerHTML = \`<h1>\${escapeHtml(item.title)}</h1><div class="date">\${new Date(item.date).toLocaleDateString('it-IT')}</div><div class="desc">\${escapeHtml(item.desc).replace(/\\n/g,'<br>')}</div>\`;
-                            } else {
-                                slide.innerHTML = \`<h1>\${escapeHtml(item.title)}</h1><div class="desc">\${escapeHtml(item.content).replace(/\\n/g,'<br>')}</div>\`;
-                            }
-                            container.appendChild(slide);
-                        });
-                        update();
-                    }
-                    function update() {
-                        counterSpan.textContent = \`\${currentIndex+1} / \${items.length}\`;
-                        const slides = document.querySelectorAll('.presentation-slide');
-                        slides.forEach((slide, i) => {
-                            slide.style.transform = i === currentIndex ? 'scale(1)' : 'scale(0.95)';
-                            slide.style.opacity = i === currentIndex ? '1' : '0.5';
-                        });
-                        if (currentIndex > 0) {
-                            previewPrevDiv.innerHTML = \`<strong>\${escapeHtml(items[currentIndex-1].title)}</strong>\`;
-                            previewPrevDiv.style.display = 'block';
-                            previewPrevDiv.onclick = () => { currentIndex--; scrollToSlide(); };
-                        } else previewPrevDiv.style.display = 'none';
-                        if (currentIndex < items.length-1) {
-                            previewNextDiv.innerHTML = \`<strong>\${escapeHtml(items[currentIndex+1].title)}</strong>\`;
-                            previewNextDiv.style.display = 'block';
-                            previewNextDiv.onclick = () => { currentIndex++; scrollToSlide(); };
-                        } else previewNextDiv.style.display = 'none';
-                    }
-                    function scrollToSlide() {
-                        const slideWidth = container.clientWidth;
-                        container.scrollLeft = currentIndex * slideWidth;
-                        update();
-                    }
-                    container.addEventListener('scroll', () => {
-                        const slideWidth = container.clientWidth;
-                        const newIndex = Math.round(container.scrollLeft / slideWidth);
-                        if (newIndex !== currentIndex) {
-                            currentIndex = newIndex;
-                            update();
-                        }
-                    });
-                    prevBtn.onclick = () => { if(currentIndex>0) { currentIndex--; scrollToSlide(); } };
-                    nextBtn.onclick = () => { if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } };
-                    exitBtn.onclick = () => window.close();
-                    document.addEventListener('keydown', (e) => {
-                        if(e.key === 'ArrowLeft') { e.preventDefault(); if(currentIndex>0) { currentIndex--; scrollToSlide(); } }
-                        else if(e.key === 'ArrowRight') { e.preventDefault(); if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } }
-                        else if(e.key === 'Escape') window.close();
-                    });
-                    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-                    renderSlides();
-                    setTimeout(() => scrollToSlide(), 100);
-                <\/script>
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
-        } else {
-            // Presentazione nello stesso schermo
             if (type === 'avvisi') {
-                if (avvisiDB.length === 0) return alert("Nessun avviso da proiettare.");
+                if (avvisiDB.length === 0) {
+                    alert("Nessun avviso da proiettare.");
+                    return;
+                }
+                const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
+                openPresentationWindow('avvisi', sorted);
+            } else if (type === 'cantico' && hymnId) {
+                const hymn = hymnsDB.find(h => h.id === hymnId);
+                if (!hymn) return;
+                const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
+                const slides = blocks.map((block, idx) => {
+                    const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+                    return { title: idx === 0 ? hymn.title : `Strofa ${idx+1}`, content: clean };
+                });
+                openPresentationWindow('cantico', slides);
+            }
+        } else {
+            if (type === 'avvisi') {
+                if (avvisiDB.length === 0) {
+                    alert("Nessun avviso da proiettare.");
+                    return;
+                }
                 const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
                 showPresentation('avvisi', sorted);
             } else if (type === 'cantico' && hymnId) {
@@ -812,6 +721,124 @@ function choosePresentationScreen(type, hymnId = null) {
     };
     modal.querySelector('#presScreenThis').onclick = () => onChoose(false);
     modal.querySelector('#presScreenOther').onclick = () => onChoose(true);
+}
+
+function openPresentationWindow(type, items) {
+    const win = window.open('', '_blank', 'width=1200,height=800,toolbar=no,menubar=no,location=no');
+    if (!win) {
+        alert("Impossibile aprire nuova finestra. Controlla il blocco dei popup.");
+        return;
+    }
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Open Worship - Presentazione</title>
+        <meta charset="UTF-8">
+        <style>
+            body { margin:0; background:#000; color:white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+            .presentation-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; flex-direction:column; }
+            .presentation-header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:15px 20px; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); z-index:20001; }
+            .presentation-exit { background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 16px; border-radius:20px; cursor:pointer; }
+            .presentation-controls { display:flex; gap:20px; align-items:center; }
+            .presentation-nav { background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:24px; }
+            .presentation-slides-container { display:flex; width:100%; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; }
+            .presentation-slide { flex:0 0 100%; scroll-snap-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 40px 60px; text-align:center; background:#000; color:white; }
+            .presentation-slide h1 { font-size:48px; margin-bottom:20px; }
+            .presentation-slide .date { font-size:24px; color:#ccc; margin-bottom:30px; }
+            .presentation-slide .desc { font-size:32px; line-height:1.4; white-space:pre-wrap; }
+            .presentation-previews { position:fixed; bottom:20px; left:0; right:0; display:flex; justify-content:space-between; padding:0 20px; pointer-events:none; z-index:20001; }
+            .pres-preview-prev, .pres-preview-next { background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:12px; padding:10px; max-width:200px; color:white; font-size:12px; pointer-events:auto; cursor:pointer; }
+        </style>
+    </head>
+    <body>
+    <div class="presentation-overlay">
+        <div class="presentation-header">
+            <button id="exitPres" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>
+            <div class="presentation-controls">
+                <button id="prevBtn" class="presentation-nav"><i class="ri-arrow-left-s-line"></i></button>
+                <span id="counter">1 / 1</span>
+                <button id="nextBtn" class="presentation-nav"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+        </div>
+        <div id="slidesContainer" class="presentation-slides-container"></div>
+        <div class="presentation-previews">
+            <div id="previewPrev" class="pres-preview-prev"></div>
+            <div id="previewNext" class="pres-preview-next"></div>
+        </div>
+    </div>
+    <script>
+        const items = ${JSON.stringify(items)};
+        let currentIndex = 0;
+        const container = document.getElementById('slidesContainer');
+        const counterSpan = document.getElementById('counter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const exitBtn = document.getElementById('exitPres');
+        const previewPrevDiv = document.getElementById('previewPrev');
+        const previewNextDiv = document.getElementById('previewNext');
+        function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+        function renderSlides() {
+            container.innerHTML = '';
+            items.forEach((item, i) => {
+                const slide = document.createElement('div');
+                slide.className = 'presentation-slide';
+                if (item.type === 'avvisi') {
+                    slide.innerHTML = '<h1>' + escapeHtml(item.title) + '</h1><div class="date">' + new Date(item.date).toLocaleDateString('it-IT') + '</div><div class="desc">' + escapeHtml(item.desc).replace(/\\n/g,'<br>') + '</div>';
+                } else {
+                    slide.innerHTML = '<h1>' + escapeHtml(item.title) + '</h1><div class="desc">' + escapeHtml(item.content).replace(/\\n/g,'<br>') + '</div>';
+                }
+                container.appendChild(slide);
+            });
+            update();
+        }
+        function update() {
+            counterSpan.textContent = (currentIndex+1) + ' / ' + items.length;
+            const slides = document.querySelectorAll('.presentation-slide');
+            slides.forEach((slide, i) => {
+                slide.style.transform = i === currentIndex ? 'scale(1)' : 'scale(0.95)';
+                slide.style.opacity = i === currentIndex ? '1' : '0.5';
+            });
+            if (currentIndex > 0) {
+                previewPrevDiv.innerHTML = '<strong>' + escapeHtml(items[currentIndex-1].title) + '</strong>';
+                previewPrevDiv.style.display = 'block';
+                previewPrevDiv.onclick = () => { currentIndex--; scrollToSlide(); };
+            } else previewPrevDiv.style.display = 'none';
+            if (currentIndex < items.length-1) {
+                previewNextDiv.innerHTML = '<strong>' + escapeHtml(items[currentIndex+1].title) + '</strong>';
+                previewNextDiv.style.display = 'block';
+                previewNextDiv.onclick = () => { currentIndex++; scrollToSlide(); };
+            } else previewNextDiv.style.display = 'none';
+        }
+        function scrollToSlide() {
+            const slideWidth = container.clientWidth;
+            container.scrollLeft = currentIndex * slideWidth;
+            update();
+        }
+        container.addEventListener('scroll', () => {
+            const slideWidth = container.clientWidth;
+            const newIndex = Math.round(container.scrollLeft / slideWidth);
+            if (newIndex !== currentIndex) {
+                currentIndex = newIndex;
+                update();
+            }
+        });
+        prevBtn.onclick = () => { if(currentIndex>0) { currentIndex--; scrollToSlide(); } };
+        nextBtn.onclick = () => { if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } };
+        exitBtn.onclick = () => window.close();
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft') { e.preventDefault(); if(currentIndex>0) { currentIndex--; scrollToSlide(); } }
+            else if(e.key === 'ArrowRight') { e.preventDefault(); if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } }
+            else if(e.key === 'Escape') window.close();
+        });
+        renderSlides();
+        setTimeout(() => scrollToSlide(), 100);
+    <\/script>
+    </body>
+    </html>
+    `;
+    win.document.write(html);
+    win.document.close();
 }
 
 function showPresentation(type, items) {
