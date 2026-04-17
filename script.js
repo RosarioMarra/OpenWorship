@@ -128,9 +128,11 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
 // --- FUNZIONE LOGOUT CORRETTA E ROBUSTA ---
 async function handleLogout() {
     console.log("Logout chiamato");
+    // Chiudi il modale se aperto
     const accountModal = document.getElementById('accountModal');
     if (accountModal) accountModal.classList.add('hidden');
     
+    // Rimuovi il canale real-time in modo sicuro
     if (avvisiChannel) {
         try {
             await avvisiChannel.unsubscribe();
@@ -140,22 +142,34 @@ async function handleLogout() {
         avvisiChannel = null;
     }
     
+    // Effettua il logout da Supabase
     try {
         const { error } = await supabaseClient.auth.signOut();
-        if (error) console.error("Errore durante logout:", error);
+        if (error) {
+            console.error("Errore durante logout:", error);
+            // Non mostriamo alert, procediamo comunque con il reset UI
+        }
     } catch (err) {
         console.error("Eccezione in signOut:", err);
     }
     
+    // Resetta lo stato dell'applicazione
     document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
+    
+    // Opzionale: ricarica la pagina per pulire completamente lo stato (evita residui)
+    // window.location.reload();
 }
 
+// Listener per logout desktop
 document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+// Listener per logout mobile
 const mobileLogoutBtn = document.getElementById('mobileLogoutBtnModal');
-if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', handleLogout);
+if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener('click', handleLogout);
+}
 
 // --- FUNZIONE PER ORDINAMENTO NUMERICO ---
 function sortByNumber(a, b) {
@@ -266,14 +280,6 @@ async function showApp() {
         profileName.textContent = fullName;
         if (modalUserName) modalUserName.textContent = fullName;
 
-        // Apertura modale account da desktop
-        const desktopProfileBtn = document.getElementById('desktopProfileBtn');
-        if (desktopProfileBtn) {
-            desktopProfileBtn.addEventListener('click', () => {
-                openAccountModal();
-            });
-        }
-
         await loadCloudData();
         updateDashboard();
         renderHighlights();
@@ -282,10 +288,12 @@ async function showApp() {
         setupDashboardCards();
         setupRealtimeAvvisi();
         
+        // Ascolta cambiamenti real-time su avvisi e cantici (semplice refresh periodico)
         setInterval(() => {
             loadCloudData();
         }, 30000);
         
+        // Eventi vari
         document.getElementById('newNoteTopBtn').addEventListener('click', () => {
             openNoteModal();
         });
@@ -298,21 +306,24 @@ async function showApp() {
         setupExportButton();
         setupShareButtons();
         
+        // Pulsante proietta avvisi
         const projectAvvisiBtn = document.getElementById('projectAvvisiBtn');
         if (projectAvvisiBtn) {
             projectAvvisiBtn.addEventListener('click', () => {
-                choosePresentationScreen('avvisi');
+                startAvvisiPresentation();
             });
         }
         
+        // Pulsante proietta cantico
         const projectHymnBtn = document.getElementById('projectHymnBtn');
         if (projectHymnBtn) {
             projectHymnBtn.addEventListener('click', () => {
                 const currentHymnId = window.currentHymnId;
-                if (currentHymnId) choosePresentationScreen('cantico', currentHymnId);
+                if (currentHymnId) startHymnPresentation(currentHymnId);
             });
         }
         
+        // Toggle accordi
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
             toggleChordsBtn.addEventListener('click', () => {
@@ -322,6 +333,7 @@ async function showApp() {
             });
         }
         
+        // Account mobile
         const mobileAccountBtn = document.getElementById('mobileAccountBtn');
         if (mobileAccountBtn) {
             mobileAccountBtn.addEventListener('click', () => {
@@ -496,6 +508,7 @@ let editingAvvisoId = null;
 function renderAvvisi() {
     const list = document.getElementById('avvisiList');
     list.innerHTML = '';
+    const oggi = new Date().toISOString().slice(0,10);
     const sortedAvvisi = [...avvisiDB].sort((a,b) => {
         const da = new Date(a.date);
         const db = new Date(b.date);
@@ -534,13 +547,13 @@ function renderAvvisi() {
                 <div class="admin-list-controls" style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px; z-index:10;">
                     <button class="icon-btn" onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>
                     <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>
-                    <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
                 </div>
                 <div class="avviso-date">${dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 <div class="avviso-title">${escapeHtml(avviso.title)}</div>
                 <div class="avviso-desc">${escapeHtml(avviso.desc.substring(0, 150))}${avviso.desc.length > 150 ? '...' : ''}</div>
-                <div style="margin-top: 12px;">
+                <div style="margin-top: 12px; display: flex; gap: 12px;">
                     <button class="btn-text" onclick="event.stopPropagation(); openAvvisoDetailModal('${avviso.id}')">Leggi tutto <i class="ri-arrow-right-s-line"></i></button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
                 </div>
             `;
         }
@@ -664,184 +677,31 @@ async function deleteAvviso(id) {
     }
 }
 
-// --- PRESENTAZIONE CON SCELTA SCHERMO ---
-function choosePresentationScreen(type, hymnId = null) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'flex';
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 350px; text-align: center;">
-            <h3 style="margin-bottom: 20px;">Proietta su</h3>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="presScreenThis" class="btn-apple">Questo schermo</button>
-                <button id="presScreenOther" class="btn-secondary">Secondo schermo</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    const onChoose = (useOther) => {
-        modal.remove();
-        if (useOther) {
-            if (type === 'avvisi') {
-                if (avvisiDB.length === 0) {
-                    alert("Nessun avviso da proiettare.");
-                    return;
-                }
-                const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
-                openPresentationWindow('avvisi', sorted);
-            } else if (type === 'cantico' && hymnId) {
-                const hymn = hymnsDB.find(h => h.id === hymnId);
-                if (!hymn) return;
-                const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-                const slides = blocks.map((block, idx) => {
-                    const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-                    return { title: idx === 0 ? hymn.title : `Strofa ${idx+1}`, content: clean };
-                });
-                openPresentationWindow('cantico', slides);
-            }
-        } else {
-            if (type === 'avvisi') {
-                if (avvisiDB.length === 0) {
-                    alert("Nessun avviso da proiettare.");
-                    return;
-                }
-                const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
-                showPresentation('avvisi', sorted);
-            } else if (type === 'cantico' && hymnId) {
-                const hymn = hymnsDB.find(h => h.id === hymnId);
-                if (!hymn) return;
-                const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-                const slides = blocks.map((block, idx) => {
-                    const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-                    return { title: idx === 0 ? hymn.title : `Strofa ${idx+1}`, content: clean };
-                });
-                showPresentation('cantico', slides);
-            }
-        }
-    };
-    modal.querySelector('#presScreenThis').onclick = () => onChoose(false);
-    modal.querySelector('#presScreenOther').onclick = () => onChoose(true);
-}
-
-function openPresentationWindow(type, items) {
-    const win = window.open('', '_blank', 'width=1200,height=800,toolbar=no,menubar=no,location=no');
-    if (!win) {
-        alert("Impossibile aprire nuova finestra. Controlla il blocco dei popup.");
+// --- PRESENTAZIONE AVVISI ---
+function startAvvisiPresentation() {
+    if (avvisiDB.length === 0) {
+        alert("Nessun avviso da proiettare.");
         return;
     }
-    const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Open Worship - Presentazione</title>
-        <meta charset="UTF-8">
-        <style>
-            body { margin:0; background:#000; color:white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-            .presentation-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; flex-direction:column; }
-            .presentation-header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:15px 20px; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); z-index:20001; }
-            .presentation-exit { background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 16px; border-radius:20px; cursor:pointer; }
-            .presentation-controls { display:flex; gap:20px; align-items:center; }
-            .presentation-nav { background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:24px; }
-            .presentation-slides-container { display:flex; width:100%; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; }
-            .presentation-slide { flex:0 0 100%; scroll-snap-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 40px 60px; text-align:center; background:#000; color:white; }
-            .presentation-slide h1 { font-size:48px; margin-bottom:20px; }
-            .presentation-slide .date { font-size:24px; color:#ccc; margin-bottom:30px; }
-            .presentation-slide .desc { font-size:32px; line-height:1.4; white-space:pre-wrap; }
-            .presentation-previews { position:fixed; bottom:20px; left:0; right:0; display:flex; justify-content:space-between; padding:0 20px; pointer-events:none; z-index:20001; }
-            .pres-preview-prev, .pres-preview-next { background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border-radius:12px; padding:10px; max-width:200px; color:white; font-size:12px; pointer-events:auto; cursor:pointer; }
-        </style>
-    </head>
-    <body>
-    <div class="presentation-overlay">
-        <div class="presentation-header">
-            <button id="exitPres" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>
-            <div class="presentation-controls">
-                <button id="prevBtn" class="presentation-nav"><i class="ri-arrow-left-s-line"></i></button>
-                <span id="counter">1 / 1</span>
-                <button id="nextBtn" class="presentation-nav"><i class="ri-arrow-right-s-line"></i></button>
-            </div>
-        </div>
-        <div id="slidesContainer" class="presentation-slides-container"></div>
-        <div class="presentation-previews">
-            <div id="previewPrev" class="pres-preview-prev"></div>
-            <div id="previewNext" class="pres-preview-next"></div>
-        </div>
-    </div>
-    <script>
-        const items = ${JSON.stringify(items)};
-        let currentIndex = 0;
-        const container = document.getElementById('slidesContainer');
-        const counterSpan = document.getElementById('counter');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const exitBtn = document.getElementById('exitPres');
-        const previewPrevDiv = document.getElementById('previewPrev');
-        const previewNextDiv = document.getElementById('previewNext');
-        function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-        function renderSlides() {
-            container.innerHTML = '';
-            items.forEach((item, i) => {
-                const slide = document.createElement('div');
-                slide.className = 'presentation-slide';
-                if (item.type === 'avvisi') {
-                    slide.innerHTML = '<h1>' + escapeHtml(item.title) + '</h1><div class="date">' + new Date(item.date).toLocaleDateString('it-IT') + '</div><div class="desc">' + escapeHtml(item.desc).replace(/\\n/g,'<br>') + '</div>';
-                } else {
-                    slide.innerHTML = '<h1>' + escapeHtml(item.title) + '</h1><div class="desc">' + escapeHtml(item.content).replace(/\\n/g,'<br>') + '</div>';
-                }
-                container.appendChild(slide);
-            });
-            update();
-        }
-        function update() {
-            counterSpan.textContent = (currentIndex+1) + ' / ' + items.length;
-            const slides = document.querySelectorAll('.presentation-slide');
-            slides.forEach((slide, i) => {
-                slide.style.transform = i === currentIndex ? 'scale(1)' : 'scale(0.95)';
-                slide.style.opacity = i === currentIndex ? '1' : '0.5';
-            });
-            if (currentIndex > 0) {
-                previewPrevDiv.innerHTML = '<strong>' + escapeHtml(items[currentIndex-1].title) + '</strong>';
-                previewPrevDiv.style.display = 'block';
-                previewPrevDiv.onclick = () => { currentIndex--; scrollToSlide(); };
-            } else previewPrevDiv.style.display = 'none';
-            if (currentIndex < items.length-1) {
-                previewNextDiv.innerHTML = '<strong>' + escapeHtml(items[currentIndex+1].title) + '</strong>';
-                previewNextDiv.style.display = 'block';
-                previewNextDiv.onclick = () => { currentIndex++; scrollToSlide(); };
-            } else previewNextDiv.style.display = 'none';
-        }
-        function scrollToSlide() {
-            const slideWidth = container.clientWidth;
-            container.scrollLeft = currentIndex * slideWidth;
-            update();
-        }
-        container.addEventListener('scroll', () => {
-            const slideWidth = container.clientWidth;
-            const newIndex = Math.round(container.scrollLeft / slideWidth);
-            if (newIndex !== currentIndex) {
-                currentIndex = newIndex;
-                update();
-            }
-        });
-        prevBtn.onclick = () => { if(currentIndex>0) { currentIndex--; scrollToSlide(); } };
-        nextBtn.onclick = () => { if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } };
-        exitBtn.onclick = () => window.close();
-        document.addEventListener('keydown', (e) => {
-            if(e.key === 'ArrowLeft') { e.preventDefault(); if(currentIndex>0) { currentIndex--; scrollToSlide(); } }
-            else if(e.key === 'ArrowRight') { e.preventDefault(); if(currentIndex<items.length-1) { currentIndex++; scrollToSlide(); } }
-            else if(e.key === 'Escape') window.close();
-        });
-        renderSlides();
-        setTimeout(() => scrollToSlide(), 100);
-    <\/script>
-    </body>
-    </html>
-    `;
-    win.document.write(html);
-    win.document.close();
+    const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
+    showPresentation('avvisi', sorted);
 }
 
-function showPresentation(type, items) {
+function startHymnPresentation(hymnId) {
+    const hymn = hymnsDB.find(h => h.id === hymnId);
+    if (!hymn) {
+        console.error("Cantico non trovato");
+        return;
+    }
+    const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
+    const slides = blocks.map((block, idx) => {
+        const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+        return { title: idx === 0 ? hymn.title : `Strofa ${idx+1}`, content: clean };
+    });
+    showPresentation('cantico', slides, hymn.title);
+}
+
+function showPresentation(type, items, hymnTitle = '') {
     const overlay = document.getElementById('presentationOverlay');
     const container = document.getElementById('presentationSlidesContainer');
     const counterSpan = document.getElementById('presCounter');
@@ -908,17 +768,13 @@ function showPresentation(type, items) {
         updateCounter();
     }
     
-    let scrollTimeout;
     container.addEventListener('scroll', () => {
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            const slideWidth = container.clientWidth;
-            const newIndex = Math.round(container.scrollLeft / slideWidth);
-            if (newIndex !== currentIndex) {
-                currentIndex = newIndex;
-                updateCounter();
-            }
-        }, 50);
+        const slideWidth = container.clientWidth;
+        const newIndex = Math.round(container.scrollLeft / slideWidth);
+        if (newIndex !== currentIndex) {
+            currentIndex = newIndex;
+            updateCounter();
+        }
     });
     
     prevBtn.onclick = () => {
@@ -935,22 +791,7 @@ function showPresentation(type, items) {
     };
     exitBtn.onclick = () => {
         overlay.classList.add('hidden');
-        document.removeEventListener('keydown', keyHandler);
     };
-    
-    const keyHandler = (e) => {
-        if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            if (currentIndex > 0) { currentIndex--; scrollToSlide(currentIndex); }
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            if (currentIndex < items.length-1) { currentIndex++; scrollToSlide(currentIndex); }
-        } else if (e.key === 'Escape') {
-            overlay.classList.add('hidden');
-            document.removeEventListener('keydown', keyHandler);
-        }
-    };
-    document.addEventListener('keydown', keyHandler);
     
     overlay.classList.remove('hidden');
     setTimeout(() => {
@@ -1076,7 +917,7 @@ function renderHymns() {
                         <button onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')"><i class="ri-heart-${favActive ? 'fill' : 'line'}"></i> Preferito</button>
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); choosePresentationScreen('cantico','${hymn.id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); startHymnPresentation('${hymn.id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
                     </div>
                 </div>
             `;
@@ -1093,7 +934,7 @@ function renderHymns() {
                     <div class="admin-list-controls" style="display:flex; gap:8px;">
                         <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
                         <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
-                        ${isAdmin ? `<button class="icon-btn" onclick="event.stopPropagation(); choosePresentationScreen('cantico','${hymn.id}')"><i class="ri-projector-line"></i></button>` : ''}
+                        ${isAdmin ? `<button class="icon-btn" onclick="event.stopPropagation(); startHymnPresentation('${hymn.id}')"><i class="ri-projector-line"></i></button>` : ''}
                     </div>
                 </div>
             `;
@@ -1818,7 +1659,7 @@ window.openAvvisoDetailModal = openAvvisoDetailModal;
 window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;
 window.shareHymn = shareHymn;
-window.choosePresentationScreen = choosePresentationScreen;
+window.startHymnPresentation = startHymnPresentation;
 window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
