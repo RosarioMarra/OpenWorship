@@ -229,6 +229,18 @@ body {
     font-weight: 600;
 }
 
+.sidebar-footer {
+    margin-top: auto;
+}
+
+.user-profile-box {
+    transition: 0.2s;
+}
+
+.user-profile-box:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
 .btn-logout-desktop {
     display: flex;
     align-items: center;
@@ -243,7 +255,6 @@ body {
     font-size: 15px;
     cursor: pointer;
     transition: 0.2s;
-    margin-top: 15px;
 }
 
 /* --- MOBILE NAV --- */
@@ -1190,6 +1201,7 @@ body.is-admin .btn-edit {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 .presentation-slide {
