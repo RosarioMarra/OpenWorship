@@ -382,25 +382,28 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-    }, 400);
-}
-
-// *** Listener per il pulsante Accordi - spostato fuori da showApp e reso globale ***
-document.addEventListener('DOMContentLoaded', () => {
-    const toggleChordsBtn = document.getElementById('toggleChordsBtn');
-    if (toggleChordsBtn) {
-        toggleChordsBtn.addEventListener('click', () => {
+        // *** NUOVA FUNZIONE PER TOGGLE ACCORDI ***
+        window.toggleChords = function() {
             showChords = !showChords;
             console.log('Accordi:', showChords ? 'ON' : 'OFF');
-            const currentHymnId = window.currentHymnId;
-            if (currentHymnId) {
-                openHymnView(currentHymnId);
-            } else {
-                console.warn('Nessun cantico aperto.');
+            if (window.currentHymnId) {
+                openHymnView(window.currentHymnId);
             }
-        });
-    }
-});
+        };
+
+        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
+        if (toggleChordsBtn) {
+            toggleChordsBtn.addEventListener('click', window.toggleChords);
+        }
+
+        // Menu mobile reader: pulsante accordi
+        const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
+        if (mobileAccordiBtn) {
+            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); window.toggleChords()");
+        }
+
+    }, 400);
+}
 
 function openAccountModal() {
     document.getElementById('accountModal').classList.remove('hidden');
@@ -760,11 +763,9 @@ function openSecondScreenPresentation(type, hymnId = null) {
                 .presentation-nav { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; }
                 .presentation-slides-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scroll-snap-stop: always; }
                 .presentation-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px 60px; text-align: center; background: #000; color: white; }
-                .presentation-slide h1 { font-size: 48px; margin-bottom: 20px; }
-                .presentation-slide .date { font-size: 24px; color: #ccc; margin-bottom: 30px; }
-                .presentation-slide .desc { font-size: 32px; line-height: 1.4; white-space: pre-wrap; }
+                .presentation-slide .desc { font-size: 48px; line-height: 1.4; white-space: pre-wrap; }
                 .presentation-previews { position: fixed; bottom: 20px; left:0; right:0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 20001; }
-                .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 12px; pointer-events: auto; cursor: pointer; }
+                .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 14px; pointer-events: auto; cursor: pointer; }
             </style>
         </head>
         <body>
@@ -881,18 +882,19 @@ function openSecondScreenPresentation(type, hymnId = null) {
     if (type === 'avvisi') {
         const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
         slides = sorted.map(avviso => ({
-            html: `<h1>${escapeHtml(avviso.title)}</h1><div class="date">${new Date(avviso.date).toLocaleDateString('it-IT')}</div><div class="desc">${escapeHtml(avviso.desc).replace(/\n/g, '<br>')}</div>`,
+            html: `<h1 style="font-size: 48px; margin-bottom: 20px;">${escapeHtml(avviso.title)}</h1><div style="font-size: 24px; color: #ccc; margin-bottom: 30px;">${new Date(avviso.date).toLocaleDateString('it-IT')}</div><div class="desc">${escapeHtml(avviso.desc).replace(/\n/g, '<br>')}</div>`,
             preview: `<strong>${escapeHtml(avviso.title)}</strong><br>${new Date(avviso.date).toLocaleDateString()}`
         }));
     } else {
         const hymn = hymnsDB.find(h => h.id === hymnId);
         if (!hymn) return;
+        // Per il cantico, crea slide SOLO con il testo (nessun titolo/etichetta)
         const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-        slides = blocks.map((block, idx) => {
+        slides = blocks.map(block => {
             const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
             return {
-                html: `<h1>${idx === 0 ? escapeHtml(hymn.title) : `Strofa ${idx+1}`}</h1><div class="desc">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
-                preview: `<strong>${idx === 0 ? escapeHtml(hymn.title) : `Strofa ${idx+1}`}</strong>`
+                html: `<div class="desc" style="font-size: 48px;">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
+                preview: `<strong>Anteprima</strong>`
             };
         });
     }
@@ -955,14 +957,15 @@ function startHymnPresentation(hymnId) {
         return;
     }
     const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-    const slides = blocks.map((block, idx) => {
+    // Ogni slide è solo il testo pulito, nessun titolo
+    const slides = blocks.map(block => {
         const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-        return { title: idx === 0 ? hymn.title : `Strofa ${idx+1}`, content: clean };
+        return { content: clean };
     });
-    showPresentation('cantico', slides, hymn.title);
+    showPresentation('cantico', slides);
 }
 
-function showPresentation(type, items, hymnTitle = '') {
+function showPresentation(type, items) {
     const overlay = document.getElementById('presentationOverlay');
     const container = document.getElementById('presentationSlidesContainer');
     const counterSpan = document.getElementById('presCounter');
@@ -985,8 +988,8 @@ function showPresentation(type, items, hymnTitle = '') {
                 <div class="desc">${escapeHtml(item.desc).replace(/\n/g, '<br>')}</div>
             `;
         } else {
+            // Solo testo del cantico, nessuna intestazione
             slide.innerHTML = `
-                <h1>${escapeHtml(item.title)}</h1>
                 <div class="desc">${escapeHtml(item.content).replace(/\n/g, '<br>')}</div>
             `;
         }
@@ -1004,7 +1007,7 @@ function showPresentation(type, items, hymnTitle = '') {
             const prevItem = items[currentIndex-1];
             previewPrev.innerHTML = type === 'avvisi' ? 
                 `<strong>${escapeHtml(prevItem.title)}</strong><br>${new Date(prevItem.date).toLocaleDateString()}` :
-                `<strong>${escapeHtml(prevItem.title)}</strong>`;
+                `<strong>Strofa precedente</strong>`;
             previewPrev.style.display = 'block';
             previewPrev.onclick = () => { currentIndex--; scrollToSlide(currentIndex); updateCounter(); };
         } else {
@@ -1014,7 +1017,7 @@ function showPresentation(type, items, hymnTitle = '') {
             const nextItem = items[currentIndex+1];
             previewNext.innerHTML = type === 'avvisi' ? 
                 `<strong>${escapeHtml(nextItem.title)}</strong><br>${new Date(nextItem.date).toLocaleDateString()}` :
-                `<strong>${escapeHtml(nextItem.title)}</strong>`;
+                `<strong>Strofa successiva</strong>`;
             previewNext.style.display = 'block';
             previewNext.onclick = () => { currentIndex++; scrollToSlide(currentIndex); updateCounter(); };
         } else {
@@ -1405,7 +1408,6 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
-            // Se showChords è true e la riga sembra contenere accordi, prova a fare parsing
             if (showChords && isChordLine(line)) {
                 if (i + 1 < lines.length) {
                     const chordLine = line;
@@ -1420,7 +1422,6 @@ function renderHymnTextContent(hymn, container) {
                     i++;
                 }
             } else {
-                // Riga normale (senza accordi)
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'hymn-line';
                 lineDiv.textContent = line;
@@ -1845,5 +1846,6 @@ window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
 window.toggleMobileMenu = toggleMobileMenu;
+window.toggleChords = toggleChords;
 
 renderNotes();
