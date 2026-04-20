@@ -1,4 +1,3 @@
-<!-- index.html - aggiornato -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -58,7 +57,6 @@
                 <button class="nav-item" data-target="appunti"><i class="ri-file-text-line"></i> Appunti</button>
             </nav>
             <div class="sidebar-footer">
-                <!-- Profilo utente cliccabile per aprire modale account -->
                 <div class="user-profile-box" id="desktopProfileBox" style="cursor: pointer;">
                     <img id="userProfileImg" src="" class="hidden" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
                     <div class="user-info">
@@ -178,13 +176,12 @@
                     <div class="section-spacer"></div>
                 </div>
 
-                <!-- Hymn Reader View (visualizzazione normale, senza slide) -->
+                <!-- Hymn Reader View (testo continuo) -->
                 <div id="hymnReaderView" class="hidden reader-view">
                     <div class="reader-header sticky-header">
                         <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
                         <h3 id="currentHymnTitle" class="reader-top-title">Titolo</h3>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <!-- Desktop buttons -->
                             <div class="desktop-only" style="display: flex; gap: 8px;">
                                 <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
                                     <i class="ri-share-line"></i>
@@ -196,7 +193,6 @@
                                     <i class="ri-projector-line"></i>
                                 </button>
                             </div>
-                            <!-- Mobile three-dot menu (raggruppa le azioni) -->
                             <div class="mobile-menu-reader" style="position: relative; display: none;">
                                 <button class="mobile-menu-reader-btn icon-btn" onclick="event.stopPropagation(); toggleReaderMobileMenu(this)">
                                     <i class="ri-more-2-fill"></i>
@@ -214,7 +210,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Contenitore testo normale (non slide) -->
                     <div class="hymn-text-view" id="hymnTextView"></div>
                 </div>
             </section>
@@ -429,7 +424,7 @@
         </div>
     </div>
 
-    <!-- Presentation Overlay (usato per proiezione su questo dispositivo) -->
+    <!-- Presentation Overlay (proiezione su questo dispositivo) -->
     <div id="presentationOverlay" class="presentation-overlay hidden">
         <div class="presentation-header">
             <button id="exitPresentationBtn" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>

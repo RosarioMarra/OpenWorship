@@ -18,7 +18,7 @@ let searchTerm = "";
 let showChords = false;
 let currentUser = null;
 let avvisiChannel = null;
-let presentationWindow = null;
+let presentationWindow = null; // per il secondo schermo
 
 // Caricamento dati locali
 try {
@@ -678,7 +678,7 @@ async function deleteAvviso(id) {
     }
 }
 
-// --- SCELTA MODALITÀ PROIEZIONE ---
+// --- SCELTA MODALITÀ PROIEZIONE (con secondo schermo) ---
 function askPresentationMode(type, hymnId = null) {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -687,9 +687,9 @@ function askPresentationMode(type, hymnId = null) {
         <div class="modal-content" style="max-width: 350px; text-align: center;">
             <h3 style="margin-bottom: 20px;">Modalità di proiezione</h3>
             <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli dove proiettare</p>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-apple" id="projectHereBtn">Su questo dispositivo</button>
-                <button class="btn-secondary" id="projectSecondScreenBtn">Su secondo schermo (finestra separata)</button>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                <button class="btn-apple" id="projectHereBtn" style="min-width: 200px;">Su questo dispositivo</button>
+                <button class="btn-secondary" id="projectSecondScreenBtn" style="min-width: 200px;">Su secondo schermo</button>
                 <button class="btn-text" id="cancelProjectBtn" style="margin-top: 10px;">Annulla</button>
             </div>
         </div>
@@ -1332,7 +1332,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo) ---
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro) ---
 let currentHymnFontSize = 24;
 window.currentHymnId = null;
 
@@ -1352,14 +1352,23 @@ function openHymnView(id) {
 function renderHymnTextContent(hymn, container) {
     container.innerHTML = '';
     const blocks = hymn.content.split(/\n\s*\n/);
+    let blockCounter = 0;
+    
     blocks.forEach((block) => {
         const cleanBlock = block.trim();
         if (!cleanBlock) return;
-        const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
+        blockCounter++;
+        
+        const isChorus = /^(coro|chorus|rit|ritornello)\b/i.test(cleanBlock);
         let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
         const blockDiv = document.createElement('div');
         blockDiv.className = `hymn-text-block ${isChorus ? 'hymn-text-chorus' : ''}`;
+        
+        const label = document.createElement('div');
+        label.className = 'hymn-block-label';
+        label.textContent = isChorus ? 'Coro' : `Strofa ${blockCounter}`;
+        blockDiv.appendChild(label);
         
         const lines = textToDisplay.split('\n');
         let formattedLines = '';
@@ -1373,7 +1382,10 @@ function renderHymnTextContent(hymn, container) {
         } else {
             formattedLines = lines.map(line => `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`).join('');
         }
-        blockDiv.innerHTML = formattedLines;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = formattedLines;
+        blockDiv.appendChild(contentDiv);
         container.appendChild(blockDiv);
     });
 }
