@@ -178,18 +178,37 @@ const verseImages = [
     'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800'
 ];
 
-// Funzione Bibbia
+// Funzione Bibbia (con timeout e migliore gestione errori)
 async function fetchBibleData(version, bookId, chapter) {
     const directUrl = `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondi di timeout
+
     try {
-        const response = await fetch(directUrl);
-        if (!response.ok) throw new Error("API limit");
+        const response = await fetch(directUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`Errore HTTP: ${response.status}`);
+        }
         const data = await response.json();
-        if (data && data.length > 0) return data;
-        throw new Error("Nessun dato");
+        if (data && Array.isArray(data) && data.length > 0) {
+            return data;
+        } else {
+            throw new Error("Nessun dato ricevuto");
+        }
     } catch (e) {
+        clearTimeout(timeoutId);
         console.error("Errore fetch Bibbia:", e);
-        throw new Error("Impossibile caricare la Bibbia. Verifica la connessione.");
+        let errorMessage = "Impossibile caricare la Bibbia. ";
+        if (e.name === 'AbortError') {
+            errorMessage += "Timeout della richiesta (10s). Riprova.";
+        } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+            errorMessage += "Verifica la connessione internet e riprova.";
+        } else {
+            errorMessage += "Errore di rete o del server. Riprova più tardi.";
+        }
+        throw new Error(errorMessage);
     }
 }
 
@@ -1333,7 +1352,7 @@ function escapeXml(unsafe) {
 }
 
 // --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro) ---
-let currentHymnFontSize = 24;
+let currentHymnFontSize = 18; // ridotto leggermente
 window.currentHymnId = null;
 
 function openHymnView(id) {
@@ -1529,7 +1548,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         }
     } catch (error) {
         console.error("Errore Bibbia:", error);
-        reader.innerHTML = `<div style="text-align:center;"><p style="color:var(--danger-color); font-weight:bold;">Errore di Rete.</p><p style="color:var(--text-muted); font-size:16px;">Controlla la tua connessione e riprova.</p></div>`;
+        reader.innerHTML = `<div style="text-align:center;"><p style="color:var(--danger-color); font-weight:bold;">Errore di Rete.</p><p style="color:var(--text-muted); font-size:16px;">${error.message}</p></div>`;
     }
 });
 
