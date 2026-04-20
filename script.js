@@ -382,7 +382,7 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** NUOVA FUNZIONE PER TOGGLE ACCORDI ***
+        // *** DEFINIZIONE GLOBALE DELLA FUNZIONE TOGGLE ACCORDI ***
         window.toggleChords = function() {
             showChords = !showChords;
             console.log('Accordi:', showChords ? 'ON' : 'OFF');
@@ -391,12 +391,16 @@ async function showApp() {
             }
         };
 
+        // *** ASSOCIA EVENT LISTENER AL PULSANTE ACCORDI ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
-            toggleChordsBtn.addEventListener('click', window.toggleChords);
+            // Rimuovi eventuali listener precedenti e aggiungi il nuovo
+            const newBtn = toggleChordsBtn.cloneNode(true);
+            toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
+            newBtn.addEventListener('click', window.toggleChords);
         }
 
-        // Menu mobile reader: pulsante accordi
+        // *** CORREZIONE MENU MOBILE READER PER IL PULSANTE ACCORDI ***
         const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
         if (mobileAccordiBtn) {
             mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); window.toggleChords()");
