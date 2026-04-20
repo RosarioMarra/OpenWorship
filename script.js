@@ -345,19 +345,6 @@ async function showApp() {
             });
         }
 
-        // *** PULSANTE ACCORDI - CORREZIONE ***
-        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
-        if (toggleChordsBtn) {
-            toggleChordsBtn.addEventListener('click', () => {
-                showChords = !showChords;
-                console.log('Accordi:', showChords ? 'ON' : 'OFF');
-                const currentHymnId = window.currentHymnId;
-                if (currentHymnId) {
-                    openHymnView(currentHymnId);
-                }
-            });
-        }
-
         // Account mobile
         const mobileAccountBtn = document.getElementById('mobileAccountBtn');
         if (mobileAccountBtn) {
@@ -397,6 +384,23 @@ async function showApp() {
 
     }, 400);
 }
+
+// *** Listener per il pulsante Accordi - spostato fuori da showApp e reso globale ***
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleChordsBtn = document.getElementById('toggleChordsBtn');
+    if (toggleChordsBtn) {
+        toggleChordsBtn.addEventListener('click', () => {
+            showChords = !showChords;
+            console.log('Accordi:', showChords ? 'ON' : 'OFF');
+            const currentHymnId = window.currentHymnId;
+            if (currentHymnId) {
+                openHymnView(currentHymnId);
+            } else {
+                console.warn('Nessun cantico aperto.');
+            }
+        });
+    }
+});
 
 function openAccountModal() {
     document.getElementById('accountModal').classList.remove('hidden');
