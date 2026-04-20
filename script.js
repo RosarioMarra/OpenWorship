@@ -259,6 +259,15 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
+// *** DEFINIZIONE GLOBALE DELLA FUNZIONE TOGGLE ACCORDI (PRIMA DI showApp) ***
+function toggleChords() {
+    showChords = !showChords;
+    console.log('Accordi:', showChords ? 'ON' : 'OFF');
+    if (window.currentHymnId) {
+        openHymnView(window.currentHymnId);
+    }
+}
+
 // Mostra app principale dopo login
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -382,28 +391,18 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** DEFINIZIONE GLOBALE DELLA FUNZIONE TOGGLE ACCORDI ***
-        window.toggleChords = function() {
-            showChords = !showChords;
-            console.log('Accordi:', showChords ? 'ON' : 'OFF');
-            if (window.currentHymnId) {
-                openHymnView(window.currentHymnId);
-            }
-        };
-
         // *** ASSOCIA EVENT LISTENER AL PULSANTE ACCORDI ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
-            // Rimuovi eventuali listener precedenti e aggiungi il nuovo
             const newBtn = toggleChordsBtn.cloneNode(true);
             toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
-            newBtn.addEventListener('click', window.toggleChords);
+            newBtn.addEventListener('click', toggleChords);
         }
 
         // *** CORREZIONE MENU MOBILE READER PER IL PULSANTE ACCORDI ***
         const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
         if (mobileAccordiBtn) {
-            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); window.toggleChords()");
+            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords()");
         }
 
     }, 400);
@@ -892,7 +891,6 @@ function openSecondScreenPresentation(type, hymnId = null) {
     } else {
         const hymn = hymnsDB.find(h => h.id === hymnId);
         if (!hymn) return;
-        // Per il cantico, crea slide SOLO con il testo (nessun titolo/etichetta)
         const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
         slides = blocks.map(block => {
             const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
@@ -961,7 +959,6 @@ function startHymnPresentation(hymnId) {
         return;
     }
     const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-    // Ogni slide è solo il testo pulito, nessun titolo
     const slides = blocks.map(block => {
         const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         return { content: clean };
@@ -992,7 +989,6 @@ function showPresentation(type, items) {
                 <div class="desc">${escapeHtml(item.desc).replace(/\n/g, '<br>')}</div>
             `;
         } else {
-            // Solo testo del cantico, nessuna intestazione
             slide.innerHTML = `
                 <div class="desc">${escapeHtml(item.content).replace(/\n/g, '<br>')}</div>
             `;
@@ -1850,6 +1846,6 @@ window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
 window.toggleMobileMenu = toggleMobileMenu;
-window.toggleChords = toggleChords;
+window.toggleChords = toggleChords;   // Ora toggleChords esiste globalmente
 
 renderNotes();
