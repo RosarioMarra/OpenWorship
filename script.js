@@ -1351,7 +1351,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro) ---
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro e accordi allineati) ---
 let currentHymnFontSize = 18; // ridotto leggermente
 window.currentHymnId = null;
 
@@ -1372,41 +1372,123 @@ function renderHymnTextContent(hymn, container) {
     container.innerHTML = '';
     const blocks = hymn.content.split(/\n\s*\n/);
     let blockCounter = 0;
-    
+
     blocks.forEach((block) => {
         const cleanBlock = block.trim();
         if (!cleanBlock) return;
         blockCounter++;
-        
+
         const isChorus = /^(coro|chorus|rit|ritornello)\b/i.test(cleanBlock);
-        let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-        
+        // Rimuovi l'eventuale etichetta "Coro:" dal contenuto
+        let blockContent = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+
         const blockDiv = document.createElement('div');
         blockDiv.className = `hymn-text-block ${isChorus ? 'hymn-text-chorus' : ''}`;
-        
+
         const label = document.createElement('div');
         label.className = 'hymn-block-label';
         label.textContent = isChorus ? 'Coro' : `Strofa ${blockCounter}`;
         blockDiv.appendChild(label);
-        
-        const lines = textToDisplay.split('\n');
-        let formattedLines = '';
-        if (showChords) {
-            const chords = ['Do', 'Sol', 'Lam', 'Mi', 'Fa', 'Do', 'Sol', 'Do'];
-            lines.forEach((line, idx) => {
-                const chord = chords[idx % chords.length];
-                formattedLines += `<div class="chord-line">${chord}</div>`;
-                formattedLines += `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`;
-            });
-        } else {
-            formattedLines = lines.map(line => `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`).join('');
+
+        // Dividi in righe
+        const lines = blockContent.split('\n');
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (line === '') {
+                i++;
+                continue;
+            }
+
+            // Controlla se la riga corrente è una riga di accordi
+            if (isChordLine(line)) {
+                // Se c'è una riga successiva, la usiamo come testo
+                if (i + 1 < lines.length) {
+                    const chordLine = line;
+                    const textLine = lines[i + 1].trim();
+                    // Renderizza la coppia accordi + testo allineati
+                    renderChordTextPair(blockDiv, chordLine, textLine);
+                    i += 2;
+                } else {
+                    // Nessuna riga di testo successiva: renderizza solo gli accordi?
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'chord-line';
+                    lineDiv.textContent = line;
+                    blockDiv.appendChild(lineDiv);
+                    i++;
+                }
+            } else {
+                // Riga normale (senza accordi)
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'hymn-line';
+                lineDiv.textContent = line;
+                blockDiv.appendChild(lineDiv);
+                i++;
+            }
         }
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.innerHTML = formattedLines;
-        blockDiv.appendChild(contentDiv);
+
         container.appendChild(blockDiv);
     });
+}
+
+// Funzione per determinare se una riga è una riga di accordi
+function isChordLine(line) {
+    // Regex per riconoscere accordi: lettera A-G, opzionale # o b, opzionale m, maj, dim, aug, sus, numeri, slash
+    const chordRegex = /\b[A-Ga-g](?:#|b)?(?:m|maj|min|dim|aug|sus\d?)?(?:\d+)?(?:\/[A-Ga-g](?:#|b)?)?\b/;
+    // Consideriamo una riga di accordi se contiene almeno un accordo e non contiene parole comuni italiane/inglesi
+    const words = line.split(/\s+/);
+    let chordCount = 0;
+    let wordCount = 0;
+    for (let w of words) {
+        if (chordRegex.test(w)) chordCount++;
+        else if (w.length > 1 && !/^[,\-;:!?.]+$/.test(w)) wordCount++;
+    }
+    // Se ci sono almeno 2 accordi e poche parole, è una riga di accordi
+    return chordCount >= 2 && wordCount <= 1;
+}
+
+// Renderizza una coppia riga di accordi + riga di testo allineando gli accordi alle parole
+function renderChordTextPair(container, chordLine, textLine) {
+    const chords = chordLine.split(/\s+/).filter(c => c.trim() !== '');
+    const words = textLine.split(/\s+/).filter(w => w.trim() !== '');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chord-line-container';
+
+    // Se il numero di accordi e parole non corrisponde, mostriamo semplice
+    if (chords.length !== words.length) {
+        // Fallback: mostra accordi sopra, testo sotto
+        const chordDiv = document.createElement('div');
+        chordDiv.className = 'chord-line';
+        chordDiv.textContent = chordLine;
+        const textDiv = document.createElement('div');
+        textDiv.className = 'hymn-line';
+        textDiv.textContent = textLine;
+        wrapper.appendChild(chordDiv);
+        wrapper.appendChild(textDiv);
+        container.appendChild(wrapper);
+        return;
+    }
+
+    // Altrimenti, crea coppie accordo-parola
+    for (let i = 0; i < chords.length; i++) {
+        const pair = document.createElement('span');
+        pair.className = 'chord-word-pair';
+
+        const chordSpan = document.createElement('span');
+        chordSpan.className = 'chord-above';
+        chordSpan.textContent = chords[i];
+
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'chord-word';
+        wordSpan.textContent = words[i];
+
+        pair.appendChild(chordSpan);
+        pair.appendChild(wordSpan);
+        wrapper.appendChild(pair);
+    }
+
+    container.appendChild(wrapper);
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
