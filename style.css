@@ -357,9 +357,9 @@ body {
 }
 
 .section-title {
-    font-size: 28px;
+    font-size: 24px;  /* ridotto */
     font-weight: 700;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
 }
 
 /* --- FONT CONTROLS --- */
@@ -809,17 +809,17 @@ body.is-admin .btn-edit {
     padding: 20px 24px;
     padding-bottom: 100px; /* Spazio per la barra di navigazione mobile */
     overflow-y: auto;
-    font-size: 18px; /* Ridotto leggermente */
-    line-height: 1.3;
+    font-size: 18px;
+    line-height: 1.4;
     color: #000;
 }
 
 .hymn-text-block {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .hymn-block-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -833,21 +833,23 @@ body.is-admin .btn-edit {
     color: var(--accent-color);
 }
 
+/* Accordi: font monospace, grassetto, neri, compatti */
 .chord-line {
-    font-size: 0.6rem !important;   /* Più piccolo */
-    font-weight: 800 !important;     /* Grassetto */
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
     color: #000 !important;
     margin-bottom: 2px;
-    font-family: 'SF Mono', 'Menlo', monospace;
-    letter-spacing: 0.5px;           /* Più stretto */
+    letter-spacing: -0.02em;
     text-transform: none;
 }
 
+/* Testo normale: non grassetto */
 .hymn-line {
     margin-bottom: 2px;
     color: #000;
-    font-weight: 500;
-    line-height: 1.2;
+    font-weight: normal !important;
+    line-height: 1.3;
 }
 
 /* Spazio extra per la section cantici su mobile */
@@ -857,7 +859,11 @@ body.is-admin .btn-edit {
     }
     .hymn-text-view {
         font-size: 16px;
+        padding: 16px;
         padding-bottom: 100px;
+    }
+    .section-title {
+        font-size: 20px;  /* ancora più piccolo su mobile */
     }
 }
 
@@ -1271,7 +1277,7 @@ input:checked + .slider:before {
         display: block;
     }
     .section-title {
-        font-size: 24px;
+        font-size: 20px;
     }
     .mobile-nav {
         display: flex;
