@@ -1,3 +1,4 @@
+/* style.css */
 :root {
     --bg-app: #f2f2f7;
     --bg-card: #ffffff;
@@ -229,6 +230,57 @@ body {
     font-weight: 600;
 }
 
+/* Spostato il profilo in fondo alla sidebar */
+.sidebar-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.user-profile-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.user-profile-box:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.user-profile-box img {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-color);
+    object-fit: cover;
+}
+
+.user-profile-box .user-info {
+    overflow: hidden;
+}
+
+.user-profile-box .user-name {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-main);
+}
+
+.user-profile-box .user-account-type {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .btn-logout-desktop {
     display: flex;
     align-items: center;
@@ -243,7 +295,6 @@ body {
     font-size: 15px;
     cursor: pointer;
     transition: 0.2s;
-    margin-top: 15px;
 }
 
 /* --- MOBILE NAV --- */
@@ -747,6 +798,7 @@ body.is-admin .btn-edit {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    scroll-snap-stop: always;
 }
 
 .slides-container::-webkit-scrollbar {
@@ -792,12 +844,15 @@ body.is-admin .btn-edit {
     font-style: italic;
 }
 
+/* Stile accordi migliorato (come da screenshot) */
 .chord-line {
-    font-size: 0.7em;
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
     color: var(--accent-color);
-    margin-bottom: 4px;
-    font-family: monospace;
-    letter-spacing: 1px;
+    margin-bottom: 2px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
 }
 
 .slide-dots-container {
@@ -961,7 +1016,7 @@ body.is-admin .btn-edit {
     font-size: 24px;
 }
 
-/* --- PREDICHE (ex Sermoni) --- */
+/* --- APPUNTI --- */
 .sticky-sermon-header {
     position: sticky;
     top: 0;
@@ -1190,6 +1245,7 @@ body.is-admin .btn-edit {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
+    scroll-snap-stop: always;
 }
 
 .presentation-slide {
@@ -1455,7 +1511,7 @@ input:checked + .slider:before {
         font-size: 14px;
         width: 100%;
     }
-    /* Menu a tre puntini per AVVISI mobile - STESSO STILE DEI CANTICI */
+    /* Menu a tre puntini per AVVISI mobile */
     .avviso-card {
         position: relative;
         padding-right: 50px;
@@ -1528,40 +1584,5 @@ input:checked + .slider:before {
         width: 100%;
         padding: 20px;
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-    }
-}
-
-/* --- ACCORDI PICCOLI E IN GRASSETTO --- */
-.chord-line {
-    font-size: 0.65rem !important;
-    font-weight: bold !important;
-    color: var(--accent-color);
-    margin-bottom: 4px;
-    font-family: monospace;
-    letter-spacing: 1px;
-}
-
-/* --- Menu a tre puntini nel lettore cantici (mobile) --- */
-@media (max-width: 768px) {
-    .desktop-only {
-        display: none !important;
-    }
-    .mobile-menu-reader {
-        display: inline-block !important;
-    }
-    .mobile-menu-reader-dropdown button {
-        width: 100%;
-        padding: 10px 12px;
-        text-align: left;
-        background: none;
-        border: none;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 14px;
-        cursor: pointer;
-    }
-    .mobile-menu-reader-dropdown button:hover {
-        background: #f2f2f7;
     }
 }

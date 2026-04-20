@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -43,13 +44,6 @@
     <div class="app-container hidden" id="mainApp">
         <!-- Sidebar Desktop -->
         <aside class="sidebar desktop-only">
-            <div class="user-profile-box" style="display: flex; align-items: center; gap: 12px; padding: 15px; background: rgba(0,0,0,0.03); border-radius: 18px; margin-bottom: 25px; border: 1px solid var(--border-color);">
-                <img id="userProfileImg" src="" class="hidden" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
-                <div style="overflow: hidden;">
-                    <p id="userProfileName" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main);">Caricamento...</p>
-                    <p style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Account Google</p>
-                </div>
-            </div>
             <div class="sidebar-header">
                 <div class="app-icon">
                     <img src="icon-192.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain;">
@@ -64,9 +58,15 @@
                 <button class="nav-item" data-target="appunti"><i class="ri-file-text-line"></i> Appunti</button>
             </nav>
             <div class="sidebar-footer">
-                <button id="logoutBtn" class="btn-logout-desktop">
-                    <i class="ri-logout-box-r-line"></i> <span>Esci</span>
-                </button>
+                <!-- Profilo utente spostato in basso, cliccabile per aprire modale account -->
+                <div class="user-profile-box" id="desktopProfileBox" style="cursor: pointer;">
+                    <img id="userProfileImg" src="" class="hidden" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
+                    <div class="user-info">
+                        <p id="userProfileName" class="user-name">Caricamento...</p>
+                        <p class="user-account-type">Account Google</p>
+                    </div>
+                </div>
+                <!-- Il tasto esci è stato rimosso, il logout si fa dal modale -->
             </div>
         </aside>
 
@@ -262,7 +262,7 @@
                 <div class="section-spacer"></div>
             </section>
 
-            <!-- Appunti (ex Prediche) -->
+            <!-- Appunti -->
             <section id="appunti" class="content-section">
                 <div class="sticky-sermon-header">
                     <div class="section-header">
@@ -310,7 +310,7 @@
         </nav>
     </div>
 
-    <!-- Modale Account Mobile -->
+    <!-- Modale Account (usato sia da mobile che desktop) -->
     <div id="accountModal" class="modal hidden">
         <div class="modal-content" style="max-width: 320px; text-align: center;">
             <div style="margin-bottom: 20px;">
@@ -431,7 +431,7 @@
         </div>
     </div>
 
-    <!-- Presentation Overlay for Avvisi / Cantici -->
+    <!-- Presentation Overlay (usato per proiezione su questo dispositivo) -->
     <div id="presentationOverlay" class="presentation-overlay hidden">
         <div class="presentation-header">
             <button id="exitPresentationBtn" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>
