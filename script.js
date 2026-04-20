@@ -1352,7 +1352,7 @@ function escapeXml(unsafe) {
 }
 
 // --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro e accordi allineati) ---
-let currentHymnFontSize = 18; // ridotto leggermente
+let currentHymnFontSize = 18;
 window.currentHymnId = null;
 
 function openHymnView(id) {
@@ -1379,7 +1379,6 @@ function renderHymnTextContent(hymn, container) {
         blockCounter++;
 
         const isChorus = /^(coro|chorus|rit|ritornello)\b/i.test(cleanBlock);
-        // Rimuovi l'eventuale etichetta "Coro:" dal contenuto
         let blockContent = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
 
         const blockDiv = document.createElement('div');
@@ -1390,7 +1389,6 @@ function renderHymnTextContent(hymn, container) {
         label.textContent = isChorus ? 'Coro' : `Strofa ${blockCounter}`;
         blockDiv.appendChild(label);
 
-        // Dividi in righe
         const lines = blockContent.split('\n');
         let i = 0;
         while (i < lines.length) {
@@ -1400,19 +1398,16 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
-            // Controlla se la riga corrente è una riga di accordi
-            if (isChordLine(line)) {
-                // Se c'è una riga successiva, la usiamo come testo
+            // Se showChords è true, proviamo a riconoscere le righe di accordi
+            if (showChords && isChordLine(line)) {
                 if (i + 1 < lines.length) {
                     const chordLine = line;
                     const textLine = lines[i + 1].trim();
-                    // Renderizza la coppia accordi + testo allineati
                     renderChordTextPair(blockDiv, chordLine, textLine);
                     i += 2;
                 } else {
-                    // Nessuna riga di testo successiva: renderizza solo gli accordi?
                     const lineDiv = document.createElement('div');
-                    lineDiv.className = 'chord-line';
+                    lineDiv.className = 'hymn-line';
                     lineDiv.textContent = line;
                     blockDiv.appendChild(lineDiv);
                     i++;
@@ -1431,11 +1426,8 @@ function renderHymnTextContent(hymn, container) {
     });
 }
 
-// Funzione per determinare se una riga è una riga di accordi
 function isChordLine(line) {
-    // Regex per riconoscere accordi: lettera A-G, opzionale # o b, opzionale m, maj, dim, aug, sus, numeri, slash
     const chordRegex = /\b[A-Ga-g](?:#|b)?(?:m|maj|min|dim|aug|sus\d?)?(?:\d+)?(?:\/[A-Ga-g](?:#|b)?)?\b/;
-    // Consideriamo una riga di accordi se contiene almeno un accordo e non contiene parole comuni italiane/inglesi
     const words = line.split(/\s+/);
     let chordCount = 0;
     let wordCount = 0;
@@ -1443,11 +1435,9 @@ function isChordLine(line) {
         if (chordRegex.test(w)) chordCount++;
         else if (w.length > 1 && !/^[,\-;:!?.]+$/.test(w)) wordCount++;
     }
-    // Se ci sono almeno 2 accordi e poche parole, è una riga di accordi
     return chordCount >= 2 && wordCount <= 1;
 }
 
-// Renderizza una coppia riga di accordi + riga di testo allineando gli accordi alle parole
 function renderChordTextPair(container, chordLine, textLine) {
     const chords = chordLine.split(/\s+/).filter(c => c.trim() !== '');
     const words = textLine.split(/\s+/).filter(w => w.trim() !== '');
@@ -1455,9 +1445,7 @@ function renderChordTextPair(container, chordLine, textLine) {
     const wrapper = document.createElement('div');
     wrapper.className = 'chord-line-container';
 
-    // Se il numero di accordi e parole non corrisponde, mostriamo semplice
     if (chords.length !== words.length) {
-        // Fallback: mostra accordi sopra, testo sotto
         const chordDiv = document.createElement('div');
         chordDiv.className = 'chord-line';
         chordDiv.textContent = chordLine;
@@ -1470,7 +1458,6 @@ function renderChordTextPair(container, chordLine, textLine) {
         return;
     }
 
-    // Altrimenti, crea coppie accordo-parola
     for (let i = 0; i < chords.length; i++) {
         const pair = document.createElement('span');
         pair.className = 'chord-word-pair';
