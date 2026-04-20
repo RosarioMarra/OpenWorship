@@ -18,7 +18,7 @@ let searchTerm = "";
 let showChords = false;
 let currentUser = null;
 let avvisiChannel = null;
-let presentationWindow = null; // per il secondo schermo
+let presentationWindow = null;
 
 // Caricamento dati locali
 try {
@@ -131,7 +131,7 @@ async function handleLogout() {
     console.log("Logout chiamato");
     const accountModal = document.getElementById('accountModal');
     if (accountModal) accountModal.classList.add('hidden');
-    
+
     if (avvisiChannel) {
         try {
             await avvisiChannel.unsubscribe();
@@ -140,14 +140,14 @@ async function handleLogout() {
         }
         avvisiChannel = null;
     }
-    
+
     try {
         const { error } = await supabaseClient.auth.signOut();
         if (error) console.error("Errore durante logout:", error);
     } catch (err) {
         console.error("Eccezione in signOut:", err);
     }
-    
+
     document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
@@ -182,12 +182,12 @@ const verseImages = [
 async function fetchBibleData(version, bookId, chapter) {
     const directUrl = `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondi di timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
         const response = await fetch(directUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (!response.ok) {
             throw new Error(`Errore HTTP: ${response.status}`);
         }
@@ -264,12 +264,12 @@ async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     currentUser = user;
     isAdmin = adminEmails.includes(user.email);
-    
+
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
-        
+
         if (isAdmin) {
             document.body.classList.add('is-admin');
         }
@@ -280,7 +280,7 @@ async function showApp() {
         const mobileAvatar = document.getElementById('mobileAvatarImg');
         const modalAvatar = document.getElementById('modalAvatarImg');
         const modalUserName = document.getElementById('modalUserName');
-        
+
         if (user.user_metadata.avatar_url) {
             profileImg.src = user.user_metadata.avatar_url;
             profileImg.classList.remove('hidden');
@@ -301,7 +301,7 @@ async function showApp() {
         setupFavoritesTabs();
         setupDashboardCards();
         setupRealtimeAvvisi();
-        
+
         // Rendi cliccabile il box profilo desktop
         const desktopProfileBox = document.getElementById('desktopProfileBox');
         if (desktopProfileBox) {
@@ -309,25 +309,25 @@ async function showApp() {
                 openAccountModal();
             });
         }
-        
+
         // Refresh periodico
         setInterval(() => {
             loadCloudData();
         }, 30000);
-        
+
         // Eventi vari
         document.getElementById('newNoteTopBtn').addEventListener('click', () => {
             openNoteModal();
         });
-        
+
         document.getElementById('hymnSearch').addEventListener('input', (e) => {
             searchTerm = e.target.value;
             renderHymns();
         });
-        
+
         setupExportButton();
         setupShareButtons();
-        
+
         // Proiezione avvisi
         const projectAvvisiBtn = document.getElementById('projectAvvisiBtn');
         if (projectAvvisiBtn) {
@@ -335,7 +335,7 @@ async function showApp() {
                 askPresentationMode('avvisi');
             });
         }
-        
+
         // Proiezione cantico
         const projectHymnBtn = document.getElementById('projectHymnBtn');
         if (projectHymnBtn) {
@@ -344,17 +344,20 @@ async function showApp() {
                 if (currentHymnId) askPresentationMode('cantico', currentHymnId);
             });
         }
-        
-        // Toggle accordi
+
+        // *** PULSANTE ACCORDI - CORREZIONE ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
             toggleChordsBtn.addEventListener('click', () => {
                 showChords = !showChords;
+                console.log('Accordi:', showChords ? 'ON' : 'OFF');
                 const currentHymnId = window.currentHymnId;
-                if (currentHymnId) openHymnView(currentHymnId);
+                if (currentHymnId) {
+                    openHymnView(currentHymnId);
+                }
             });
         }
-        
+
         // Account mobile
         const mobileAccountBtn = document.getElementById('mobileAccountBtn');
         if (mobileAccountBtn) {
@@ -362,7 +365,7 @@ async function showApp() {
                 openAccountModal();
             });
         }
-        
+
         const notificationsSwitch = document.getElementById('notificationsSwitch');
         if (notificationsSwitch) {
             const saved = localStorage.getItem('notificationsEnabled') === 'true';
@@ -385,13 +388,13 @@ async function showApp() {
                 }
             });
         }
-        
+
         const greetingMsg = document.getElementById('greetingMessage');
         const hour = new Date().getHours();
         const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
-        
+
     }, 400);
 }
 
@@ -1398,7 +1401,7 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
-            // Se showChords è true, proviamo a riconoscere le righe di accordi
+            // Se showChords è true e la riga sembra contenere accordi, prova a fare parsing
             if (showChords && isChordLine(line)) {
                 if (i + 1 < lines.length) {
                     const chordLine = line;
@@ -1429,8 +1432,7 @@ function renderHymnTextContent(hymn, container) {
 function isChordLine(line) {
     const chordRegex = /\b[A-Ga-g](?:#|b)?(?:m|maj|min|dim|aug|sus\d?)?(?:\d+)?(?:\/[A-Ga-g](?:#|b)?)?\b/;
     const words = line.split(/\s+/);
-    let chordCount = 0;
-    let wordCount = 0;
+    let chordCount = 0, wordCount = 0;
     for (let w of words) {
         if (chordRegex.test(w)) chordCount++;
         else if (w.length > 1 && !/^[,\-;:!?.]+$/.test(w)) wordCount++;
