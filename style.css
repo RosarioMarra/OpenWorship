@@ -357,7 +357,7 @@ body {
 }
 
 .section-title {
-    font-size: 24px;  /* ridotto */
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
@@ -815,36 +815,37 @@ body.is-admin .btn-edit {
 }
 
 .hymn-text-block {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
+/* Etichette "Strofa X" / "Coro" più piccole e compatte */
 .hymn-block-label {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     color: var(--accent-color);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 4px;
+    padding-bottom: 2px;
 }
 
 .hymn-text-chorus .hymn-block-label {
     color: var(--accent-color);
 }
 
-/* Accordi: font monospace, grassetto, neri, compatti */
+/* Accordi: font Apple, grassetto, neri, compatti, senza spaziature eccessive */
 .chord-line {
-    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace !important;
-    font-size: 0.65rem !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
+    font-size: 0.6rem !important;
     font-weight: 700 !important;
     color: #000 !important;
-    margin-bottom: 2px;
-    letter-spacing: -0.02em;
+    margin-bottom: 1px;
+    letter-spacing: -0.05em;
     text-transform: none;
 }
 
-/* Testo normale: non grassetto */
+/* Testo normale: non grassetto, interlinea stretta */
 .hymn-line {
     margin-bottom: 2px;
     color: #000;
@@ -863,7 +864,7 @@ body.is-admin .btn-edit {
         padding-bottom: 100px;
     }
     .section-title {
-        font-size: 20px;  /* ancora più piccolo su mobile */
+        font-size: 20px;
     }
 }
 
