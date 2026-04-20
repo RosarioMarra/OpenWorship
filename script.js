@@ -18,7 +18,7 @@ let searchTerm = "";
 let showChords = false;
 let currentUser = null;
 let avvisiChannel = null;
-let presentationWindow = null; // per il secondo schermo
+let presentationWindow = null;
 
 // Caricamento dati locali
 try {
@@ -129,11 +129,9 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
 // --- FUNZIONE LOGOUT CORRETTA E ROBUSTA ---
 async function handleLogout() {
     console.log("Logout chiamato");
-    // Chiudi il modale se aperto
     const accountModal = document.getElementById('accountModal');
     if (accountModal) accountModal.classList.add('hidden');
     
-    // Rimuovi il canale real-time in modo sicuro
     if (avvisiChannel) {
         try {
             await avvisiChannel.unsubscribe();
@@ -143,25 +141,19 @@ async function handleLogout() {
         avvisiChannel = null;
     }
     
-    // Effettua il logout da Supabase
     try {
         const { error } = await supabaseClient.auth.signOut();
-        if (error) {
-            console.error("Errore durante logout:", error);
-        }
+        if (error) console.error("Errore durante logout:", error);
     } catch (err) {
         console.error("Eccezione in signOut:", err);
     }
     
-    // Resetta lo stato dell'applicazione
     document.body.classList.remove('admin-mode-active');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
 }
 
-// Listener per logout desktop (il pulsante non esiste più, ma teniamo la funzione per il modale)
-// Listener per logout mobile
 const mobileLogoutBtn = document.getElementById('mobileLogoutBtnModal');
 if (mobileLogoutBtn) {
     mobileLogoutBtn.addEventListener('click', handleLogout);
@@ -241,6 +233,17 @@ function showAvvisoNotification(avviso) {
     };
 }
 
+// --- LOADER APPLE STYLE ---
+function showSpinner(container) {
+    if (typeof container === 'string') container = document.getElementById(container);
+    if (!container) return;
+    container.innerHTML = '<div class="apple-spinner"></div>';
+}
+
+function hideSpinner(container) {
+    // Non necessario, il contenuto verrà sostituito
+}
+
 // Mostra app principale dopo login
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -284,7 +287,7 @@ async function showApp() {
         setupDashboardCards();
         setupRealtimeAvvisi();
         
-        // Rendi cliccabile il box profilo desktop per aprire il modale account
+        // Rendi cliccabile il box profilo desktop
         const desktopProfileBox = document.getElementById('desktopProfileBox');
         if (desktopProfileBox) {
             desktopProfileBox.addEventListener('click', () => {
@@ -292,7 +295,7 @@ async function showApp() {
             });
         }
         
-        // Ascolta cambiamenti real-time su avvisi e cantici (refresh periodico)
+        // Refresh periodico
         setInterval(() => {
             loadCloudData();
         }, 30000);
@@ -310,7 +313,7 @@ async function showApp() {
         setupExportButton();
         setupShareButtons();
         
-        // Pulsante proietta avvisi: chiede modalità
+        // Proiezione avvisi
         const projectAvvisiBtn = document.getElementById('projectAvvisiBtn');
         if (projectAvvisiBtn) {
             projectAvvisiBtn.addEventListener('click', () => {
@@ -318,7 +321,7 @@ async function showApp() {
             });
         }
         
-        // Pulsante proietta cantico: chiede modalità
+        // Proiezione cantico
         const projectHymnBtn = document.getElementById('projectHymnBtn');
         if (projectHymnBtn) {
             projectHymnBtn.addEventListener('click', () => {
@@ -333,7 +336,7 @@ async function showApp() {
             toggleChordsBtn.addEventListener('click', () => {
                 showChords = !showChords;
                 const currentHymnId = window.currentHymnId;
-                if (currentHymnId) openHymnSlides(currentHymnId);
+                if (currentHymnId) openHymnView(currentHymnId);
             });
         }
         
@@ -537,9 +540,9 @@ function renderAvvisi() {
                 <div style="margin-top: 12px;">
                     <button class="btn-text" onclick="event.stopPropagation(); openAvvisoDetailModal('${avviso.id}')">Leggi tutto <i class="ri-arrow-right-s-line"></i></button>
                 </div>
-                <div class="mobile-avvisi-menu">
-                    <button class="mobile-avvisi-menu-btn" onclick="event.stopPropagation(); toggleAvvisiMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
-                    <div class="mobile-avvisi-menu-dropdown hidden">
+                <div class="mobile-menu">
+                    <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
+                    <div class="mobile-menu-dropdown hidden">
                         <button onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i> Condividi</button>
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
@@ -547,7 +550,6 @@ function renderAvvisi() {
                 </div>
             `;
         } else {
-            // Desktop: pulsante Condividi spostato in alto a destra insieme agli altri controlli
             card.innerHTML = `
                 <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
                     <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
@@ -567,16 +569,16 @@ function renderAvvisi() {
     });
 }
 
-function toggleAvvisiMobileMenu(btn) {
+function toggleMobileMenu(btn) {
     const dropdown = btn.nextElementSibling;
-    document.querySelectorAll('.mobile-avvisi-menu-dropdown').forEach(d => {
+    document.querySelectorAll('.mobile-menu-dropdown').forEach(d => {
         if (d !== dropdown) d.classList.add('hidden');
     });
     dropdown.classList.toggle('hidden');
 }
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.mobile-avvisi-menu')) {
-        document.querySelectorAll('.mobile-avvisi-menu-dropdown').forEach(d => d.classList.add('hidden'));
+    if (!e.target.closest('.mobile-menu')) {
+        document.querySelectorAll('.mobile-menu-dropdown').forEach(d => d.classList.add('hidden'));
     }
 });
 
@@ -682,7 +684,7 @@ async function deleteAvviso(id) {
     }
 }
 
-// --- NUOVA FUNZIONE: SCELTA MODALITÀ PROIEZIONE ---
+// --- SCELTA MODALITÀ PROIEZIONE ---
 function askPresentationMode(type, hymnId = null) {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -692,8 +694,8 @@ function askPresentationMode(type, hymnId = null) {
             <h3 style="margin-bottom: 20px;">Modalità di proiezione</h3>
             <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli dove proiettare</p>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-apple" id="projectHereBtn">📱 Su questo dispositivo</button>
-                <button class="btn-secondary" id="projectSecondScreenBtn">🖥️ Su secondo schermo (finestra separata)</button>
+                <button class="btn-apple" id="projectHereBtn">Su questo dispositivo</button>
+                <button class="btn-secondary" id="projectSecondScreenBtn">Su secondo schermo (finestra separata)</button>
                 <button class="btn-text" id="cancelProjectBtn" style="margin-top: 10px;">Annulla</button>
             </div>
         </div>
@@ -1060,7 +1062,9 @@ document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () 
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
     const files = Array.from(event.target.files);
-    document.getElementById('hymnSearch').placeholder = "Caricamento in Cloud in corso...";
+    const searchInput = document.getElementById('hymnSearch');
+    searchInput.placeholder = "Caricamento in corso...";
+    showSpinner('hymnsList'); // Mostra spinner nella lista
     for (let file of files) {
         try {
             let text = await file.text();
@@ -1115,7 +1119,7 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
             alert("Errore nella lettura del file " + file.name);
         }
     }
-    document.getElementById('hymnSearch').placeholder = "Cerca cantico...";
+    searchInput.placeholder = "Cerca cantico...";
     renderHymns();
     updateDashboard();
 });
@@ -1146,7 +1150,7 @@ function renderHymns() {
         const isMobile = window.innerWidth < 768;
         if (isMobile) {
             card.innerHTML = `
-                <div style="flex:1" onclick="openHymnSlides('${hymn.id}')">
+                <div style="flex:1" onclick="openHymnView('${hymn.id}')">
                     <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
                 </div>
                 <div class="mobile-menu" style="position:relative;">
@@ -1162,7 +1166,7 @@ function renderHymns() {
             `;
         } else {
             card.innerHTML = `
-                <div style="flex:1" onclick="openHymnSlides('${hymn.id}')">
+                <div style="flex:1" onclick="openHymnView('${hymn.id}')">
                     <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
                 </div>
                 <div style="display:flex; gap:12px; align-items:center;">
@@ -1181,19 +1185,6 @@ function renderHymns() {
         list.appendChild(card);
     });
 }
-
-function toggleMobileMenu(btn) {
-    const dropdown = btn.nextElementSibling;
-    document.querySelectorAll('.mobile-menu-dropdown').forEach(d => {
-        if (d !== dropdown) d.classList.add('hidden');
-    });
-    dropdown.classList.toggle('hidden');
-}
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.mobile-menu')) {
-        document.querySelectorAll('.mobile-menu-dropdown').forEach(d => d.classList.add('hidden'));
-    }
-});
 
 function toggleReaderMobileMenu(btn) {
     const dropdown = btn.nextElementSibling;
@@ -1347,33 +1338,11 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- LETTORE SLIDE CANTICI ---
-let currentHymnFontSize = 40;
-let isGridView = false;
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO (senza slide) ---
+let currentHymnFontSize = 24;
 window.currentHymnId = null;
-const slidesContainer = document.getElementById('hymnSlidesContainer');
-const gridContainer = document.getElementById('hymnGridContainer');
 
-document.getElementById('toggleGridViewBtn').onclick = () => {
-    isGridView = !isGridView;
-    if (isGridView) {
-        document.getElementById('slidesWrapperView').classList.add('hidden');
-        gridContainer.classList.remove('hidden');
-        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-slideshow-line" style="font-size:18px;"></i>';
-        const previews = document.getElementById('slidePreviews');
-        if (previews) previews.style.display = 'none';
-    } else {
-        document.getElementById('slidesWrapperView').classList.remove('hidden');
-        gridContainer.classList.add('hidden');
-        document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
-        const previews = document.getElementById('slidePreviews');
-        if (previews) previews.style.display = 'flex';
-        setTimeout(autoFitHymn, 50);
-        setTimeout(updateSlidePreviews, 100);
-    }
-};
-
-function openHymnSlides(id) {
+function openHymnView(id) {
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
     window.currentHymnId = id;
@@ -1381,28 +1350,27 @@ function openHymnSlides(id) {
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
     
-    isGridView = false;
-    document.getElementById('slidesWrapperView').classList.remove('hidden');
-    gridContainer.classList.add('hidden');
-    document.getElementById('toggleGridViewBtn').innerHTML = '<i class="ri-grid-fill" style="font-size:18px;"></i>';
-    const previewsContainer = document.getElementById('slidePreviews');
-    if (previewsContainer) previewsContainer.style.display = 'flex';
-    
-    slidesContainer.innerHTML = '';
-    document.getElementById('slideDots').innerHTML = '';
-    gridContainer.innerHTML = '';
-    
+    const textView = document.getElementById('hymnTextView');
+    renderHymnTextContent(hymn, textView);
+    updateHymnFontSize();
+}
+
+function renderHymnTextContent(hymn, container) {
+    container.innerHTML = '';
     const blocks = hymn.content.split(/\n\s*\n/);
-    blocks.forEach((block, index) => {
+    blocks.forEach((block) => {
         const cleanBlock = block.trim();
         if (!cleanBlock) return;
         const isChorus = /coro|chorus|rit|ritornello/i.test(cleanBlock);
         let textToDisplay = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
         
-        const chords = ['Do', 'Sol', 'Lam', 'Mi', 'Fa', 'Do', 'Sol', 'Do'];
+        const blockDiv = document.createElement('div');
+        blockDiv.className = `hymn-text-block ${isChorus ? 'hymn-text-chorus' : ''}`;
+        
         const lines = textToDisplay.split('\n');
         let formattedLines = '';
         if (showChords) {
+            const chords = ['Do', 'Sol', 'Lam', 'Mi', 'Fa', 'Do', 'Sol', 'Do'];
             lines.forEach((line, idx) => {
                 const chord = chords[idx % chords.length];
                 formattedLines += `<div class="chord-line">${chord}</div>`;
@@ -1411,160 +1379,31 @@ function openHymnSlides(id) {
         } else {
             formattedLines = lines.map(line => `<div class="hymn-line">${escapeHtml(line) || '&nbsp;'}</div>`).join('');
         }
-        
-        const slide = document.createElement('div');
-        slide.className = 'hymn-slide';
-        const contentDiv = document.createElement('div');
-        contentDiv.className = `slide-content ${isChorus ? 'slide-chorus' : ''}`;
-        contentDiv.innerHTML = formattedLines;
-        slide.appendChild(contentDiv);
-        slidesContainer.appendChild(slide);
-        
-        const gridCard = document.createElement('div');
-        gridCard.className = 'hymn-grid-card';
-        gridCard.innerHTML = `<div class="grid-card-title">${isChorus ? 'Coro' : 'Strofa ' + (index + 1)}</div><div class="grid-card-preview ${isChorus ? 'slide-chorus' : ''}">${escapeHtml(textToDisplay.substring(0, 100))}${textToDisplay.length > 100 ? '...' : ''}</div>`;
-        gridCard.onclick = () => {
-            document.getElementById('toggleGridViewBtn').click();
-            scrollToSlide(index);
-        };
-        gridContainer.appendChild(gridCard);
-        
-        const dot = document.createElement('div');
-        dot.className = `slide-dot ${index === 0 ? 'active' : ''}`;
-        document.getElementById('slideDots').appendChild(dot);
+        blockDiv.innerHTML = formattedLines;
+        container.appendChild(blockDiv);
     });
-    
-    slidesContainer.scrollLeft = 0;
-    updateSlideVisibility();
-    setTimeout(autoFitHymn, 50);
-    setTimeout(updateSlidePreviews, 100);
-}
-
-function scrollToSlide(index) {
-    const slideWidth = slidesContainer.clientWidth;
-    slidesContainer.scrollLeft = index * slideWidth;
-    setTimeout(() => {
-        updateSlideVisibility();
-        updateSlidePreviews();
-    }, 100);
-}
-
-function updateSlideVisibility() {
-    const slides = document.querySelectorAll('.hymn-slide');
-    const containerRect = slidesContainer.getBoundingClientRect();
-    const center = containerRect.left + containerRect.width / 2;
-    slides.forEach(slide => {
-        const slideRect = slide.getBoundingClientRect();
-        const slideCenter = slideRect.left + slideRect.width / 2;
-        const distance = Math.abs(slideCenter - center);
-        const maxDistance = containerRect.width / 2;
-        const opacity = Math.max(0.3, 1 - (distance / maxDistance) * 0.7);
-        const scale = Math.max(0.7, 1 - (distance / maxDistance) * 0.3);
-        slide.style.opacity = opacity;
-        slide.style.transform = `scale(${scale})`;
-    });
-    updateSlidePreviews();
-}
-
-function updateSlidePreviews() {
-    const slides = document.querySelectorAll('.hymn-slide');
-    if (slides.length === 0) return;
-    const containerRect = slidesContainer.getBoundingClientRect();
-    const center = containerRect.left + containerRect.width / 2;
-    let currentIndex = -1;
-    slides.forEach((slide, idx) => {
-        const slideRect = slide.getBoundingClientRect();
-        const slideCenter = slideRect.left + slideRect.width / 2;
-        if (Math.abs(slideCenter - center) < 10) currentIndex = idx;
-    });
-    const prevContent = document.getElementById('previewPrevContent');
-    const nextContent = document.getElementById('previewNextContent');
-    const previewPrev = document.getElementById('previewPrev');
-    const previewNext = document.getElementById('previewNext');
-    if (!prevContent || !nextContent) return;
-    if (currentIndex > 0) {
-        const prevSlide = slides[currentIndex - 1];
-        const prevText = prevSlide ? prevSlide.querySelector('.slide-content')?.innerText || '—' : '—';
-        prevContent.innerHTML = prevText.substring(0, 100) + (prevText.length > 100 ? '...' : '');
-        previewPrev.style.opacity = '1';
-        previewPrev.style.pointerEvents = 'auto';
-        previewPrev.onclick = () => {
-            slidesContainer.scrollLeft = (currentIndex - 1) * slidesContainer.clientWidth;
-            setTimeout(() => { updateSlideVisibility(); updateSlidePreviews(); }, 100);
-        };
-    } else {
-        prevContent.innerHTML = '—';
-        previewPrev.style.opacity = '0.5';
-        previewPrev.style.pointerEvents = 'none';
-    }
-    if (currentIndex < slides.length - 1 && currentIndex !== -1) {
-        const nextSlide = slides[currentIndex + 1];
-        const nextText = nextSlide ? nextSlide.querySelector('.slide-content')?.innerText || '—' : '—';
-        nextContent.innerHTML = nextText.substring(0, 100) + (nextText.length > 100 ? '...' : '');
-        previewNext.style.opacity = '1';
-        previewNext.style.pointerEvents = 'auto';
-        previewNext.onclick = () => {
-            slidesContainer.scrollLeft = (currentIndex + 1) * slidesContainer.clientWidth;
-            setTimeout(() => { updateSlideVisibility(); updateSlidePreviews(); }, 100);
-        };
-    } else {
-        nextContent.innerHTML = '—';
-        previewNext.style.opacity = '0.5';
-        previewNext.style.pointerEvents = 'none';
-    }
-}
-
-function autoFitHymn() {
-    if (slidesContainer.clientWidth === 0) { setTimeout(autoFitHymn, 50); return; }
-    const isMobile = window.innerWidth < 768;
-    let fontSize = isMobile ? 60 : 90;
-    updateHymnFontSize(fontSize);
-    void slidesContainer.offsetHeight;
-    const maxWidth = slidesContainer.clientWidth - (isMobile ? 40 : 160);
-    const maxHeight = slidesContainer.clientHeight - (isMobile ? 40 : 80);
-    let isFitting = false;
-    while (!isFitting && fontSize > 14) {
-        let overflow = false;
-        document.querySelectorAll('.slide-content').forEach(slide => {
-            if (slide.getBoundingClientRect().height > maxHeight) overflow = true;
-            slide.querySelectorAll('.hymn-line').forEach(line => {
-                if (line.getBoundingClientRect().width > maxWidth) overflow = true;
-            });
-        });
-        if (overflow) { fontSize -= 2; updateHymnFontSize(fontSize); void slidesContainer.offsetHeight; }
-        else isFitting = true;
-    }
-    currentHymnFontSize = Math.max(14, fontSize - 2);
-    updateHymnFontSize(currentHymnFontSize);
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
-    if (isGridView) return;
-    if (currentHymnFontSize < 120) { currentHymnFontSize += 2; updateHymnFontSize(currentHymnFontSize); }
+    if (currentHymnFontSize < 48) {
+        currentHymnFontSize += 2;
+        updateHymnFontSize();
+    }
 };
 document.getElementById('decreaseHymnFont').onclick = () => {
-    if (isGridView) return;
-    if (currentHymnFontSize > 14) { currentHymnFontSize -= 2; updateHymnFontSize(currentHymnFontSize); }
+    if (currentHymnFontSize > 14) {
+        currentHymnFontSize -= 2;
+        updateHymnFontSize();
+    }
 };
 
-function updateHymnFontSize(size) {
-    document.querySelectorAll('.slide-content').forEach(el => el.style.fontSize = `${size}px`);
+function updateHymnFontSize() {
+    document.getElementById('hymnTextView').style.fontSize = `${currentHymnFontSize}px`;
 }
-
-slidesContainer.addEventListener('scroll', () => {
-    const slideWidth = slidesContainer.clientWidth;
-    if (slideWidth === 0) return;
-    const currentSlide = Math.round(slidesContainer.scrollLeft / slideWidth);
-    document.querySelectorAll('.slide-dot').forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
-    updateSlideVisibility();
-    updateSlidePreviews();
-});
 
 document.getElementById('backToHymns').onclick = () => {
     document.getElementById('hymnReaderView').classList.add('hidden');
     document.getElementById('hymnsListView').classList.remove('hidden');
-    const previews = document.getElementById('slidePreviews');
-    if (previews) previews.style.display = 'none';
 };
 
 // --- BIBBIA ---
@@ -1633,7 +1472,9 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     const verse = verseSelect.value;
     const reader = document.getElementById('bibleReaderContent');
     if (!chapter) return alert("Seleziona almeno un capitolo.");
-    reader.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="ri-loader-4-line ri-spin" style="font-size: 32px; color: var(--accent-color);"></i><p style="margin-top:10px; color:var(--text-muted)">Connessione in corso...</p></div>';
+    
+    showSpinner(reader);
+    
     try {
         const data = await fetchBibleData(version, bookId, chapter);
         let html = `<div style="text-align: center; margin-bottom: 30px;"><h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${escapeHtml(bookName)} ${chapter}</h2></div><div style="margin-bottom: 20px;">`;
@@ -1692,7 +1533,7 @@ function updateBibleFontSize() {
 document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if (currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
 
-// --- APPUNTI (ex Prediche) ---
+// --- APPUNTI ---
 let activeNoteId = null;
 let currentEditingNoteId = null;
 
@@ -1887,7 +1728,7 @@ document.getElementById('saveNoteModalBtn').addEventListener('click', async () =
 window.openAvvisoModal = openAvvisoModal;
 window.closeAvvisoModal = closeAvvisoModal;
 window.deleteAvviso = deleteAvviso;
-window.openHymnSlides = openHymnSlides;
+window.openHymnView = openHymnView;
 window.toggleFavorite = toggleFavorite;
 window.deleteHymn = deleteHymn;
 window.openEditModal = openEditModal;
@@ -1898,11 +1739,11 @@ window.openAvvisoDetailModal = openAvvisoDetailModal;
 window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;
 window.shareHymn = shareHymn;
-window.askPresentationMode = askPresentationMode; // esposta per i pulsanti
-window.startHymnPresentation = startHymnPresentation; // per retrocompatibilità
+window.askPresentationMode = askPresentationMode;
+window.startHymnPresentation = startHymnPresentation;
 window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
-window.toggleAvvisiMobileMenu = toggleAvvisiMobileMenu;
+window.toggleMobileMenu = toggleMobileMenu;
 
 renderNotes();
