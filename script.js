@@ -240,10 +240,6 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-function hideSpinner(container) {
-    // Non necessario, il contenuto verrà sostituito
-}
-
 // Mostra app principale dopo login
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -392,8 +388,7 @@ function setupShareButtons() {
     if (shareHymnBtn) {
         shareHymnBtn.addEventListener('click', () => {
             const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
-            const activeSlide = document.querySelector('.hymn-slide .slide-content');
-            const text = activeSlide ? activeSlide.innerText : 'Cantico spirituale';
+            const text = document.getElementById('hymnTextView')?.innerText || 'Cantico spirituale';
             shareContent(title, text);
         });
     }
@@ -401,8 +396,7 @@ function setupShareButtons() {
 
 function shareCurrentHymn() {
     const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
-    const activeSlide = document.querySelector('.hymn-slide .slide-content');
-    const text = activeSlide ? activeSlide.innerText : 'Cantico spirituale';
+    const text = document.getElementById('hymnTextView')?.innerText || 'Cantico spirituale';
     shareContent(title, text);
 }
 
@@ -1064,7 +1058,7 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
     const files = Array.from(event.target.files);
     const searchInput = document.getElementById('hymnSearch');
     searchInput.placeholder = "Caricamento in corso...";
-    showSpinner('hymnsList'); // Mostra spinner nella lista
+    showSpinner('hymnsList');
     for (let file of files) {
         try {
             let text = await file.text();
@@ -1338,7 +1332,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE NORMALE DEL CANTICO (senza slide) ---
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo) ---
 let currentHymnFontSize = 24;
 window.currentHymnId = null;
 

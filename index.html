@@ -1,4 +1,4 @@
-<!-- index.html -->
+<!-- index.html - aggiornato -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -58,7 +58,7 @@
                 <button class="nav-item" data-target="appunti"><i class="ri-file-text-line"></i> Appunti</button>
             </nav>
             <div class="sidebar-footer">
-                <!-- Profilo utente spostato in basso, cliccabile per aprire modale account -->
+                <!-- Profilo utente cliccabile per aprire modale account -->
                 <div class="user-profile-box" id="desktopProfileBox" style="cursor: pointer;">
                     <img id="userProfileImg" src="" class="hidden" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
                     <div class="user-info">
@@ -66,7 +66,6 @@
                         <p class="user-account-type">Account Google</p>
                     </div>
                 </div>
-                <!-- Il tasto esci è stato rimosso, il logout si fa dal modale -->
             </div>
         </aside>
 
@@ -75,9 +74,12 @@
             <!-- Dashboard -->
             <section id="dashboard" class="content-section active">
                 <div class="section-header">
-                    <div>
-                        <h1 class="section-title" id="greetingMessage">Benvenuto</h1>
-                        <p class="text-muted" id="currentDateDisplay" style="margin-top: 5px;"></p>
+                    <div class="section-title-wrapper">
+                        <img src="icon-192.png" alt="Logo" class="mobile-section-logo">
+                        <div>
+                            <h1 class="section-title" id="greetingMessage">Benvenuto</h1>
+                            <p class="text-muted" id="currentDateDisplay" style="margin-top: 5px;"></p>
+                        </div>
                     </div>
                 </div>
                 <div class="dashboard-grid">
@@ -122,7 +124,10 @@
             <!-- Avvisi -->
             <section id="avvisi" class="content-section">
                 <div class="section-header">
-                    <h1 class="section-title">Avvisi alla Chiesa</h1>
+                    <div class="section-title-wrapper">
+                        <img src="icon-192.png" alt="Logo" class="mobile-section-logo">
+                        <h1 class="section-title">Avvisi alla Chiesa</h1>
+                    </div>
                     <div class="admin-only-controls" style="display: flex; gap: 8px;">
                         <button class="icon-btn" onclick="openAvvisoModal()" title="Nuovo Avviso">
                             <i class="ri-add-line"></i>
@@ -140,7 +145,10 @@
             <section id="cantici" class="content-section">
                 <div id="hymnsListView" class="view-container">
                     <div class="section-header">
-                        <h1 class="section-title">Cantici</h1>
+                        <div class="section-title-wrapper">
+                            <img src="icon-192.png" alt="Logo" class="mobile-section-logo">
+                            <h1 class="section-title">Cantici</h1>
+                        </div>
                         <div class="admin-only-controls">
                             <input type="file" id="xmlUpload" accept=".xml,.txt" multiple style="display: none;">
                             <div style="display: flex; gap: 12px; align-items: center;">
@@ -170,7 +178,7 @@
                     <div class="section-spacer"></div>
                 </div>
 
-                <!-- Hymn Reader View -->
+                <!-- Hymn Reader View (visualizzazione normale, senza slide) -->
                 <div id="hymnReaderView" class="hidden reader-view">
                     <div class="reader-header sticky-header">
                         <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
@@ -188,7 +196,7 @@
                                     <i class="ri-projector-line"></i>
                                 </button>
                             </div>
-                            <!-- Mobile three-dot menu -->
+                            <!-- Mobile three-dot menu (raggruppa le azioni) -->
                             <div class="mobile-menu-reader" style="position: relative; display: none;">
                                 <button class="mobile-menu-reader-btn icon-btn" onclick="event.stopPropagation(); toggleReaderMobileMenu(this)">
                                     <i class="ri-more-2-fill"></i>
@@ -199,9 +207,6 @@
                                     <button onclick="event.stopPropagation(); document.getElementById('projectHymnBtn').click()" class="admin-only-controls"><i class="ri-projector-line"></i> Proietta</button>
                                 </div>
                             </div>
-                            <button id="toggleGridViewBtn" class="font-btn" style="background: rgba(0,0,0,0.05); padding: 6px 12px;" title="Vista a Griglia">
-                                <i class="ri-grid-fill" style="font-size: 18px;"></i>
-                            </button>
                             <div class="apple-font-controls">
                                 <button id="decreaseHymnFont" class="font-btn small-a">A</button>
                                 <div class="font-divider"></div>
@@ -209,28 +214,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slides-wrapper" id="slidesWrapperView">
-                        <div class="slides-container" id="hymnSlidesContainer"></div>
-                    </div>
-                    <div class="slide-previews" id="slidePreviews">
-                        <div class="preview-prev" id="previewPrev">
-                            <div class="preview-label">◀ Precedente</div>
-                            <div class="preview-content" id="previewPrevContent"></div>
-                        </div>
-                        <div class="preview-next" id="previewNext">
-                            <div class="preview-label">Successiva ▶</div>
-                            <div class="preview-content" id="previewNextContent"></div>
-                        </div>
-                    </div>
-                    <div class="slide-dots-container" id="slideDots"></div>
-                    <div class="hymn-grid-container hidden" id="hymnGridContainer"></div>
+                    <!-- Contenitore testo normale (non slide) -->
+                    <div class="hymn-text-view" id="hymnTextView"></div>
                 </div>
             </section>
 
             <!-- Bibbia -->
             <section id="bibbia" class="content-section">
                 <div class="section-header">
-                    <h1 class="section-title">Bibbia</h1>
+                    <div class="section-title-wrapper">
+                        <img src="icon-192.png" alt="Logo" class="mobile-section-logo">
+                        <h1 class="section-title">Bibbia</h1>
+                    </div>
                     <div class="apple-font-controls">
                         <button id="decreaseBibleFont" class="font-btn small-a">A</button>
                         <div class="font-divider"></div>
@@ -266,7 +261,10 @@
             <section id="appunti" class="content-section">
                 <div class="sticky-sermon-header">
                     <div class="section-header">
-                        <h1 class="section-title">Appunti</h1>
+                        <div class="section-title-wrapper">
+                            <img src="icon-192.png" alt="Logo" class="mobile-section-logo">
+                            <h1 class="section-title">Appunti</h1>
+                        </div>
                         <div class="sermon-header-buttons">
                             <button class="icon-btn" id="newNoteTopBtn" title="Nuovo Appunto"><i class="ri-add-line"></i></button>
                         </div>
@@ -310,7 +308,7 @@
         </nav>
     </div>
 
-    <!-- Modale Account (usato sia da mobile che desktop) -->
+    <!-- Modale Account -->
     <div id="accountModal" class="modal hidden">
         <div class="modal-content" style="max-width: 320px; text-align: center;">
             <div style="margin-bottom: 20px;">
