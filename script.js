@@ -259,12 +259,65 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-// *** FUNZIONE TOGGLE ACCORDI (GLOBALE) ***
+// ========== GENERAZIONE ACCORDI INTELLIGENTI (PROGRESSIONI COMUNI) ==========
+function generateSmartChordsForText(text) {
+    const progressions = [
+        ['C', 'G', 'Am', 'F'],
+        ['C', 'F', 'G', 'C'],
+        ['C', 'Am', 'F', 'G'],
+        ['C', 'G', 'F', 'C'],
+        ['Am', 'F', 'C', 'G'],
+        ['G', 'Em', 'C', 'D'],
+        ['C', 'Em', 'Am', 'F', 'G']
+    ];
+    
+    const progression = progressions[Math.floor(Math.random() * progressions.length)];
+    const lines = text.split('\n');
+    const result = [];
+    let chordIndex = 0;
+    
+    for (let line of lines) {
+        line = line.trim();
+        if (line === '') {
+            result.push('');
+            continue;
+        }
+        
+        const words = line.split(/\s+/);
+        if (words.length === 0) {
+            result.push('');
+            continue;
+        }
+        
+        let chordLine = '';
+        let currentPos = 0;
+        
+        for (let i = 0; i < words.length; i++) {
+            if (i % 2 === 0) {
+                const word = words[i];
+                const wordStart = line.indexOf(word, currentPos);
+                if (wordStart >= 0) {
+                    const spaces = ' '.repeat(wordStart - chordLine.length);
+                    const chord = progression[chordIndex % progression.length];
+                    chordLine += spaces + chord;
+                    currentPos = wordStart + word.length;
+                    chordIndex++;
+                }
+            }
+        }
+        
+        result.push(chordLine);
+        result.push(line);
+    }
+    
+    return result.join('\n');
+}
+
+// ========== FUNZIONE TOGGLE ACCORDI ==========
 function toggleChords() {
     showChords = !showChords;
     console.log('Accordi:', showChords ? 'ON' : 'OFF');
     
-    // Aggiorna l'icona del pulsante per feedback visivo
     const toggleBtn = document.getElementById('toggleChordsBtn');
     if (toggleBtn) {
         const icon = toggleBtn.querySelector('i');
@@ -273,7 +326,6 @@ function toggleChords() {
         }
     }
     
-    // Ricarica il cantico corrente per applicare la modifica
     if (window.currentHymnId) {
         openHymnView(window.currentHymnId);
     }
@@ -402,35 +454,20 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** SETUP PULSANTE ACCORDI ***
-        setupChordsButton();
+        // Setup pulsante Accordi
+        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
+        if (toggleChordsBtn) {
+            const newBtn = toggleChordsBtn.cloneNode(true);
+            toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
+            newBtn.addEventListener('click', toggleChords);
+        }
+
+        const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
+        if (mobileAccordiBtn) {
+            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords()");
+        }
 
     }, 400);
-}
-
-// Funzione separata per setup del pulsante accordi
-function setupChordsButton() {
-    const toggleChordsBtn = document.getElementById('toggleChordsBtn');
-    if (toggleChordsBtn) {
-        // Rimuovi tutti i listener esistenti
-        const newBtn = toggleChordsBtn.cloneNode(true);
-        toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
-        // Aggiungi il nuovo listener
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleChords();
-        });
-        console.log('Pulsante Accordi configurato');
-    } else {
-        console.warn('Pulsante Accordi non trovato nel DOM');
-    }
-    
-    // Setup anche per il menu mobile reader
-    const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChords"]');
-    if (mobileAccordiBtn) {
-        mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords(); return false;");
-    }
 }
 
 function openAccountModal() {
@@ -1398,8 +1435,15 @@ function openHymnView(id) {
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
     
+    let contentToRender = hymn.content;
+    
+    // Se showChords è attivo e il testo non contiene già accordi, genera accordi intelligenti
+    if (showChords && !/[A-G](#|b)?(m|maj|min|dim|aug|sus)?[\d]?(?:\/[A-G](#|b)?)?/.test(hymn.content)) {
+        contentToRender = generateSmartChordsForText(hymn.content);
+    }
+    
     const textView = document.getElementById('hymnTextView');
-    renderHymnTextContent(hymn, textView);
+    renderHymnTextContent({ ...hymn, content: contentToRender }, textView);
     updateHymnFontSize();
 }
 
