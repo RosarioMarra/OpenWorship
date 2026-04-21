@@ -1518,13 +1518,33 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
+            // Se showChords è attivo e la riga corrente sembra una riga di accordi
             if (showChords && isChordLine(line)) {
                 if (i + 1 < lines.length) {
                     const chordLine = line;
                     const textLine = lines[i + 1].trim();
-                    renderChordTextPair(blockDiv, chordLine, textLine);
+                    
+                    // Crea un contenitore per la coppia accordo+testo
+                    const pairContainer = document.createElement('div');
+                    pairContainer.className = 'chord-line-container';
+                    
+                    // Riga degli accordi
+                    const chordDiv = document.createElement('div');
+                    chordDiv.className = 'chord-line';
+                    chordDiv.textContent = chordLine;
+                    
+                    // Riga del testo
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'hymn-line';
+                    textDiv.textContent = textLine;
+                    
+                    pairContainer.appendChild(chordDiv);
+                    pairContainer.appendChild(textDiv);
+                    blockDiv.appendChild(pairContainer);
+                    
                     i += 2;
                 } else {
+                    // Se non c'è una riga successiva, trattala come testo normale
                     const lineDiv = document.createElement('div');
                     lineDiv.className = 'hymn-line';
                     lineDiv.textContent = line;
@@ -1532,6 +1552,7 @@ function renderHymnTextContent(hymn, container) {
                     i++;
                 }
             } else {
+                // Riga normale (testo)
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'hymn-line';
                 lineDiv.textContent = line;
@@ -1555,44 +1576,9 @@ function isChordLine(line) {
     return chordCount >= 2 && wordCount <= 1;
 }
 
+// Funzione renderChordTextPair non più utilizzata, la lasciamo per retrocompatibilità
 function renderChordTextPair(container, chordLine, textLine) {
-    const chords = chordLine.split(/\s+/).filter(c => c.trim() !== '');
-    const words = textLine.split(/\s+/).filter(w => w.trim() !== '');
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'chord-line-container';
-
-    if (chords.length !== words.length) {
-        const chordDiv = document.createElement('div');
-        chordDiv.className = 'chord-line';
-        chordDiv.textContent = chordLine;
-        const textDiv = document.createElement('div');
-        textDiv.className = 'hymn-line';
-        textDiv.textContent = textLine;
-        wrapper.appendChild(chordDiv);
-        wrapper.appendChild(textDiv);
-        container.appendChild(wrapper);
-        return;
-    }
-
-    for (let i = 0; i < chords.length; i++) {
-        const pair = document.createElement('span');
-        pair.className = 'chord-word-pair';
-
-        const chordSpan = document.createElement('span');
-        chordSpan.className = 'chord-above';
-        chordSpan.textContent = chords[i];
-
-        const wordSpan = document.createElement('span');
-        wordSpan.className = 'chord-word';
-        wordSpan.textContent = words[i];
-
-        pair.appendChild(chordSpan);
-        pair.appendChild(wordSpan);
-        wrapper.appendChild(pair);
-    }
-
-    container.appendChild(wrapper);
+    // Non più utilizzata, implementazione vuota
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
