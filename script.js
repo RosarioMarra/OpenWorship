@@ -259,10 +259,21 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-// *** DEFINIZIONE GLOBALE DELLA FUNZIONE TOGGLE ACCORDI (PRIMA DI showApp) ***
+// *** FUNZIONE TOGGLE ACCORDI (GLOBALE) ***
 function toggleChords() {
     showChords = !showChords;
     console.log('Accordi:', showChords ? 'ON' : 'OFF');
+    
+    // Aggiorna l'icona del pulsante per feedback visivo
+    const toggleBtn = document.getElementById('toggleChordsBtn');
+    if (toggleBtn) {
+        const icon = toggleBtn.querySelector('i');
+        if (icon) {
+            icon.style.color = showChords ? '#007aff' : '';
+        }
+    }
+    
+    // Ricarica il cantico corrente per applicare la modifica
     if (window.currentHymnId) {
         openHymnView(window.currentHymnId);
     }
@@ -391,21 +402,35 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** ASSOCIA EVENT LISTENER AL PULSANTE ACCORDI ***
-        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
-        if (toggleChordsBtn) {
-            const newBtn = toggleChordsBtn.cloneNode(true);
-            toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
-            newBtn.addEventListener('click', toggleChords);
-        }
-
-        // *** CORREZIONE MENU MOBILE READER PER IL PULSANTE ACCORDI ***
-        const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
-        if (mobileAccordiBtn) {
-            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords()");
-        }
+        // *** SETUP PULSANTE ACCORDI ***
+        setupChordsButton();
 
     }, 400);
+}
+
+// Funzione separata per setup del pulsante accordi
+function setupChordsButton() {
+    const toggleChordsBtn = document.getElementById('toggleChordsBtn');
+    if (toggleChordsBtn) {
+        // Rimuovi tutti i listener esistenti
+        const newBtn = toggleChordsBtn.cloneNode(true);
+        toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
+        // Aggiungi il nuovo listener
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleChords();
+        });
+        console.log('Pulsante Accordi configurato');
+    } else {
+        console.warn('Pulsante Accordi non trovato nel DOM');
+    }
+    
+    // Setup anche per il menu mobile reader
+    const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChords"]');
+    if (mobileAccordiBtn) {
+        mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords(); return false;");
+    }
 }
 
 function openAccountModal() {
@@ -1846,6 +1871,6 @@ window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
 window.toggleMobileMenu = toggleMobileMenu;
-window.toggleChords = toggleChords;   // Ora toggleChords esiste globalmente
+window.toggleChords = toggleChords;
 
 renderNotes();
