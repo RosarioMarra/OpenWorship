@@ -311,8 +311,30 @@ function generateSmartChordsForText(text) {
         result.push(line);
     }
     
-    console.log('Accordi generati:', result.join('\n').substring(0, 200) + '...');
+    console.log('Accordi generati (prime 200 caratteri):', result.join('\n').substring(0, 200) + '...');
     return result.join('\n');
+}
+
+// ========== FUNZIONE PER VERIFICARE SE IL TESTO CONTIENE GIÀ ACCORDI ==========
+function hasChords(content) {
+    const lines = content.split('\n');
+    for (let line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === '') continue;
+        const words = trimmed.split(/\s+/);
+        let chordCount = 0;
+        for (let w of words) {
+            // Regex precisa per accordi musicali (es. C, G/B, Am7, F#m)
+            if (/^[A-G](#|b)?(m|maj|min|dim|aug|sus\d*)?(\d+)?(\/[A-G](#|b)?)?$/.test(w)) {
+                chordCount++;
+            }
+        }
+        // Se almeno il 70% delle parole nella riga sono accordi, considera che ci siano accordi
+        if (chordCount > 0 && chordCount >= words.length * 0.7) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ========== FUNZIONE TOGGLE ACCORDI ==========
@@ -463,7 +485,6 @@ async function showApp() {
         // *** SETUP PULSANTE ACCORDI (versione robusta) ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
-            // Rimuovi eventuali listener precedenti clonando
             const newBtn = toggleChordsBtn.cloneNode(true);
             toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
             newBtn.addEventListener('click', (e) => {
@@ -1454,12 +1475,12 @@ function openHymnView(id) {
     
     let contentToRender = hymn.content;
     
-    // Se showChords è attivo e il testo non contiene già accordi, genera accordi intelligenti
-    if (showChords && !/[A-G](#|b)?(m|maj|min|dim|aug|sus)?[\d]?(?:\/[A-G](#|b)?)?/.test(hymn.content)) {
+    // Usa la funzione hasChords invece della regex generica
+    if (showChords && !hasChords(hymn.content)) {
         console.log('Generazione accordi attivata per il cantico.');
         contentToRender = generateSmartChordsForText(hymn.content);
     } else {
-        console.log('Mostro testo senza generare accordi.');
+        console.log('Mostro testo senza generare accordi (accordi già presenti o showChords false).');
     }
     
     const textView = document.getElementById('hymnTextView');
