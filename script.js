@@ -261,6 +261,7 @@ function showSpinner(container) {
 
 // ========== GENERAZIONE ACCORDI INTELLIGENTI (PROGRESSIONI COMUNI) ==========
 function generateSmartChordsForText(text) {
+    console.log('Generazione accordi intelligenti...');
     const progressions = [
         ['C', 'G', 'Am', 'F'],
         ['C', 'F', 'G', 'C'],
@@ -310,13 +311,15 @@ function generateSmartChordsForText(text) {
         result.push(line);
     }
     
+    console.log('Accordi generati:', result.join('\n').substring(0, 200) + '...');
     return result.join('\n');
 }
 
 // ========== FUNZIONE TOGGLE ACCORDI ==========
 function toggleChords() {
+    console.log('toggleChords chiamata. Stato precedente showChords:', showChords);
     showChords = !showChords;
-    console.log('Accordi:', showChords ? 'ON' : 'OFF');
+    console.log('Nuovo stato showChords:', showChords);
     
     const toggleBtn = document.getElementById('toggleChordsBtn');
     if (toggleBtn) {
@@ -327,7 +330,10 @@ function toggleChords() {
     }
     
     if (window.currentHymnId) {
+        console.log('Ricaricamento cantico con ID:', window.currentHymnId);
         openHymnView(window.currentHymnId);
+    } else {
+        console.warn('Nessun cantico aperto. Apri prima un cantico.');
     }
 }
 
@@ -454,17 +460,27 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // Setup pulsante Accordi
+        // *** SETUP PULSANTE ACCORDI (versione robusta) ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
+            // Rimuovi eventuali listener precedenti clonando
             const newBtn = toggleChordsBtn.cloneNode(true);
             toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
-            newBtn.addEventListener('click', toggleChords);
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Pulsante Accordi cliccato!');
+                toggleChords();
+            });
+            console.log('Pulsante Accordi configurato con successo.');
+        } else {
+            console.error('Pulsante Accordi non trovato nel DOM!');
         }
 
+        // Setup anche per menu mobile reader
         const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
         if (mobileAccordiBtn) {
-            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords()");
+            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords(); return false;");
         }
 
     }, 400);
@@ -1428,6 +1444,7 @@ let currentHymnFontSize = 18;
 window.currentHymnId = null;
 
 function openHymnView(id) {
+    console.log('openHymnView chiamata con ID:', id, 'showChords =', showChords);
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
     window.currentHymnId = id;
@@ -1439,7 +1456,10 @@ function openHymnView(id) {
     
     // Se showChords è attivo e il testo non contiene già accordi, genera accordi intelligenti
     if (showChords && !/[A-G](#|b)?(m|maj|min|dim|aug|sus)?[\d]?(?:\/[A-G](#|b)?)?/.test(hymn.content)) {
+        console.log('Generazione accordi attivata per il cantico.');
         contentToRender = generateSmartChordsForText(hymn.content);
+    } else {
+        console.log('Mostro testo senza generare accordi.');
     }
     
     const textView = document.getElementById('hymnTextView');
