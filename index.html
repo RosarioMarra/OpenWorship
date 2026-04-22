@@ -7,6 +7,10 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007aff">
+    <!-- Meta tag per Windows -->
+    <meta name="msapplication-TileColor" content="#007aff">
+    <meta name="msapplication-TileImage" content="icon-192.png">
+    <meta name="application-name" content="Open Worship">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="shortcut icon" href="icon-192.png">
@@ -15,7 +19,7 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body class="">
-    <!-- Login Screen -->
+    <!-- Login Screen (invariato) -->
     <div id="loginScreen" class="login-container">
         <div class="login-video-wrapper">
             <video autoplay muted loop playsinline id="loginVideo" poster="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800">
@@ -39,7 +43,7 @@
         </div>
     </div>
 
-    <!-- Main App -->
+    <!-- Main App (invariato) -->
     <div class="app-container hidden" id="mainApp">
         <!-- Sidebar Desktop -->
         <aside class="sidebar desktop-only">
@@ -67,7 +71,7 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Main Content (invariato) -->
         <main class="main-content">
             <!-- Dashboard -->
             <section id="dashboard" class="content-section active">
@@ -176,7 +180,7 @@
                     <div class="section-spacer"></div>
                 </div>
 
-                <!-- Hymn Reader View (testo continuo) -->
+                <!-- Hymn Reader View -->
                 <div id="hymnReaderView" class="hidden reader-view">
                     <div class="reader-header sticky-header">
                         <button class="btn-text" id="backToHymns"><i class="ri-arrow-left-s-line"></i> Indietro</button>
@@ -279,7 +283,7 @@
             </section>
         </main>
 
-        <!-- Mobile Navigation with Avatar -->
+        <!-- Mobile Navigation -->
         <nav class="mobile-nav">
             <button class="nav-item active" data-target="dashboard">
                 <div class="nav-icon-wrapper"><i class="ri-dashboard-line"></i></div><span>Home</span>
@@ -303,7 +307,7 @@
         </nav>
     </div>
 
-    <!-- Modale Account -->
+    <!-- Modali (invariati) -->
     <div id="accountModal" class="modal hidden">
         <div class="modal-content" style="max-width: 320px; text-align: center;">
             <div style="margin-bottom: 20px;">
@@ -325,7 +329,6 @@
         </div>
     </div>
 
-    <!-- Modale Avviso -->
     <div id="avvisoModal" class="modal hidden">
         <div class="modal-content">
             <h2 id="avvisoModalTitle">Nuovo Avviso</h2>
@@ -345,7 +348,6 @@
         </div>
     </div>
 
-    <!-- Modale Dettaglio Avviso -->
     <div id="avvisoDetailModal" class="modal hidden">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -360,7 +362,6 @@
         </div>
     </div>
 
-    <!-- Modale Appunto (Nuovo/Modifica) -->
     <div id="noteModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
             <h2 id="noteModalTitle">Nuovo Appunto</h2>
@@ -393,7 +394,6 @@
         </div>
     </div>
 
-    <!-- Modale Visualizzazione Appunto (Sola Lettura) -->
     <div id="noteViewModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; width: 90%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -411,7 +411,6 @@
         </div>
     </div>
 
-    <!-- Modale per Modifica Cantico -->
     <div id="editModal" class="modal hidden">
         <div class="modal-content">
             <h2>Modifica Cantico</h2>
@@ -424,7 +423,7 @@
         </div>
     </div>
 
-    <!-- Presentation Overlay (proiezione su questo dispositivo) -->
+    <!-- Presentation Overlay -->
     <div id="presentationOverlay" class="presentation-overlay hidden">
         <div class="presentation-header">
             <button id="exitPresentationBtn" class="presentation-exit"><i class="ri-close-line"></i> Esci</button>

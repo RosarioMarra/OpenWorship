@@ -42,7 +42,7 @@ body {
     display: none !important;
 }
 
-/* --- LOGIN SCREEN --- */
+/* --- LOGIN SCREEN (invariato) --- */
 .login-container {
     position: fixed;
     width: 100%;
@@ -470,7 +470,6 @@ body {
     font-weight: 500;
 }
 
-/* Versetto del Giorno */
 .verse-card {
     position: relative;
     overflow: hidden;
@@ -696,7 +695,7 @@ body {
     background: rgba(255, 59, 48, 0.1);
 }
 
-/* --- LOADER APPLE STYLE --- */
+/* --- LOADER --- */
 .apple-spinner {
     width: 24px;
     height: 24px;
@@ -776,7 +775,7 @@ body.is-admin .btn-edit {
     background: #f9f9fb;
 }
 
-/* --- READER VIEW (testo continuo) --- */
+/* --- READER VIEW --- */
 .reader-view {
     flex: 1;
     display: flex;
@@ -818,7 +817,6 @@ body.is-admin .btn-edit {
     margin-bottom: 20px;
 }
 
-/* Etichette "Strofa X" / "Coro" compatte */
 .hymn-block-label {
     font-size: 10px;
     font-weight: 700;
@@ -834,11 +832,11 @@ body.is-admin .btn-edit {
     color: var(--accent-color);
 }
 
-/* Stile per la riga degli accordi */
+/* --- ACCORDI STYLE POTENZIATO --- */
 .chord-line {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
-    font-size: 0.65rem !important;
-    font-weight: 700 !important;
+    font-family: monospace;
+    font-size: 0.9rem !important;
+    font-weight: 900 !important;
     color: #000000 !important;
     line-height: 1.2;
     white-space: pre-wrap;
@@ -854,7 +852,6 @@ body.is-admin .btn-edit {
     margin-bottom: 4px;
 }
 
-/* Per righe senza accordi, usiamo il formato semplice */
 .hymn-line {
     margin-bottom: 2px;
     color: #000;
@@ -862,27 +859,29 @@ body.is-admin .btn-edit {
     line-height: 1.3;
 }
 
-/* Stili obsoleti rimossi o commentati */
-.chord-word-pair,
-.chord-above {
-    /* non più utilizzati */
+/* --- MOBILE ACCORDI POTENZIATI --- */
+@media (max-width: 768px) {
+    .chord-line {
+        font-size: 1.1rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .chord-line-container {
+        margin-bottom: 8px;
+    }
 }
 
-/* Spazio extra per la section cantici su mobile */
+/* --- PRESENTAZIONE CANTICO (testo doppio e grassetto) --- */
+.presentation-overlay .presentation-slide .desc {
+    font-size: 64px !important;
+    font-weight: 900 !important;
+    line-height: 1.3;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+}
 @media (max-width: 768px) {
-    #cantici.content-section {
-        padding-bottom: 80px;
-    }
-    .hymn-text-view {
-        font-size: 16px;
-        padding: 16px;
-        padding-bottom: 100px;
-    }
-    .section-title {
-        font-size: 20px;
-    }
-    .chord-line {
-        font-size: 0.55rem !important;
+    .presentation-overlay .presentation-slide .desc {
+        font-size: 48px !important;
     }
 }
 
@@ -1113,7 +1112,7 @@ body.is-admin .btn-edit {
     width: 100%;
 }
 
-/* --- PRESENTATION OVERLAY (slide per proiezione) --- */
+/* --- PRESENTATION OVERLAY --- */
 .presentation-overlay {
     position: fixed;
     top: 0;
@@ -1410,7 +1409,6 @@ input:checked + .slider:before {
     .sticky-sermon-header {
         top: 0;
     }
-    /* Menu a tre puntini unificato */
     .mobile-menu, .mobile-avvisi-menu {
         position: relative;
     }

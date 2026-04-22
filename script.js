@@ -324,12 +324,10 @@ function hasChords(content) {
         const words = trimmed.split(/\s+/);
         let chordCount = 0;
         for (let w of words) {
-            // Regex precisa per accordi musicali (es. C, G/B, Am7, F#m)
             if (/^[A-G](#|b)?(m|maj|min|dim|aug|sus\d*)?(\d+)?(\/[A-G](#|b)?)?$/.test(w)) {
                 chordCount++;
             }
         }
-        // Se almeno il 70% delle parole nella riga sono accordi, considera che ci siano accordi
         if (chordCount > 0 && chordCount >= words.length * 0.7) {
             return true;
         }
@@ -482,7 +480,7 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** SETUP PULSANTE ACCORDI (versione robusta) ***
+        // *** SETUP PULSANTE ACCORDI ***
         const toggleChordsBtn = document.getElementById('toggleChordsBtn');
         if (toggleChordsBtn) {
             const newBtn = toggleChordsBtn.cloneNode(true);
@@ -865,9 +863,12 @@ function openSecondScreenPresentation(type, hymnId = null) {
                 .presentation-nav { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; }
                 .presentation-slides-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scroll-snap-stop: always; }
                 .presentation-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px 60px; text-align: center; background: #000; color: white; }
-                .presentation-slide .desc { font-size: 48px; line-height: 1.4; white-space: pre-wrap; }
+                .presentation-slide .desc { font-size: 64px !important; font-weight: 900 !important; line-height: 1.3; white-space: pre-wrap; }
                 .presentation-previews { position: fixed; bottom: 20px; left:0; right:0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 20001; }
                 .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 14px; pointer-events: auto; cursor: pointer; }
+                @media (max-width: 768px) {
+                    .presentation-slide .desc { font-size: 48px !important; }
+                }
             </style>
         </head>
         <body>
@@ -994,7 +995,7 @@ function openSecondScreenPresentation(type, hymnId = null) {
         slides = blocks.map(block => {
             const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
             return {
-                html: `<div class="desc" style="font-size: 48px;">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
+                html: `<div class="desc">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
                 preview: `<strong>Anteprima</strong>`
             };
         });
@@ -1460,7 +1461,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE NORMALE DEL CANTICO (testo continuo con etichette Strofa/Coro e accordi allineati) ---
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO ---
 let currentHymnFontSize = 18;
 window.currentHymnId = null;
 
@@ -1475,7 +1476,6 @@ function openHymnView(id) {
     
     let contentToRender = hymn.content;
     
-    // Usa la funzione hasChords invece della regex generica
     if (showChords && !hasChords(hymn.content)) {
         console.log('Generazione accordi attivata per il cantico.');
         contentToRender = generateSmartChordsForText(hymn.content);
@@ -1486,6 +1486,9 @@ function openHymnView(id) {
     const textView = document.getElementById('hymnTextView');
     renderHymnTextContent({ ...hymn, content: contentToRender }, textView);
     updateHymnFontSize();
+    
+    // Forza scroll all'inizio del testo (alto)
+    textView.scrollTop = 0;
 }
 
 function renderHymnTextContent(hymn, container) {
@@ -1518,22 +1521,18 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
-            // Se showChords è attivo e la riga corrente sembra una riga di accordi
             if (showChords && isChordLine(line)) {
                 if (i + 1 < lines.length) {
                     const chordLine = line;
                     const textLine = lines[i + 1].trim();
                     
-                    // Crea un contenitore per la coppia accordo+testo
                     const pairContainer = document.createElement('div');
                     pairContainer.className = 'chord-line-container';
                     
-                    // Riga degli accordi
                     const chordDiv = document.createElement('div');
                     chordDiv.className = 'chord-line';
                     chordDiv.textContent = chordLine;
                     
-                    // Riga del testo
                     const textDiv = document.createElement('div');
                     textDiv.className = 'hymn-line';
                     textDiv.textContent = textLine;
@@ -1544,7 +1543,6 @@ function renderHymnTextContent(hymn, container) {
                     
                     i += 2;
                 } else {
-                    // Se non c'è una riga successiva, trattala come testo normale
                     const lineDiv = document.createElement('div');
                     lineDiv.className = 'hymn-line';
                     lineDiv.textContent = line;
@@ -1552,7 +1550,6 @@ function renderHymnTextContent(hymn, container) {
                     i++;
                 }
             } else {
-                // Riga normale (testo)
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'hymn-line';
                 lineDiv.textContent = line;
@@ -1574,11 +1571,6 @@ function isChordLine(line) {
         else if (w.length > 1 && !/^[,\-;:!?.]+$/.test(w)) wordCount++;
     }
     return chordCount >= 2 && wordCount <= 1;
-}
-
-// Funzione renderChordTextPair non più utilizzata, la lasciamo per retrocompatibilità
-function renderChordTextPair(container, chordLine, textLine) {
-    // Non più utilizzata, implementazione vuota
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
