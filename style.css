@@ -42,7 +42,7 @@ body {
     display: none !important;
 }
 
-/* --- LOGIN SCREEN (invariato) --- */
+/* --- LOGIN SCREEN --- */
 .login-container {
     position: fixed;
     width: 100%;
@@ -470,6 +470,7 @@ body {
     font-weight: 500;
 }
 
+/* Versetto del Giorno */
 .verse-card {
     position: relative;
     overflow: hidden;
@@ -695,7 +696,7 @@ body {
     background: rgba(255, 59, 48, 0.1);
 }
 
-/* --- LOADER --- */
+/* --- LOADER APPLE STYLE --- */
 .apple-spinner {
     width: 24px;
     height: 24px;
@@ -775,7 +776,7 @@ body.is-admin .btn-edit {
     background: #f9f9fb;
 }
 
-/* --- READER VIEW --- */
+/* --- READER VIEW (testo continuo) --- */
 .reader-view {
     flex: 1;
     display: flex;
@@ -817,6 +818,7 @@ body.is-admin .btn-edit {
     margin-bottom: 20px;
 }
 
+/* Etichette "Strofa X" / "Coro" compatte */
 .hymn-block-label {
     font-size: 10px;
     font-weight: 700;
@@ -832,10 +834,10 @@ body.is-admin .btn-edit {
     color: var(--accent-color);
 }
 
-/* --- ACCORDI STYLE POTENZIATO --- */
+/* Stile per la riga degli accordi (desktop) */
 .chord-line {
     font-family: monospace;
-    font-size: 0.9rem !important;
+    font-size: 0.65rem !important;
     font-weight: 900 !important;
     color: #000000 !important;
     line-height: 1.2;
@@ -852,6 +854,7 @@ body.is-admin .btn-edit {
     margin-bottom: 4px;
 }
 
+/* Per righe senza accordi, usiamo il formato semplice */
 .hymn-line {
     margin-bottom: 2px;
     color: #000;
@@ -859,16 +862,16 @@ body.is-admin .btn-edit {
     line-height: 1.3;
 }
 
-/* --- MOBILE ACCORDI POTENZIATI --- */
+/* --- MOBILE ACCORDI PICCOLISSIMI EXTRA BOLD --- */
 @media (max-width: 768px) {
     .chord-line {
-        font-size: 1.1rem !important;
+        font-size: 0.55rem !important;   /* piccolissimo */
         font-weight: 900 !important;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
+        letter-spacing: 0;
+        margin-bottom: 2px;
     }
     .chord-line-container {
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 }
 
@@ -1112,7 +1115,7 @@ body.is-admin .btn-edit {
     width: 100%;
 }
 
-/* --- PRESENTATION OVERLAY --- */
+/* --- PRESENTATION OVERLAY (slide per proiezione) --- */
 .presentation-overlay {
     position: fixed;
     top: 0;
@@ -1409,6 +1412,7 @@ input:checked + .slider:before {
     .sticky-sermon-header {
         top: 0;
     }
+    /* Menu a tre puntini unificato */
     .mobile-menu, .mobile-avvisi-menu {
         position: relative;
     }
