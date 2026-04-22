@@ -259,9 +259,9 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-// ========== GENERAZIONE ACCORDI INTELLIGENTI (ORA OGNI PAROLA HA UN ACCORDO) ==========
+// ========== GENERAZIONE ACCORDI INTELLIGENTI (PROGRESSIONI COMUNI) ==========
 function generateSmartChordsForText(text) {
-    console.log('Generazione accordi intelligenti per ogni parola...');
+    console.log('Generazione accordi intelligenti...');
     const progressions = [
         ['C', 'G', 'Am', 'F'],
         ['C', 'F', 'G', 'C'],
@@ -274,31 +274,45 @@ function generateSmartChordsForText(text) {
     
     const progression = progressions[Math.floor(Math.random() * progressions.length)];
     const lines = text.split('\n');
-    const resultLines = [];
+    const result = [];
+    let chordIndex = 0;
     
     for (let line of lines) {
         line = line.trim();
         if (line === '') {
-            resultLines.push('');
+            result.push('');
             continue;
         }
         
-        // Dividi la riga in parole
         const words = line.split(/\s+/);
         if (words.length === 0) {
-            resultLines.push('');
+            result.push('');
             continue;
         }
         
-        // Assegna un accordo a ogni parola (ciclico)
-        const chordLine = words.map((_, idx) => progression[idx % progression.length]).join(' ');
-        resultLines.push(chordLine);
-        resultLines.push(line);
+        let chordLine = '';
+        let currentPos = 0;
+        
+        for (let i = 0; i < words.length; i++) {
+            if (i % 2 === 0) {
+                const word = words[i];
+                const wordStart = line.indexOf(word, currentPos);
+                if (wordStart >= 0) {
+                    const spaces = ' '.repeat(wordStart - chordLine.length);
+                    const chord = progression[chordIndex % progression.length];
+                    chordLine += spaces + chord;
+                    currentPos = wordStart + word.length;
+                    chordIndex++;
+                }
+            }
+        }
+        
+        result.push(chordLine);
+        result.push(line);
     }
     
-    const output = resultLines.join('\n');
-    console.log('Accordi generati (prime 200 caratteri):', output.substring(0, 200) + '...');
-    return output;
+    console.log('Accordi generati (prime 200 caratteri):', result.join('\n').substring(0, 200) + '...');
+    return result.join('\n');
 }
 
 // ========== FUNZIONE PER VERIFICARE SE IL TESTO CONTIENE GIÀ ACCORDI ==========
@@ -1447,7 +1461,7 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE NORMALE DEL CANTICO CON ACCORDI ALLINEATI PAROLA PER PAROLA ---
+// --- VISUALIZZAZIONE NORMALE DEL CANTICO ---
 let currentHymnFontSize = 18;
 window.currentHymnId = null;
 
@@ -1473,21 +1487,8 @@ function openHymnView(id) {
     renderHymnTextContent({ ...hymn, content: contentToRender }, textView);
     updateHymnFontSize();
     
-    // Forza scroll all'inizio
+    // Forza scroll all'inizio del testo (alto)
     textView.scrollTop = 0;
-}
-
-// Funzione per allineare gli accordi alle parole (riga di accordi e riga di testo)
-function alignChordsToWords(chordLine, textLine) {
-    const chords = chordLine.trim().split(/\s+/);
-    const words = textLine.trim().split(/\s+/);
-    const result = [];
-    // Associa ogni parola a un accordo (ciclico o fino a esaurimento)
-    for (let i = 0; i < words.length; i++) {
-        const chord = chords[i] || (chords.length ? chords[chords.length - 1] : '');
-        result.push({ word: words[i], chord: chord });
-    }
-    return result;
 }
 
 function renderHymnTextContent(hymn, container) {
@@ -1520,56 +1521,35 @@ function renderHymnTextContent(hymn, container) {
                 continue;
             }
 
-            // Se abbiamo una riga di accordi e showChords attivo, e la riga successiva esiste
-            if (showChords && isChordLine(line) && i + 1 < lines.length) {
-                const chordLine = line;
-                const textLine = lines[i + 1].trim();
-                
-                // Allinea accordi alle parole
-                const aligned = alignChordsToWords(chordLine, textLine);
-                
-                // Crea un contenitore per la riga
-                const lineContainer = document.createElement('div');
-                lineContainer.className = 'chord-line-container';
-                lineContainer.style.display = 'flex';
-                lineContainer.style.flexWrap = 'wrap';
-                lineContainer.style.alignItems = 'baseline';
-                lineContainer.style.gap = '0.25rem';
-                lineContainer.style.marginBottom = '0';
-                
-                // Per ogni coppia parola-accordo, crea un wrapper inline-block
-                aligned.forEach(pair => {
-                    const wordWrapper = document.createElement('span');
-                    wordWrapper.className = 'chord-word-wrapper';
-                    wordWrapper.style.display = 'inline-flex';
-                    wordWrapper.style.flexDirection = 'column';
-                    wordWrapper.style.alignItems = 'center';
-                    wordWrapper.style.marginRight = '0.25rem';
-                    wordWrapper.style.verticalAlign = 'top';
+            if (showChords && isChordLine(line)) {
+                if (i + 1 < lines.length) {
+                    const chordLine = line;
+                    const textLine = lines[i + 1].trim();
                     
-                    const chordSpan = document.createElement('span');
-                    chordSpan.className = 'chord-line';
-                    chordSpan.textContent = pair.chord;
-                    chordSpan.style.display = 'block';
-                    chordSpan.style.fontSize = '0.65rem';
-                    chordSpan.style.fontWeight = '900';
-                    chordSpan.style.lineHeight = '1';
-                    chordSpan.style.marginBottom = '0';
+                    const pairContainer = document.createElement('div');
+                    pairContainer.className = 'chord-line-container';
                     
-                    const wordSpan = document.createElement('span');
-                    wordSpan.className = 'hymn-line';
-                    wordSpan.textContent = pair.word;
-                    wordSpan.style.display = 'block';
+                    const chordDiv = document.createElement('div');
+                    chordDiv.className = 'chord-line';
+                    chordDiv.textContent = chordLine;
                     
-                    wordWrapper.appendChild(chordSpan);
-                    wordWrapper.appendChild(wordSpan);
-                    lineContainer.appendChild(wordWrapper);
-                });
-                
-                blockDiv.appendChild(lineContainer);
-                i += 2;
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'hymn-line';
+                    textDiv.textContent = textLine;
+                    
+                    pairContainer.appendChild(chordDiv);
+                    pairContainer.appendChild(textDiv);
+                    blockDiv.appendChild(pairContainer);
+                    
+                    i += 2;
+                } else {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'hymn-line';
+                    lineDiv.textContent = line;
+                    blockDiv.appendChild(lineDiv);
+                    i++;
+                }
             } else {
-                // Riga normale (testo senza accordi)
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'hymn-line';
                 lineDiv.textContent = line;
