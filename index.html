@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <!-- Main App (invariato) -->
+    <!-- Main App -->
     <div class="app-container hidden" id="mainApp">
         <!-- Sidebar Desktop -->
         <aside class="sidebar desktop-only">
@@ -71,7 +71,7 @@
             </div>
         </aside>
 
-        <!-- Main Content (invariato) -->
+        <!-- Main Content -->
         <main class="main-content">
             <!-- Dashboard -->
             <section id="dashboard" class="content-section active">
@@ -190,9 +190,7 @@
                                 <button id="shareHymnBtn" class="icon-btn" title="Condividi Cantico">
                                     <i class="ri-share-line"></i>
                                 </button>
-                                <button id="toggleChordsBtn" class="icon-btn" title="Mostra/Nascondi Accordi">
-                                    <i class="ri-music-2-line"></i>
-                                </button>
+                                <!-- RIMOSSO toggleChordsBtn -->
                                 <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta Cantico">
                                     <i class="ri-projector-line"></i>
                                 </button>
@@ -203,7 +201,7 @@
                                 </button>
                                 <div class="mobile-menu-reader-dropdown hidden" style="position: absolute; right: 0; top: 45px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 100; min-width: 160px; padding: 8px;">
                                     <button onclick="event.stopPropagation(); shareCurrentHymn()"><i class="ri-share-line"></i> Condividi</button>
-                                    <button onclick="event.stopPropagation(); document.getElementById('toggleChordsBtn').click()"><i class="ri-music-2-line"></i> Accordi</button>
+                                    <!-- RIMOSSO il bottone Accordi -->
                                     <button onclick="event.stopPropagation(); document.getElementById('projectHymnBtn').click()" class="admin-only-controls"><i class="ri-projector-line"></i> Proietta</button>
                                 </div>
                             </div>

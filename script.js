@@ -15,7 +15,6 @@ let favoritesDB = [];
 let isAdmin = false;
 let currentTab = "all";
 let searchTerm = "";
-let showChords = false;
 let currentUser = null;
 let avvisiChannel = null;
 let presentationWindow = null;
@@ -259,102 +258,7 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-// ========== GENERAZIONE ACCORDI INTELLIGENTI CON ALLINEAMENTO A SPAZI ==========
-function generateSmartChordsForText(text) {
-    console.log('Generazione accordi intelligenti con allineamento...');
-    const progressions = [
-        ['C', 'G', 'Am', 'F'],
-        ['C', 'F', 'G', 'C'],
-        ['C', 'Am', 'F', 'G'],
-        ['C', 'G', 'F', 'C'],
-        ['Am', 'F', 'C', 'G'],
-        ['G', 'Em', 'C', 'D'],
-        ['C', 'Em', 'Am', 'F', 'G']
-    ];
-    
-    const progression = progressions[Math.floor(Math.random() * progressions.length)];
-    const lines = text.split('\n');
-    const resultLines = [];
-    
-    for (let line of lines) {
-        line = line.trim();
-        if (line === '') {
-            resultLines.push('');
-            continue;
-        }
-        
-        const words = line.split(/\s+/);
-        if (words.length === 0) {
-            resultLines.push('');
-            continue;
-        }
-        
-        // Crea una riga di accordi con spazi per allinearli sopra ogni parola
-        let chordLine = '';
-        let currentPos = 0;
-        
-        for (let i = 0; i < words.length; i++) {
-            const word = words[i];
-            const wordStart = line.indexOf(word, currentPos);
-            if (wordStart >= 0) {
-                // Aggiungi spazi per arrivare alla posizione della parola
-                const spaces = ' '.repeat(wordStart - chordLine.length);
-                const chord = progression[i % progression.length];
-                chordLine += spaces + chord;
-                currentPos = wordStart + word.length;
-            }
-        }
-        
-        resultLines.push(chordLine);
-        resultLines.push(line);
-    }
-    
-    const output = resultLines.join('\n');
-    console.log('Accordi generati (prime 200 caratteri):', output.substring(0, 200) + '...');
-    return output;
-}
-
-// ========== FUNZIONE PER VERIFICARE SE IL TESTO CONTIENE GIÀ ACCORDI ==========
-function hasChords(content) {
-    const lines = content.split('\n');
-    for (let line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '') continue;
-        const words = trimmed.split(/\s+/);
-        let chordCount = 0;
-        for (let w of words) {
-            if (/^[A-G](#|b)?(m|maj|min|dim|aug|sus\d*)?(\d+)?(\/[A-G](#|b)?)?$/.test(w)) {
-                chordCount++;
-            }
-        }
-        if (chordCount > 0 && chordCount >= words.length * 0.7) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// ========== FUNZIONE TOGGLE ACCORDI ==========
-function toggleChords() {
-    console.log('toggleChords chiamata. Stato precedente showChords:', showChords);
-    showChords = !showChords;
-    console.log('Nuovo stato showChords:', showChords);
-    
-    const toggleBtn = document.getElementById('toggleChordsBtn');
-    if (toggleBtn) {
-        const icon = toggleBtn.querySelector('i');
-        if (icon) {
-            icon.style.color = showChords ? '#007aff' : '';
-        }
-    }
-    
-    if (window.currentHymnId) {
-        console.log('Ricaricamento cantico con ID:', window.currentHymnId);
-        openHymnView(window.currentHymnId);
-    } else {
-        console.warn('Nessun cantico aperto. Apri prima un cantico.');
-    }
-}
+// --- FUNZIONE TOGGLE ACCORDI RIMOSSA ---
 
 // Mostra app principale dopo login
 async function showApp() {
@@ -479,27 +383,8 @@ async function showApp() {
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
-        // *** SETUP PULSANTE ACCORDI ***
-        const toggleChordsBtn = document.getElementById('toggleChordsBtn');
-        if (toggleChordsBtn) {
-            const newBtn = toggleChordsBtn.cloneNode(true);
-            toggleChordsBtn.parentNode.replaceChild(newBtn, toggleChordsBtn);
-            newBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Pulsante Accordi cliccato!');
-                toggleChords();
-            });
-            console.log('Pulsante Accordi configurato con successo.');
-        } else {
-            console.error('Pulsante Accordi non trovato nel DOM!');
-        }
-
-        // Setup anche per menu mobile reader
-        const mobileAccordiBtn = document.querySelector('.mobile-menu-reader-dropdown button[onclick*="toggleChordsBtn"]');
-        if (mobileAccordiBtn) {
-            mobileAccordiBtn.setAttribute('onclick', "event.stopPropagation(); toggleChords(); return false;");
-        }
+        // RIMOSSO il setup del pulsante accordi
+        // RIMOSSO il setup del menu mobile accordi
 
     }, 400);
 }
@@ -865,8 +750,12 @@ function openSecondScreenPresentation(type, hymnId = null) {
                 .presentation-slide .desc { font-size: 64px !important; font-weight: 900 !important; line-height: 1.3; white-space: pre-wrap; }
                 .presentation-previews { position: fixed; bottom: 20px; left:0; right:0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 20001; }
                 .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 14px; pointer-events: auto; cursor: pointer; }
+                /* Stili per avvisi */
+                .avvisi-slide { justify-content: flex-start; overflow-y: auto; text-align: left; }
+                .avvisi-slide .desc { font-size: 52px !important; }
                 @media (max-width: 768px) {
                     .presentation-slide .desc { font-size: 48px !important; }
+                    .avvisi-slide .desc { font-size: 42px !important; }
                 }
             </style>
         </head>
@@ -908,7 +797,7 @@ function openSecondScreenPresentation(type, hymnId = null) {
                     container.innerHTML = '';
                     slides.forEach((slide, idx) => {
                         const div = document.createElement('div');
-                        div.className = 'presentation-slide';
+                        div.className = 'presentation-slide' + (slide.slideClass ? ' ' + slide.slideClass : '');
                         div.innerHTML = slide.html;
                         container.appendChild(div);
                     });
@@ -984,8 +873,9 @@ function openSecondScreenPresentation(type, hymnId = null) {
     if (type === 'avvisi') {
         const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
         slides = sorted.map(avviso => ({
-            html: `<h1 style="font-size: 48px; margin-bottom: 20px;">${escapeHtml(avviso.title)}</h1><div style="font-size: 24px; color: #ccc; margin-bottom: 30px;">${new Date(avviso.date).toLocaleDateString('it-IT')}</div><div class="desc">${escapeHtml(avviso.desc).replace(/\n/g, '<br>')}</div>`,
-            preview: `<strong>${escapeHtml(avviso.title)}</strong><br>${new Date(avviso.date).toLocaleDateString()}`
+            html: `<h1 style="font-size: 48px; margin-bottom: 20px;">${escapeHtml(avviso.title)}</h1><div style="font-size: 24px; color: #ccc; margin-bottom: 30px;">${new Date(avviso.date).toLocaleDateString('it-IT')}</div><div class="desc avvisi-desc">${escapeHtml(avviso.desc).replace(/\n/g, '<br>')}</div>`,
+            preview: `<strong>${escapeHtml(avviso.title)}</strong><br>${new Date(avviso.date).toLocaleDateString()}`,
+            slideClass: 'avvisi-slide'
         }));
     } else {
         const hymn = hymnsDB.find(h => h.id === hymnId);
@@ -995,7 +885,8 @@ function openSecondScreenPresentation(type, hymnId = null) {
             const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
             return {
                 html: `<div class="desc">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
-                preview: `<strong>Anteprima</strong>`
+                preview: `<strong>Anteprima</strong>`,
+                slideClass: ''
             };
         });
     }
@@ -1082,10 +973,13 @@ function showPresentation(type, items) {
         const slide = document.createElement('div');
         slide.className = 'presentation-slide';
         if (type === 'avvisi') {
+            slide.classList.add('avvisi-slide');
+            slide.style.justifyContent = 'flex-start';
+            slide.style.overflowY = 'auto';
             slide.innerHTML = `
                 <h1>${escapeHtml(item.title)}</h1>
                 <div class="date">${new Date(item.date).toLocaleDateString('it-IT')}</div>
-                <div class="desc">${escapeHtml(item.desc).replace(/\n/g, '<br>')}</div>
+                <div class="desc avvisi-desc">${escapeHtml(item.desc).replace(/\n/g, '<br>')}</div>
             `;
         } else {
             slide.innerHTML = `
@@ -1277,7 +1171,7 @@ function renderHymns() {
                 </div>
                 <div class="mobile-menu" style="position:relative;">
                     <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
-                    <div class="mobile-menu-dropdown hidden">
+                    <div class="mobile-menu-dropdown hidden" style="z-index: 200;">
                         <button onclick="event.stopPropagation(); shareHymn('${hymn.id}')"><i class="ri-share-line"></i> Condividi</button>
                         <button onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')"><i class="ri-heart-${favActive ? 'fill' : 'line'}"></i> Preferito</button>
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
@@ -1460,12 +1354,11 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE CANTICO CON RIGHE INTERE E ACCORDI ALLINEATI ---
+// --- VISUALIZZAZIONE CANTICO SENZA ACCORDI ---
 let currentHymnFontSize = 18;
 window.currentHymnId = null;
 
 function openHymnView(id) {
-    console.log('openHymnView chiamata con ID:', id, 'showChords =', showChords);
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
     window.currentHymnId = id;
@@ -1473,20 +1366,9 @@ function openHymnView(id) {
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
     
-    let contentToRender = hymn.content;
-    
-    if (showChords && !hasChords(hymn.content)) {
-        console.log('Generazione accordi attivata per il cantico.');
-        contentToRender = generateSmartChordsForText(hymn.content);
-    } else {
-        console.log('Mostro testo senza generare accordi (accordi già presenti o showChords false).');
-    }
-    
     const textView = document.getElementById('hymnTextView');
-    renderHymnTextContent({ ...hymn, content: contentToRender }, textView);
+    renderHymnTextContent(hymn, textView);
     updateHymnFontSize();
-    
-    // Forza scroll all'inizio
     textView.scrollTop = 0;
 }
 
@@ -1512,73 +1394,17 @@ function renderHymnTextContent(hymn, container) {
         blockDiv.appendChild(label);
 
         const lines = blockContent.split('\n');
-        let i = 0;
-        while (i < lines.length) {
-            const line = lines[i].trim();
-            if (line === '') {
-                i++;
-                continue;
-            }
-
-            // Se showChords attivo e la riga corrente sembra una riga di accordi
-            if (showChords && isChordLine(line)) {
-                if (i + 1 < lines.length) {
-                    const chordLine = line;
-                    const textLine = lines[i + 1].trim();
-                    
-                    // Crea un contenitore per la coppia accordo+testo
-                    const pairContainer = document.createElement('div');
-                    pairContainer.className = 'chord-line-container';
-                    
-                    // Riga degli accordi (mantiene gli spazi)
-                    const chordDiv = document.createElement('div');
-                    chordDiv.className = 'chord-line';
-                    chordDiv.textContent = chordLine;
-                    // Mantiene gli spazi bianchi
-                    chordDiv.style.whiteSpace = 'pre-wrap';
-                    chordDiv.style.fontFamily = 'monospace';
-                    
-                    // Riga del testo
-                    const textDiv = document.createElement('div');
-                    textDiv.className = 'hymn-line';
-                    textDiv.textContent = textLine;
-                    
-                    pairContainer.appendChild(chordDiv);
-                    pairContainer.appendChild(textDiv);
-                    blockDiv.appendChild(pairContainer);
-                    
-                    i += 2;
-                } else {
-                    // Se non c'è una riga successiva, trattala come testo normale
-                    const lineDiv = document.createElement('div');
-                    lineDiv.className = 'hymn-line';
-                    lineDiv.textContent = line;
-                    blockDiv.appendChild(lineDiv);
-                    i++;
-                }
-            } else {
-                // Riga normale (testo)
-                const lineDiv = document.createElement('div');
-                lineDiv.className = 'hymn-line';
-                lineDiv.textContent = line;
-                blockDiv.appendChild(lineDiv);
-                i++;
-            }
-        }
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed === '') return;
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'hymn-line';
+            lineDiv.textContent = trimmed;
+            blockDiv.appendChild(lineDiv);
+        });
 
         container.appendChild(blockDiv);
     });
-}
-
-function isChordLine(line) {
-    const chordRegex = /\b[A-Ga-g](?:#|b)?(?:m|maj|min|dim|aug|sus\d?)?(?:\d+)?(?:\/[A-Ga-g](?:#|b)?)?\b/;
-    const words = line.split(/\s+/);
-    let chordCount = 0, wordCount = 0;
-    for (let w of words) {
-        if (chordRegex.test(w)) chordCount++;
-        else if (w.length > 1 && !/^[,\-;:!?.]+$/.test(w)) wordCount++;
-    }
-    return chordCount >= 2 && wordCount <= 1;
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
@@ -1942,6 +1768,6 @@ window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
 window.toggleMobileMenu = toggleMobileMenu;
-window.toggleChords = toggleChords;
+// RIMOSSO window.toggleChords
 
 renderNotes();

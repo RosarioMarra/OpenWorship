@@ -759,7 +759,7 @@ body.is-admin .btn-edit {
     gap: 1px;
     background: var(--bg-card);
     border-radius: 16px;
-    overflow: hidden;
+    overflow: visible;  /* corretto per evitare che il menu venga tagliato */
     border: 1px solid var(--border-color);
 }
 
@@ -818,7 +818,6 @@ body.is-admin .btn-edit {
     margin-bottom: 16px;
 }
 
-/* Etichette "Strofa X" / "Coro" compatte */
 .hymn-block-label {
     font-size: 10px;
     font-weight: 700;
@@ -834,50 +833,13 @@ body.is-admin .btn-edit {
     color: var(--accent-color);
 }
 
-/* --- ACCORDI EXTRA BOLD E COMPATTI (Desktop) --- */
-.chord-line {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-    font-size: 0.65rem;
-    font-weight: 900 !important;
-    color: #000000;
-    line-height: 1;
-    white-space: pre-wrap;
-    word-break: keep-all;
-    margin-bottom: 0;
-    letter-spacing: -0.02em;
-    -webkit-text-stroke: 0.3px currentColor;
-    text-rendering: geometricPrecision;
-}
-
-.chord-line-container {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 0;
-}
+/* RIMOSSI gli stili per .chord-line, .chord-line-container e media query relativi */
 
 .hymn-line {
     margin-bottom: 0;
     color: #000;
     font-weight: normal;
     line-height: 1.3;
-}
-
-/* --- MOBILE ACCORDI PICCOLISSIMI, EXTRA BOLD, DISTANZA ZERO --- */
-@media (max-width: 768px) {
-    .chord-line {
-        font-size: 0.55rem !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-        margin-bottom: 0 !important;
-        letter-spacing: 0;
-        -webkit-text-stroke: 0.4px currentColor;
-    }
-    .chord-line-container {
-        margin-bottom: 0 !important;
-    }
-    .hymn-text-block {
-        margin-bottom: 12px;
-    }
 }
 
 /* --- PRESENTAZIONE CANTICO (testo doppio e grassetto) --- */
@@ -890,6 +852,22 @@ body.is-admin .btn-edit {
 @media (max-width: 768px) {
     .presentation-overlay .presentation-slide .desc {
         font-size: 48px !important;
+    }
+}
+
+/* Stili per la presentazione avvisi */
+.presentation-slide.avvisi-slide {
+    justify-content: flex-start;
+    overflow-y: auto;
+}
+
+.presentation-slide .avvisi-desc {
+    font-size: 26px !important;
+    font-weight: 500;
+}
+@media (max-width: 768px) {
+    .presentation-slide .avvisi-desc {
+        font-size: 22px !important;
     }
 }
 
@@ -1436,7 +1414,7 @@ input:checked + .slider:before {
         background: white;
         border-radius: 12px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        z-index: 100;
+        z-index: 200;  /* aumentato per sicurezza */
         display: flex;
         flex-direction: column;
         gap: 8px;
