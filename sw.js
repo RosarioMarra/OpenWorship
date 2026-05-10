@@ -1,24 +1,27 @@
-const CACHE_NAME = 'open-worship-cache-v1';
+const CACHE_NAME = 'open-worship-cache-v3';
 const urlsToCache = [
     './',
     './index.html',
     './style.css',
     './script.js',
-    './manifest.json'
+    './manifest.json',
+    './icon-70.png',
+    './icon-144.png',
+    './icon-150.png',
+    './icon-192.png',
+    './icon-310.png',
+    './icon-512.png'
 ];
 
-// Installa il Service Worker e salva i file base in memoria
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Cache aperta');
-                return cache.addAll(urlsToCache);
-            })
+        caches.open(CACHE_NAME).then(cache => {
+            console.log('Cache aperta');
+            return cache.addAll(urlsToCache);
+        })
     );
 });
 
-// Intercetta le richieste: usa la rete, se fallisce usa la cache
 self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request).catch(() => {
@@ -27,7 +30,6 @@ self.addEventListener('fetch', event => {
     );
 });
 
-// Pulisce le vecchie cache quando aggiorni l'app
 self.addEventListener('activate', event => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(

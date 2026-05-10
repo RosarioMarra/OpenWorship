@@ -8,10 +8,30 @@
   "theme_color": "#007aff",
   "icons": [
     {
+      "src": "icon-70.png",
+      "sizes": "70x70",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-150.png",
+      "sizes": "150x150",
+      "type": "image/png"
+    },
+    {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "icon-310.png",
+      "sizes": "310x310",
+      "type": "image/png"
     },
     {
       "src": "icon-512.png",
