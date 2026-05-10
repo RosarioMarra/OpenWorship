@@ -1,7 +1,7 @@
 {
-  "name": "Open Worship Pro",
+  "name": "Open Worship",
   "short_name": "Open Worship",
-  "description": "Gestione cantici, bibbia e sermoni",
+  "description": "Gestione cantici, bibbia e avvisi",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f2f2f7",
