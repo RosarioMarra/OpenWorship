@@ -211,44 +211,97 @@ async function fetchBibleData(version, bookId, chapter) {
     }
 }
 
-// --- NOTIFICHE IN TEMPO REALE PER NUOVI AVVISI ---
+// ========== NOTIFICHE MOBILE (PWA) ==========
+let notificationsSupported = false;
+let isPWA = false;
+
+function checkNotificationSupport() {
+    if (!('Notification' in window)) {
+        console.warn('Questo browser non supporta le notifiche');
+        notificationsSupported = false;
+        return false;
+    }
+    notificationsSupported = true;
+    // Verifica se l'app è in modalità standalone (PWA installata)
+    isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true;
+    return true;
+}
+
+async function requestNotificationPermission() {
+    if (!notificationsSupported) {
+        alert('Il tuo browser non supporta le notifiche.');
+        return false;
+    }
+    
+    // Su iOS, le notifiche funzionano solo se l'app è installata (PWA)
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !isPWA) {
+        const installMsg = 'Per ricevere notifiche su iOS, devi installare questa app: premi "Condividi" → "Aggiungi alla Home". Vuoi continuare lo stesso?';
+        if (!confirm(installMsg)) {
+            return false;
+        }
+    }
+    
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            // Notifica di benvenuto
+            new Notification('✅ Notifiche attivate', {
+                body: 'Riceverai gli avvisi in tempo reale.',
+                icon: '/icon-192.png'
+            });
+            return true;
+        } else {
+            alert('Hai negato il permesso per le notifiche.');
+            return false;
+        }
+    } catch (err) {
+        console.error('Errore richiesta permesso:', err);
+        alert('Impossibile richiedere il permesso per le notifiche.');
+        return false;
+    }
+}
+
 function setupRealtimeAvvisi() {
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
     if (!notificationsEnabled) return;
-
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        Notification.requestPermission();
-    }
-
+    
     if (Notification.permission !== 'granted') return;
-
+    
     if (avvisiChannel) {
         avvisiChannel.unsubscribe();
         avvisiChannel = null;
     }
-
+    
     avvisiChannel = supabaseClient
         .channel('avvisi-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
-            const newAvviso = payload.new;
-            showAvvisoNotification(newAvviso);
+            showAvvisoNotification(payload.new);
         })
-        .subscribe();
+        .subscribe((status) => {
+            console.log('Canale realtime avvisi:', status);
+        });
 }
 
 function showAvvisoNotification(avviso) {
     if (!avviso) return;
+    if (Notification.permission !== 'granted') return;
+    
     const title = `📢 Nuovo avviso: ${avviso.title}`;
     const body = `${avviso.desc.substring(0, 100)}${avviso.desc.length > 100 ? '…' : ''}\nData: ${new Date(avviso.date).toLocaleDateString('it-IT')}`;
     const icon = '/icon-192.png';
 
-    const notification = new Notification(title, { body, icon });
-    notification.onclick = () => {
-        window.focus();
-        document.querySelector('.nav-item[data-target="avvisi"]').click();
-        openAvvisoDetailModal(avviso.id);
-        notification.close();
-    };
+    try {
+        const notification = new Notification(title, { body, icon });
+        notification.onclick = () => {
+            window.focus();
+            document.querySelector('.nav-item[data-target="avvisi"]').click();
+            openAvvisoDetailModal(avviso.id);
+            notification.close();
+        };
+    } catch (e) {
+        console.error('Errore nel mostrare la notifica:', e);
+    }
 }
 
 // --- LOADER APPLE STYLE ---
@@ -257,8 +310,6 @@ function showSpinner(container) {
     if (!container) return;
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
-
-// --- FUNZIONE TOGGLE ACCORDI RIMOSSA ---
 
 // Mostra app principale dopo login
 async function showApp() {
@@ -301,7 +352,9 @@ async function showApp() {
         updateVerseOfDayImage();
         setupFavoritesTabs();
         setupDashboardCards();
-        setupRealtimeAvvisi();
+        
+        // Inizializza supporto notifiche
+        checkNotificationSupport();
 
         // Rendi cliccabile il box profilo desktop
         const desktopProfileBox = document.getElementById('desktopProfileBox');
@@ -354,21 +407,35 @@ async function showApp() {
             });
         }
 
+        // Gestione switch notifiche (migliorata per mobile)
         const notificationsSwitch = document.getElementById('notificationsSwitch');
         if (notificationsSwitch) {
             const saved = localStorage.getItem('notificationsEnabled') === 'true';
             notificationsSwitch.checked = saved;
-            notificationsSwitch.addEventListener('change', (e) => {
-                localStorage.setItem('notificationsEnabled', e.target.checked);
-                if (e.target.checked) {
-                    if ('Notification' in window && Notification.permission === 'default') {
-                        Notification.requestPermission().then(perm => {
-                            if (perm === 'granted') setupRealtimeAvvisi();
-                        });
-                    } else if (Notification.permission === 'granted') {
-                        setupRealtimeAvvisi();
+            
+            // Attiva il canale se già abilitato e permesso concesso
+            if (saved && Notification.permission === 'granted') {
+                setupRealtimeAvvisi();
+            }
+            
+            notificationsSwitch.addEventListener('change', async (e) => {
+                const enabled = e.target.checked;
+                localStorage.setItem('notificationsEnabled', enabled);
+                
+                if (enabled) {
+                    // Richiedi il permesso (se non ancora concesso)
+                    if (Notification.permission !== 'granted') {
+                        const granted = await requestNotificationPermission();
+                        if (!granted) {
+                            notificationsSwitch.checked = false;
+                            localStorage.setItem('notificationsEnabled', false);
+                            return;
+                        }
                     }
+                    // Ora permesso concesso, attiva il canale
+                    setupRealtimeAvvisi();
                 } else {
+                    // Disattiva il canale
                     if (avvisiChannel) {
                         avvisiChannel.unsubscribe();
                         avvisiChannel = null;
@@ -382,9 +449,6 @@ async function showApp() {
         const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
         const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
         greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
-
-        // RIMOSSO il setup del pulsante accordi
-        // RIMOSSO il setup del menu mobile accordi
 
     }, 400);
 }
@@ -1768,6 +1832,5 @@ window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
 window.toggleMobileMenu = toggleMobileMenu;
-// RIMOSSO window.toggleChords
 
 renderNotes();
