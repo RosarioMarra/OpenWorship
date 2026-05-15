@@ -211,7 +211,7 @@ async function fetchBibleData(version, bookId, chapter) {
     }
 }
 
-// ========== NOTIFICHE MOBILE (PWA) ==========
+// ========== NOTIFICHE MOBILE (PWA) - VERSIONE ROBUSTA PER ANDROID ==========
 let notificationsSupported = false;
 let isPWA = false;
 
@@ -222,9 +222,9 @@ function checkNotificationSupport() {
         return false;
     }
     notificationsSupported = true;
-    // Verifica se l'app è in modalità standalone (PWA installata)
     isPWA = window.matchMedia('(display-mode: standalone)').matches || 
             window.navigator.standalone === true;
+    console.log("Supporto notifiche:", notificationsSupported, "PWA:", isPWA);
     return true;
 }
 
@@ -234,9 +234,9 @@ async function requestNotificationPermission() {
         return false;
     }
     
-    // Su iOS, le notifiche funzionano solo se l'app è installata (PWA)
+    // Su Android non serve controllo aggiuntivo, ma teniamo per iOS
     if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !isPWA) {
-        const installMsg = 'Per ricevere notifiche su iOS, devi installare questa app: premi "Condividi" → "Aggiungi alla Home". Vuoi continuare lo stesso?';
+        const installMsg = 'Per ricevere notifiche su iOS, devi installare questa app. Su Android funziona anche senza installazione. Vuoi continuare?';
         if (!confirm(installMsg)) {
             return false;
         }
@@ -244,15 +244,16 @@ async function requestNotificationPermission() {
     
     try {
         const permission = await Notification.requestPermission();
+        console.log("Permesso notifiche:", permission);
         if (permission === 'granted') {
-            // Notifica di benvenuto
+            // Notifica di test per verificare che funzioni
             new Notification('✅ Notifiche attivate', {
                 body: 'Riceverai gli avvisi in tempo reale.',
                 icon: '/icon-192.png'
             });
             return true;
         } else {
-            alert('Hai negato il permesso per le notifiche.');
+            alert('Hai negato il permesso per le notifiche. Per riceverle, modifica le impostazioni del browser.');
             return false;
         }
     } catch (err) {
@@ -264,22 +265,35 @@ async function requestNotificationPermission() {
 
 function setupRealtimeAvvisi() {
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-    if (!notificationsEnabled) return;
+    if (!notificationsEnabled) {
+        console.log("Notifiche disabilitate dall'utente");
+        return;
+    }
     
-    if (Notification.permission !== 'granted') return;
+    if (Notification.permission !== 'granted') {
+        console.log("Permesso notifiche non concesso, non attivo canale");
+        return;
+    }
     
     if (avvisiChannel) {
         avvisiChannel.unsubscribe();
         avvisiChannel = null;
     }
     
+    console.log("Avvio canale realtime per avvisi");
     avvisiChannel = supabaseClient
         .channel('avvisi-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
+            console.log("Ricevuto nuovo avviso in realtime:", payload);
             showAvvisoNotification(payload.new);
         })
         .subscribe((status) => {
-            console.log('Canale realtime avvisi:', status);
+            console.log("Stato canale realtime avvisi:", status);
+            if (status === 'SUBSCRIBED') {
+                console.log("✅ Canale attivo, in ascolto per nuovi avvisi");
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error("❌ Errore canale realtime avvisi");
+            }
         });
 }
 
@@ -287,11 +301,12 @@ function showAvvisoNotification(avviso) {
     if (!avviso) return;
     if (Notification.permission !== 'granted') return;
     
-    const title = `📢 Nuovo avviso: ${avviso.title}`;
-    const body = `${avviso.desc.substring(0, 100)}${avviso.desc.length > 100 ? '…' : ''}\nData: ${new Date(avviso.date).toLocaleDateString('it-IT')}`;
-    const icon = '/icon-192.png';
-
     try {
+        const title = `📢 ${avviso.title}`;
+        const body = avviso.desc.substring(0, 100) + (avviso.desc.length > 100 ? '…' : '');
+        const icon = '/icon-192.png';
+        
+        console.log("Mostro notifica:", title, body);
         const notification = new Notification(title, { body, icon });
         notification.onclick = () => {
             window.focus();
@@ -299,8 +314,8 @@ function showAvvisoNotification(avviso) {
             openAvvisoDetailModal(avviso.id);
             notification.close();
         };
-    } catch (e) {
-        console.error('Errore nel mostrare la notifica:', e);
+    } catch (err) {
+        console.error("Errore nel mostrare notifica:", err);
     }
 }
 
@@ -407,7 +422,7 @@ async function showApp() {
             });
         }
 
-        // Gestione switch notifiche (migliorata per mobile)
+        // Gestione switch notifiche (migliorata per Android)
         const notificationsSwitch = document.getElementById('notificationsSwitch');
         if (notificationsSwitch) {
             const saved = localStorage.getItem('notificationsEnabled') === 'true';
@@ -416,6 +431,12 @@ async function showApp() {
             // Attiva il canale se già abilitato e permesso concesso
             if (saved && Notification.permission === 'granted') {
                 setupRealtimeAvvisi();
+            } else if (saved && Notification.permission === 'default') {
+                // Se è salvato abilitato ma non ancora chiesto, richiedi subito
+                requestNotificationPermission().then(granted => {
+                    if (granted) setupRealtimeAvvisi();
+                    else notificationsSwitch.checked = false;
+                });
             }
             
             notificationsSwitch.addEventListener('change', async (e) => {
@@ -814,7 +835,6 @@ function openSecondScreenPresentation(type, hymnId = null) {
                 .presentation-slide .desc { font-size: 64px !important; font-weight: 900 !important; line-height: 1.3; white-space: pre-wrap; }
                 .presentation-previews { position: fixed; bottom: 20px; left:0; right:0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 20001; }
                 .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 14px; pointer-events: auto; cursor: pointer; }
-                /* Stili per avvisi */
                 .avvisi-slide { justify-content: flex-start; overflow-y: auto; text-align: left; }
                 .avvisi-slide .desc { font-size: 52px !important; }
                 @media (max-width: 768px) {
