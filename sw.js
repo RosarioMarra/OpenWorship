@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v12';
+const CACHE_NAME = 'open-worship-cache-v13';
 const urlsToCache = [
     './',
     './index.html',

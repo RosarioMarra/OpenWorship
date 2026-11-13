@@ -2111,7 +2111,7 @@ body.chords-coming-soon .coming-soon-row {
     display: flex;
 }
 body.chords-coming-soon .chords-setting,
-body.chords-coming-soon .reader-toolbar .tool-chip,
+body.chords-coming-soon .reader-toolbar .tool-chip:not(.tool-chip-columns),
 body.chords-coming-soon .reader-toolbar .chords-only,
 body.chords-coming-soon #chordsMissing {
     display: none !important;
