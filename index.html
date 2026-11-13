@@ -490,6 +490,15 @@
                     <input type="range" id="setScrollSpeed" min="1" max="10" class="settings-range">
                 </div>
             </div>
+            <div class="admins-panel" id="adminsPanel">
+                <div class="settings-title">Amministratori</div>
+                <p class="admins-hint" id="adminsHint">Gli amministratori possono modificare cantici e avvisi e usare la proiezione.</p>
+                <ul class="admins-list" id="adminsList"></ul>
+                <form class="admins-add" id="adminsAddForm" autocomplete="off">
+                    <input type="email" id="adminsEmailInput" class="apple-select field" placeholder="email@gmail.com" required>
+                    <button type="submit" class="btn-apple" id="adminsAddBtn"><i class="ri-user-add-line"></i> Aggiungi</button>
+                </form>
+            </div>
             <button id="mobileLogoutBtnModal" class="btn-logout"><i class="ri-logout-box-r-line"></i> Esci</button>
             <button class="btn-secondary btn-block" onclick="closeAccountModal()">Chiudi</button>
         </div>

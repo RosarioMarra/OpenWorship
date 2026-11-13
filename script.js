@@ -703,7 +703,66 @@ async function showApp() {
 
 function openAccountModal() {
     document.getElementById('accountModal').classList.remove('hidden');
+    if (isAdmin) loadAdmins();
 }
+
+// --- AMMINISTRATORI ---
+// Il proprietario aggiunge o toglie gli amministratori; nessuno può togliere il proprietario.
+// I controlli veri sono nel database (supabase-amministratori.sql): qui si mostra solo l'elenco.
+let isOwner = false;
+async function loadAdmins() {
+    const list = document.getElementById('adminsList');
+    const form = document.getElementById('adminsAddForm');
+    const hint = document.getElementById('adminsHint');
+    if (!list) return;
+    list.innerHTML = '<li class="admins-empty">Caricamento…</li>';
+    const [{ data: owner }, { data, error }] = await Promise.all([
+        supabaseClient.rpc('is_owner'),
+        supabaseClient.rpc('list_admins')
+    ]);
+    if (error) {
+        list.innerHTML = '<li class="admins-empty">Elenco non disponibile: esegui supabase-amministratori.sql su Supabase.</li>';
+        form.classList.add('hidden');
+        return;
+    }
+    isOwner = owner === true;
+    form.classList.toggle('hidden', !isOwner);
+    hint.textContent = isOwner
+        ? "Aggiungi l'email Google della persona: al prossimo accesso potrà modificare cantici e avvisi e usare la proiezione."
+        : 'Solo il proprietario può aggiungere o togliere amministratori.';
+    list.innerHTML = (data || []).map(a => `
+        <li class="admins-item">
+            <span class="admins-email">${escapeHtml(a.email)}</span>
+            ${a.proprietario
+                ? '<b class="admins-badge">Proprietario</b>'
+                : (isOwner ? `<button type="button" class="icon-btn icon-danger" title="Togli amministratore" data-remove-admin="${escapeHtml(a.email)}"><i class="ri-user-unfollow-line"></i></button>` : '')}
+        </li>`).join('') || '<li class="admins-empty">Nessun amministratore</li>';
+}
+document.getElementById('adminsAddForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('adminsEmailInput');
+    const email = input.value.trim().toLowerCase();
+    if (!email) return;
+    return withBusyButton(document.getElementById('adminsAddBtn'), async () => {
+        const { error } = await supabaseClient.rpc('add_admin', { new_email: email });
+        if (error) { alert(error.message || 'Impossibile aggiungere'); return; }
+        input.value = '';
+        showVerseToast('Amministratore aggiunto');
+        await loadAdmins();
+    });
+});
+document.getElementById('adminsList')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-remove-admin]');
+    if (!btn) return;
+    const email = btn.dataset.removeAdmin;
+    if (!confirm(`Togliere ${email} dagli amministratori?`)) return;
+    await withBusyButton(btn, async () => {
+        const { error } = await supabaseClient.rpc('remove_admin', { old_email: email });
+        if (error) { alert(error.message || 'Impossibile togliere'); return; }
+        showVerseToast('Amministratore tolto');
+        await loadAdmins();
+    });
+});
 function closeAccountModal() {
     document.getElementById('accountModal').classList.add('hidden');
 }
