@@ -389,7 +389,7 @@ async function renderVerseImage(formatId, bgId) {
     // Firma in basso con il logo
     const footY = h - (formatId === 'story' ? 200 : 110);
     try {
-        const logo = await loadImage('icon-192.png');
+        const logo = await loadImage('immagini/icon-192.png');
         const ls = 56;
         ctx.save();
         ctx.beginPath();

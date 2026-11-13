@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v8';
+const CACHE_NAME = 'open-worship-cache-v9';
 const urlsToCache = [
     './',
     './index.html',
@@ -8,12 +8,13 @@ const urlsToCache = [
     './dashboard.js',
     './projection.js',
     './manifest.json',
-    './icon-70.png',
-    './icon-144.png',
-    './icon-150.png',
-    './icon-192.png',
-    './icon-310.png',
-    './icon-512.png'
+    './immagini/icon-70.png',
+    './immagini/icon-144.png',
+    './immagini/icon-150.png',
+    './immagini/icon-192.png',
+    './immagini/icon-310.png',
+    './immagini/icon-512.png',
+    './immagini/icon-badge.png'
 ];
 
 self.addEventListener('install', event => {
@@ -66,8 +67,8 @@ self.addEventListener('push', event => {
     const title = d.title || 'Open Worship';
     event.waitUntil(self.registration.showNotification(title, {
         body: d.body || '',
-        icon: 'icon-192.png',
-        badge: 'icon-192.png',
+        icon: 'immagini/icon-192.png',
+        badge: 'immagini/icon-badge.png',
         lang: 'it',
         tag: d.avvisoId ? 'avviso-' + d.avvisoId : 'ow-push',
         data: { avvisoId: d.avvisoId || null }

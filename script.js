@@ -256,7 +256,7 @@ function getServiceWorkerRegistration() {
 // altrimenti direttamente dalla pagina (computer)
 async function showAppNotification(title, options = {}, onPageClick) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-    const opts = { icon: 'icon-192.png', badge: 'icon-192.png', lang: 'it', ...options };
+    const opts = { icon: 'immagini/icon-192.png', badge: 'immagini/icon-badge.png', lang: 'it', ...options };
     const reg = await getServiceWorkerRegistration();
     if (reg && reg.showNotification) {
         try { await reg.showNotification(title, opts); return true; } catch (e) { console.warn('Notifica dal service worker non riuscita:', e); }
@@ -506,8 +506,8 @@ async function showApp() {
             if (mobileAvatar) mobileAvatar.src = user.user_metadata.avatar_url;
             if (modalAvatar) modalAvatar.src = user.user_metadata.avatar_url;
         } else {
-            if (mobileAvatar) mobileAvatar.src = 'icon-192.png';
-            if (modalAvatar) modalAvatar.src = 'icon-192.png';
+            if (mobileAvatar) mobileAvatar.src = 'immagini/icon-192.png';
+            if (modalAvatar) modalAvatar.src = 'immagini/icon-192.png';
         }
         const fullName = user.user_metadata.full_name || user.email;
         profileName.textContent = fullName;
