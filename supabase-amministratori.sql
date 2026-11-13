@@ -19,9 +19,10 @@ alter table public.amministratori enable row level security;
 alter table public.amministratori add column if not exists proprietario boolean not null default false;
 alter table public.amministratori add column if not exists aggiunto_il timestamptz not null default now();
 
--- Proprietario: ha il controllo assoluto e non può essere rimosso
+-- Proprietario: ha il controllo assoluto e non può essere rimosso.
+-- PRIMA DI ESEGUIRE sostituisci TUA-EMAIL@esempio.invalid con l'email Google del proprietario.
 insert into public.amministratori (email, proprietario)
-values ('marraros11@gmail.com', true)
+values ('TUA-EMAIL@esempio.invalid', true)
 on conflict (email) do update set proprietario = true;
 
 -- È un amministratore chi sta usando l'app?

@@ -41,9 +41,6 @@ async function withBusyButton(btn, task) {
 
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// --- LISTA EMAIL AMMINISTRATORI ---
-const adminEmails = ["marraros11@gmail.com"];
-
 // --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
 let notesDB = [];
@@ -532,15 +529,15 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
-// Chi Ã¨ amministratore lo decide il database (funzione is_admin, vedi supabase-sicurezza.sql).
-// FinchÃ© la funzione non esiste si usa la lista locale: serve solo a mostrare i pulsanti,
-// i permessi veri sono quelli delle regole RLS su Supabase.
+// Chi è amministratore lo decide il database (funzione is_admin, vedi supabase-amministratori.sql).
+// Se il database non risponde i pulsanti di modifica restano nascosti:
+// i permessi veri sono comunque quelli delle regole di sicurezza su Supabase.
 async function resolveAdmin(user) {
     try {
         const { data, error } = await supabaseClient.rpc('is_admin');
         if (!error && typeof data === 'boolean') return data;
-    } catch (e) { /* funzione non ancora creata */ }
-    return adminEmails.includes(String(user.email || '').toLowerCase());
+    } catch (e) { /* database non raggiungibile */ }
+    return false;
 }
 
 let appInitialized = false;

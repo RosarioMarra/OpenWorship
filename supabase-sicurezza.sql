@@ -24,7 +24,7 @@ alter table public.amministratori enable row level security;
 -- Nessuna regola sulla tabella: dall'app non si può leggere né modificare.
 
 insert into public.amministratori (email)
-values ('marraros11@gmail.com')
+values ('TUA-EMAIL@esempio.invalid') -- sostituisci con l'email del proprietario
 on conflict do nothing;
 -- Per aggiungere un altro amministratore:
 -- insert into public.amministratori (email) values ('altra.email@gmail.com');
