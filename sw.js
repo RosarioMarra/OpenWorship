@@ -1,9 +1,12 @@
-const CACHE_NAME = 'open-worship-cache-v3';
+const CACHE_NAME = 'open-worship-cache-v6';
 const urlsToCache = [
     './',
     './index.html',
     './style.css',
     './script.js',
+    './chords.js',
+    './dashboard.js',
+    './projection.js',
     './manifest.json',
     './icon-70.png',
     './icon-144.png',
@@ -23,6 +26,8 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+    // Solo le richieste GET dell'app passano dalla cache; login e dati restano diretti
+    if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request);

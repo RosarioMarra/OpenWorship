@@ -4,7 +4,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- LISTA EMAIL AMMINISTRATORI ---
-const adminEmails = ["marraros11@gmail.com", "secondaemail@gmail.com"];
+const adminEmails = ["marraros11@gmail.com"];
 
 // --- DATABASE IN TEMPO REALE E LOCALE ---
 let hymnsDB = [];
@@ -15,6 +15,7 @@ let favoritesDB = [];
 let isAdmin = false;
 let currentTab = "all";
 let searchTerm = "";
+let lastHymnsSignature = "";
 let currentUser = null;
 let avvisiChannel = null;
 let presentationWindow = null;
@@ -76,12 +77,13 @@ function saveNotes() {
 }
 
 // --- FUNZIONE CONDIVISIONE SOCIAL ---
+// Indirizzo pubblico dell'app: ogni condivisione porta questo link, che nelle chat
+// mostra l'anteprima con logo, titolo e descrizione (vedi i tag og: in index.html)
+const APP_PUBLIC_URL = 'https://rosariomarra.github.io/OpenWorship/';
+
 async function shareContent(title, text, url) {
-    const shareData = {
-        title: title,
-        text: text,
-        url: url || window.location.href
-    };
+    const link = url || APP_PUBLIC_URL;
+    const shareData = { title: title, text: text, url: link };
     if (navigator.share) {
         try {
             await navigator.share(shareData);
@@ -90,12 +92,12 @@ async function shareContent(title, text, url) {
             console.log('Condivisione annullata o fallita:', err);
             return false;
         }
-    } else {
-        const fullText = `${title}\n\n${text}`;
-        await navigator.clipboard.writeText(fullText);
-        alert('Testo copiato negli appunti! Puoi incollarlo dove vuoi.');
-        return true;
     }
+    // Senza condivisione di sistema: testo + link copiati negli appunti
+    const fullText = `${title}\n\n${text}\n\n${link}`;
+    const ok = typeof copyText === 'function' ? await copyText(fullText) : false;
+    alert(ok ? 'Testo copiato: puoi incollarlo dove vuoi.' : 'Copia non riuscita.');
+    return ok;
 }
 
 // --- LOGIN LOGIC CON SUPABASE ---
@@ -147,7 +149,12 @@ async function handleLogout() {
         console.error("Eccezione in signOut:", err);
     }
 
-    document.body.classList.remove('admin-mode-active');
+    document.body.classList.remove('is-admin');
+    isAdmin = false;
+    if (isReaderOpen()) closeHymnView();
+    closeProjection();
+    notesDB = [];
+    localStorage.removeItem('notesDB');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
@@ -178,8 +185,15 @@ const verseImages = [
 ];
 
 // Funzione Bibbia (con timeout e migliore gestione errori)
+// Versioni disponibili: Nuova Riveduta da bolls.life, le versioni storiche
+// (di pubblico dominio) da getbible.net. Entrambe numerano i libri da 1 a 66.
+const GETBIBLE_VERSIONS = { RIV1927: 'riveduta', DIODATI: 'giovanni' };
+
 async function fetchBibleData(version, bookId, chapter) {
-    const directUrl = `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
+    const getbible = GETBIBLE_VERSIONS[version];
+    const directUrl = getbible
+        ? `https://api.getbible.net/v2/${getbible}/${bookId}/${chapter}.json`
+        : `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -190,7 +204,11 @@ async function fetchBibleData(version, bookId, chapter) {
         if (!response.ok) {
             throw new Error(`Errore HTTP: ${response.status}`);
         }
-        const data = await response.json();
+        const json = await response.json();
+        // getbible.net restituisce { verses: [{ verse, text }] }: stesso formato di bolls
+        const data = getbible
+            ? (json && Array.isArray(json.verses) ? json.verses.map(v => ({ verse: v.verse, text: String(v.text || '').trim() })) : [])
+            : json;
         if (data && Array.isArray(data) && data.length > 0) {
             return data;
         } else {
@@ -223,7 +241,7 @@ function checkNotificationSupport() {
     }
     notificationsSupported = true;
     // Verifica se l'app è in modalità standalone (PWA installata)
-    isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+    isPWA = window.matchMedia('(display-mode: standalone)').matches ||
             window.navigator.standalone === true;
     return true;
 }
@@ -233,7 +251,7 @@ async function requestNotificationPermission() {
         alert('Il tuo browser non supporta le notifiche.');
         return false;
     }
-    
+
     // Su iOS, le notifiche funzionano solo se l'app è installata (PWA)
     if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !isPWA) {
         const installMsg = 'Per ricevere notifiche su iOS, devi installare questa app: premi "Condividi" → "Aggiungi alla Home". Vuoi continuare lo stesso?';
@@ -241,7 +259,7 @@ async function requestNotificationPermission() {
             return false;
         }
     }
-    
+
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
@@ -265,14 +283,14 @@ async function requestNotificationPermission() {
 function setupRealtimeAvvisi() {
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
     if (!notificationsEnabled) return;
-    
+
     if (Notification.permission !== 'granted') return;
-    
+
     if (avvisiChannel) {
         avvisiChannel.unsubscribe();
         avvisiChannel = null;
     }
-    
+
     avvisiChannel = supabaseClient
         .channel('avvisi-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
@@ -286,7 +304,7 @@ function setupRealtimeAvvisi() {
 function showAvvisoNotification(avviso) {
     if (!avviso) return;
     if (Notification.permission !== 'granted') return;
-    
+
     const title = `📢 Nuovo avviso: ${avviso.title}`;
     const body = `${avviso.desc.substring(0, 100)}${avviso.desc.length > 100 ? '…' : ''}\nData: ${new Date(avviso.date).toLocaleDateString('it-IT')}`;
     const icon = '/icon-192.png';
@@ -311,20 +329,34 @@ function showSpinner(container) {
     container.innerHTML = '<div class="apple-spinner"></div>';
 }
 
+// Chi Ã¨ amministratore lo decide il database (funzione is_admin, vedi supabase-sicurezza.sql).
+// FinchÃ© la funzione non esiste si usa la lista locale: serve solo a mostrare i pulsanti,
+// i permessi veri sono quelli delle regole RLS su Supabase.
+async function resolveAdmin(user) {
+    try {
+        const { data, error } = await supabaseClient.rpc('is_admin');
+        if (!error && typeof data === 'boolean') return data;
+    } catch (e) { /* funzione non ancora creata */ }
+    return adminEmails.includes(String(user.email || '').toLowerCase());
+}
+
+let appInitialized = false;
+
 // Mostra app principale dopo login
 async function showApp() {
     const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { loginScreen.style.opacity = '1'; return; }
     currentUser = user;
-    isAdmin = adminEmails.includes(user.email);
+    isAdmin = await resolveAdmin(user);
 
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
         loginScreen.style.display = 'none';
         mainApp.classList.remove('hidden');
 
-        if (isAdmin) {
-            document.body.classList.add('is-admin');
-        }
+        document.body.classList.toggle('is-admin', isAdmin);
+        renderHymns();
+        renderAvvisi();
 
         // Profilo utente
         const profileImg = document.getElementById('userProfileImg');
@@ -346,13 +378,20 @@ async function showApp() {
         profileName.textContent = fullName;
         if (modalUserName) modalUserName.textContent = fullName;
 
+        const greetingEl = document.getElementById('greetingMessage');
+        const hourNow = new Date().getHours();
+        const greetingText = hourNow < 12 ? "Buongiorno" : (hourNow < 18 ? "Buon pomeriggio" : "Buonasera");
+        greetingEl.textContent = `${greetingText}, ${(user.user_metadata.full_name || user.email || 'Amico').split(' ')[0]}!`;
+
         await loadCloudData();
         updateDashboard();
         renderHighlights();
         updateVerseOfDayImage();
+        if (appInitialized) return;
+        appInitialized = true;
         setupFavoritesTabs();
         setupDashboardCards();
-        
+
         // Inizializza supporto notifiche
         checkNotificationSupport();
 
@@ -412,16 +451,16 @@ async function showApp() {
         if (notificationsSwitch) {
             const saved = localStorage.getItem('notificationsEnabled') === 'true';
             notificationsSwitch.checked = saved;
-            
+
             // Attiva il canale se già abilitato e permesso concesso
             if (saved && Notification.permission === 'granted') {
                 setupRealtimeAvvisi();
             }
-            
+
             notificationsSwitch.addEventListener('change', async (e) => {
                 const enabled = e.target.checked;
                 localStorage.setItem('notificationsEnabled', enabled);
-                
+
                 if (enabled) {
                     // Richiedi il permesso (se non ancora concesso)
                     if (Notification.permission !== 'granted') {
@@ -444,11 +483,6 @@ async function showApp() {
             });
         }
 
-        const greetingMsg = document.getElementById('greetingMessage');
-        const hour = new Date().getHours();
-        const greeting = hour < 12 ? "Buongiorno" : (hour < 18 ? "Buon pomeriggio" : "Buonasera");
-        const firstName = (user.user_metadata.full_name || user.email || 'Amico').split(' ')[0];
-        greetingMsg.innerHTML = `${greeting}, ${firstName}!`;
 
     }, 400);
 }
@@ -463,45 +497,29 @@ function closeAccountModal() {
 function setupShareButtons() {
     const shareHymnBtn = document.getElementById('shareHymnBtn');
     if (shareHymnBtn) {
-        shareHymnBtn.addEventListener('click', () => {
-            const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
-            const text = document.getElementById('hymnTextView')?.innerText || 'Cantico spirituale';
-            shareContent(title, text);
-        });
+        shareHymnBtn.addEventListener('click', shareCurrentHymn);
     }
 }
 
 function shareCurrentHymn() {
-    const title = document.getElementById('currentHymnTitle')?.textContent || 'Cantico';
-    const text = document.getElementById('hymnTextView')?.innerText || 'Cantico spirituale';
-    shareContent(title, text);
-}
-
-function updateVerseOfDayImage() {
-    const bgImageDiv = document.querySelector('.verse-bg-image');
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-    const imageIndex = dayOfYear % verseImages.length;
-    if (bgImageDiv) {
-        bgImageDiv.style.backgroundImage = `url('${verseImages[imageIndex]}')`;
-    }
-}
-
-function setupDashboardCards() {
-    document.querySelectorAll('.clickable-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const section = card.getAttribute('data-section');
-            const targetBtn = document.querySelector(`.nav-item[data-target="${section}"]`);
-            if (targetBtn) targetBtn.click();
-        });
-    });
+    const hymn = hymnsDB.find(h => h.id === window.currentHymnId);
+    if (!hymn) return;
+    shareContent(hymn.title, SongTools.lyricsText(hymn.content));
 }
 
 async function loadCloudData() {
     try {
         const { data: cantici, error: canticiErr } = await supabaseClient.from('cantici').select('*');
-        if (!canticiErr && cantici) hymnsDB = cantici;
-        else console.error("Errore download cantici", canticiErr);
-        renderHymns();
+        if (!canticiErr && cantici) {
+            // Ridisegna la lista solo se i cantici sono cambiati davvero:
+            // il refresh periodico non deve riportare la pagina all'inizio
+            const signature = JSON.stringify([...cantici].sort((a, b) => String(a.id).localeCompare(String(b.id))));
+            if (signature !== lastHymnsSignature) {
+                lastHymnsSignature = signature;
+                hymnsDB = cantici;
+                renderHymns();
+            }
+        } else console.error("Errore download cantici", canticiErr);
 
         const { data: avvisi, error: avvisiErr } = await supabaseClient.from('avvisi').select('*');
         if (!avvisiErr && avvisi) avvisiDB = avvisi;
@@ -536,10 +554,10 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
         document.getElementById(target).classList.add('active');
         if (target === 'dashboard') updateDashboard();
-        if (target !== 'cantici') {
-            document.getElementById('hymnReaderView').classList.add('hidden');
-            document.getElementById('hymnsListView').classList.remove('hidden');
+        if (target !== 'cantici' && isReaderOpen()) {
+            closeHymnView();
         }
+        setReadingImmersive(false);
         if (target === 'bibbia') {
             updateBibleControlsVisibility();
         }
@@ -556,30 +574,6 @@ const dailyVerses = [
     { text: "Il Signore ti benedica e ti custodisca.", ref: "Numeri 6:24" },
     { text: "Gustate e vedete quanto il Signore è buono!", ref: "Salmi 34:9" }
 ];
-
-function updateDashboard() {
-    document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-    const verse = dailyVerses[dayOfYear % dailyVerses.length];
-    document.getElementById('dailyVerseText').innerHTML = `"${verse.text}"`;
-    document.getElementById('dailyVerseRef').innerHTML = `- ${verse.ref}`;
-    document.getElementById('dashHymnsCount').textContent = hymnsDB.length;
-    document.getElementById('dashNotesCount').textContent = notesDB.length;
-
-    const sortedAvvisi = [...avvisiDB].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const oggi = new Date().toISOString().slice(0,10);
-    let prossimo = sortedAvvisi.find(a => a.date >= oggi);
-    if (!prossimo && sortedAvvisi.length) prossimo = sortedAvvisi[0];
-    if (prossimo) {
-        document.getElementById('dashNextEvent').textContent = prossimo.title;
-        document.getElementById('dashNextEventDate').textContent = new Date(prossimo.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
-    } else {
-        document.getElementById('dashNextEvent').textContent = "Nessuno";
-        document.getElementById('dashNextEventDate').textContent = "Nessuna comunicazione recente";
-    }
-}
 
 let editingAvvisoId = null;
 
@@ -679,11 +673,8 @@ async function shareAvviso(id) {
 
 function escapeHtml(text) {
     if (!text) return '';
-    return text.replace(/[&<>]/g, function (m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
+    return String(text).replace(/[&<>"']/g, function (m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
 }
 
@@ -755,371 +746,7 @@ async function deleteAvviso(id) {
     }
 }
 
-// --- SCELTA MODALITÀ PROIEZIONE (con secondo schermo) ---
-function askPresentationMode(type, hymnId = null) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'flex';
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 350px; text-align: center;">
-            <h3 style="margin-bottom: 20px;">Modalità di proiezione</h3>
-            <p style="margin-bottom: 20px; color: var(--text-muted);">Scegli dove proiettare</p>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <button class="btn-apple" id="projectHereBtn" style="min-width: 200px;">Su questo dispositivo</button>
-                <button class="btn-secondary" id="projectSecondScreenBtn" style="min-width: 200px;">Su secondo schermo</button>
-                <button class="btn-text" id="cancelProjectBtn" style="margin-top: 10px;">Annulla</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    modal.querySelector('#cancelProjectBtn').onclick = () => modal.remove();
-    modal.querySelector('#projectHereBtn').onclick = () => {
-        modal.remove();
-        if (type === 'avvisi') startAvvisiPresentation();
-        else if (type === 'cantico') startHymnPresentation(hymnId);
-    };
-    modal.querySelector('#projectSecondScreenBtn').onclick = () => {
-        modal.remove();
-        openSecondScreenPresentation(type, hymnId);
-    };
-}
-
-function openSecondScreenPresentation(type, hymnId = null) {
-    const width = 1280;
-    const height = 720;
-    const left = window.screen.width - width;
-    const top = 0;
-    presentationWindow = window.open('', '_blank', `width=${width},height=${height},left=${left},top=${top}`);
-    if (!presentationWindow) {
-        alert("Il popup è stato bloccato. Consenti i popup per questo sito.");
-        return;
-    }
-    
-    let html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Open Worship - Presentazione</title>
-            <style>
-                body { margin:0; background: black; color: white; font-family: -apple-system, sans-serif; }
-                .presentation-overlay { display: flex; flex-direction: column; height: 100vh; }
-                .presentation-header { position: fixed; top:0; left:0; right:0; display: flex; justify-content: space-between; padding: 15px 20px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 20001; }
-                .presentation-exit { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
-                .presentation-controls { display: flex; gap: 20px; align-items: center; }
-                .presentation-nav { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; }
-                .presentation-slides-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scroll-snap-stop: always; }
-                .presentation-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px 60px; text-align: center; background: #000; color: white; }
-                .presentation-slide .desc { font-size: 64px !important; font-weight: 900 !important; line-height: 1.3; white-space: pre-wrap; }
-                .presentation-previews { position: fixed; bottom: 20px; left:0; right:0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 20001; }
-                .pres-preview-prev, .pres-preview-next { background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; max-width: 200px; color: white; font-size: 14px; pointer-events: auto; cursor: pointer; }
-                /* Stili per avvisi */
-                .avvisi-slide { justify-content: flex-start; overflow-y: auto; text-align: left; }
-                .avvisi-slide .desc { font-size: 52px !important; }
-                @media (max-width: 768px) {
-                    .presentation-slide .desc { font-size: 48px !important; }
-                    .avvisi-slide .desc { font-size: 42px !important; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="presentation-overlay">
-                <div class="presentation-header">
-                    <button id="exitPresentationBtn" class="presentation-exit">✕ Esci</button>
-                    <div class="presentation-controls">
-                        <button id="presPrevBtn" class="presentation-nav">←</button>
-                        <span id="presCounter">1 / 1</span>
-                        <button id="presNextBtn" class="presentation-nav">→</button>
-                    </div>
-                </div>
-                <div class="presentation-slides-container" id="presentationSlidesContainer"></div>
-                <div class="presentation-previews">
-                    <div id="presPreviewPrev" class="pres-preview-prev"></div>
-                    <div id="presPreviewNext" class="pres-preview-next"></div>
-                </div>
-            </div>
-            <script>
-                let slides = [];
-                let currentIndex = 0;
-                window.addEventListener('message', (event) => {
-                    if (event.data.type === 'init') {
-                        slides = event.data.slides;
-                        renderSlides();
-                        updateCounter();
-                    } else if (event.data.type === 'navigate') {
-                        const container = document.getElementById('presentationSlidesContainer');
-                        const slideWidth = container.clientWidth;
-                        container.scrollLeft = event.data.index * slideWidth;
-                        currentIndex = event.data.index;
-                        updateCounter();
-                    }
-                });
-                
-                function renderSlides() {
-                    const container = document.getElementById('presentationSlidesContainer');
-                    container.innerHTML = '';
-                    slides.forEach((slide, idx) => {
-                        const div = document.createElement('div');
-                        div.className = 'presentation-slide' + (slide.slideClass ? ' ' + slide.slideClass : '');
-                        div.innerHTML = slide.html;
-                        container.appendChild(div);
-                    });
-                    
-                    container.addEventListener('scroll', () => {
-                        const slideWidth = container.clientWidth;
-                        const newIndex = Math.round(container.scrollLeft / slideWidth);
-                        if (newIndex !== currentIndex) {
-                            currentIndex = newIndex;
-                            updateCounter();
-                            window.opener.postMessage({ type: 'indexChanged', index: currentIndex }, '*');
-                        }
-                    });
-                    
-                    document.getElementById('presPrevBtn').onclick = () => {
-                        if (currentIndex > 0) {
-                            currentIndex--;
-                            container.scrollLeft = currentIndex * container.clientWidth;
-                            updateCounter();
-                            window.opener.postMessage({ type: 'indexChanged', index: currentIndex }, '*');
-                        }
-                    };
-                    document.getElementById('presNextBtn').onclick = () => {
-                        if (currentIndex < slides.length-1) {
-                            currentIndex++;
-                            container.scrollLeft = currentIndex * container.clientWidth;
-                            updateCounter();
-                            window.opener.postMessage({ type: 'indexChanged', index: currentIndex }, '*');
-                        }
-                    };
-                    document.getElementById('exitPresentationBtn').onclick = () => {
-                        window.close();
-                    };
-                }
-                
-                function updateCounter() {
-                    document.getElementById('presCounter').textContent = (currentIndex+1) + ' / ' + slides.length;
-                    const prevDiv = document.getElementById('presPreviewPrev');
-                    const nextDiv = document.getElementById('presPreviewNext');
-                    if (currentIndex > 0) {
-                        prevDiv.innerHTML = slides[currentIndex-1].preview || '';
-                        prevDiv.style.display = 'block';
-                        prevDiv.onclick = () => {
-                            currentIndex--;
-                            document.getElementById('presentationSlidesContainer').scrollLeft = currentIndex * document.getElementById('presentationSlidesContainer').clientWidth;
-                            updateCounter();
-                            window.opener.postMessage({ type: 'indexChanged', index: currentIndex }, '*');
-                        };
-                    } else {
-                        prevDiv.style.display = 'none';
-                    }
-                    if (currentIndex < slides.length-1) {
-                        nextDiv.innerHTML = slides[currentIndex+1].preview || '';
-                        nextDiv.style.display = 'block';
-                        nextDiv.onclick = () => {
-                            currentIndex++;
-                            document.getElementById('presentationSlidesContainer').scrollLeft = currentIndex * document.getElementById('presentationSlidesContainer').clientWidth;
-                            updateCounter();
-                            window.opener.postMessage({ type: 'indexChanged', index: currentIndex }, '*');
-                        };
-                    } else {
-                        nextDiv.style.display = 'none';
-                    }
-                }
-            <\/script>
-        </body>
-        </html>
-    `;
-    presentationWindow.document.write(html);
-    presentationWindow.document.close();
-    
-    let slides = [];
-    if (type === 'avvisi') {
-        const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
-        slides = sorted.map(avviso => ({
-            html: `<h1 style="font-size: 48px; margin-bottom: 20px;">${escapeHtml(avviso.title)}</h1><div style="font-size: 24px; color: #ccc; margin-bottom: 30px;">${new Date(avviso.date).toLocaleDateString('it-IT')}</div><div class="desc avvisi-desc">${escapeHtml(avviso.desc).replace(/\n/g, '<br>')}</div>`,
-            preview: `<strong>${escapeHtml(avviso.title)}</strong><br>${new Date(avviso.date).toLocaleDateString()}`,
-            slideClass: 'avvisi-slide'
-        }));
-    } else {
-        const hymn = hymnsDB.find(h => h.id === hymnId);
-        if (!hymn) return;
-        const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-        slides = blocks.map(block => {
-            const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-            return {
-                html: `<div class="desc">${escapeHtml(clean).replace(/\n/g, '<br>')}</div>`,
-                preview: `<strong>Anteprima</strong>`,
-                slideClass: ''
-            };
-        });
-    }
-    
-    const checkReady = setInterval(() => {
-        if (presentationWindow && presentationWindow.document.readyState === 'complete') {
-            clearInterval(checkReady);
-            presentationWindow.postMessage({ type: 'init', slides: slides }, '*');
-            
-            let currentPresentationIndex = 0;
-            const msgHandler = (e) => {
-                if (e.data.type === 'indexChanged') {
-                    currentPresentationIndex = e.data.index;
-                }
-            };
-            window.addEventListener('message', msgHandler);
-            
-            const keyHandler = (e) => {
-                if (!presentationWindow || presentationWindow.closed) {
-                    window.removeEventListener('keydown', keyHandler);
-                    window.removeEventListener('message', msgHandler);
-                    return;
-                }
-                if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    presentationWindow.postMessage({ type: 'navigate', index: Math.max(0, currentPresentationIndex - 1) }, '*');
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    presentationWindow.postMessage({ type: 'navigate', index: Math.min(slides.length-1, currentPresentationIndex + 1) }, '*');
-                }
-            };
-            window.addEventListener('keydown', keyHandler);
-            
-            const closeChecker = setInterval(() => {
-                if (!presentationWindow || presentationWindow.closed) {
-                    clearInterval(closeChecker);
-                    window.removeEventListener('keydown', keyHandler);
-                    window.removeEventListener('message', msgHandler);
-                    presentationWindow = null;
-                }
-            }, 500);
-        }
-    }, 100);
-}
-
-// --- PRESENTAZIONE AVVISI (su questo dispositivo) ---
-function startAvvisiPresentation() {
-    if (avvisiDB.length === 0) {
-        alert("Nessun avviso da proiettare.");
-        return;
-    }
-    const sorted = [...avvisiDB].sort((a,b) => new Date(a.date) - new Date(b.date));
-    showPresentation('avvisi', sorted);
-}
-
-function startHymnPresentation(hymnId) {
-    const hymn = hymnsDB.find(h => h.id === hymnId);
-    if (!hymn) {
-        console.error("Cantico non trovato");
-        return;
-    }
-    const blocks = hymn.content.split(/\n\s*\n/).filter(b => b.trim());
-    const slides = blocks.map(block => {
-        const clean = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
-        return { content: clean };
-    });
-    showPresentation('cantico', slides);
-}
-
-function showPresentation(type, items) {
-    const overlay = document.getElementById('presentationOverlay');
-    const container = document.getElementById('presentationSlidesContainer');
-    const counterSpan = document.getElementById('presCounter');
-    const prevBtn = document.getElementById('presPrevBtn');
-    const nextBtn = document.getElementById('presNextBtn');
-    const exitBtn = document.getElementById('exitPresentationBtn');
-    const previewPrev = document.getElementById('presPreviewPrev');
-    const previewNext = document.getElementById('presPreviewNext');
-    
-    container.innerHTML = '';
-    let currentIndex = 0;
-    
-    items.forEach((item, idx) => {
-        const slide = document.createElement('div');
-        slide.className = 'presentation-slide';
-        if (type === 'avvisi') {
-            slide.classList.add('avvisi-slide');
-            slide.style.justifyContent = 'flex-start';
-            slide.style.overflowY = 'auto';
-            slide.innerHTML = `
-                <h1>${escapeHtml(item.title)}</h1>
-                <div class="date">${new Date(item.date).toLocaleDateString('it-IT')}</div>
-                <div class="desc avvisi-desc">${escapeHtml(item.desc).replace(/\n/g, '<br>')}</div>
-            `;
-        } else {
-            slide.innerHTML = `
-                <div class="desc">${escapeHtml(item.content).replace(/\n/g, '<br>')}</div>
-            `;
-        }
-        container.appendChild(slide);
-    });
-    
-    function updateCounter() {
-        counterSpan.textContent = `${currentIndex+1} / ${items.length}`;
-        const slides = document.querySelectorAll('.presentation-slide');
-        slides.forEach((slide, i) => {
-            slide.style.transform = i === currentIndex ? 'scale(1)' : 'scale(0.95)';
-            slide.style.opacity = i === currentIndex ? '1' : '0.5';
-        });
-        if (currentIndex > 0) {
-            const prevItem = items[currentIndex-1];
-            previewPrev.innerHTML = type === 'avvisi' ? 
-                `<strong>${escapeHtml(prevItem.title)}</strong><br>${new Date(prevItem.date).toLocaleDateString()}` :
-                `<strong>Strofa precedente</strong>`;
-            previewPrev.style.display = 'block';
-            previewPrev.onclick = () => { currentIndex--; scrollToSlide(currentIndex); updateCounter(); };
-        } else {
-            previewPrev.style.display = 'none';
-        }
-        if (currentIndex < items.length-1) {
-            const nextItem = items[currentIndex+1];
-            previewNext.innerHTML = type === 'avvisi' ? 
-                `<strong>${escapeHtml(nextItem.title)}</strong><br>${new Date(nextItem.date).toLocaleDateString()}` :
-                `<strong>Strofa successiva</strong>`;
-            previewNext.style.display = 'block';
-            previewNext.onclick = () => { currentIndex++; scrollToSlide(currentIndex); updateCounter(); };
-        } else {
-            previewNext.style.display = 'none';
-        }
-    }
-    
-    function scrollToSlide(index) {
-        const slideWidth = container.clientWidth;
-        container.scrollLeft = index * slideWidth;
-        currentIndex = index;
-        updateCounter();
-    }
-    
-    container.addEventListener('scroll', () => {
-        const slideWidth = container.clientWidth;
-        const newIndex = Math.round(container.scrollLeft / slideWidth);
-        if (newIndex !== currentIndex) {
-            currentIndex = newIndex;
-            updateCounter();
-        }
-    });
-    
-    prevBtn.onclick = () => {
-        if (currentIndex > 0) {
-            currentIndex--;
-            scrollToSlide(currentIndex);
-        }
-    };
-    nextBtn.onclick = () => {
-        if (currentIndex < items.length-1) {
-            currentIndex++;
-            scrollToSlide(currentIndex);
-        }
-    };
-    exitBtn.onclick = () => {
-        overlay.classList.add('hidden');
-    };
-    
-    overlay.classList.remove('hidden');
-    setTimeout(() => {
-        scrollToSlide(0);
-        updateCounter();
-    }, 100);
-}
+// La proiezione (sfondi, stile, transizioni, regia) è in projection.js
 
 // --- CANTICI: XML PARSER E CLOUD SYNC ---
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
@@ -1150,7 +777,12 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
             let text = await file.text();
             let title = file.name.replace(/\.[^/.]+$/, "");
             let content = text;
-            if (file.name.endsWith('.xml')) {
+            if (/\.(cho|chordpro|chopro|pro|txt)$/i.test(file.name)) {
+                // ChordPro o testo semplice: si tiene così com'è (accordi compresi)
+                const meta = SongTools.splitMeta(text).meta;
+                if (meta.title) title = meta.title;
+                content = text.replace(/^\s*\{\s*(title|t)\s*:[^}]*\}\s*$/gim, '').trim();
+            } else if (file.name.endsWith('.xml')) {
                 let safeText = text.replace(/xmlns(:\w+)?="[^"]*"/g, '');
                 safeText = safeText.replace(/<br\s*\/?>/gi, '\n');
                 const xmlDoc = new DOMParser().parseFromString(safeText, "text/xml");
@@ -1167,10 +799,10 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                         let blockText = "";
                         if (linesNodes.length > 0) {
                             linesNodes.forEach(line => {
-                                blockText += line.innerHTML.replace(/<[^>]+>/g, '').trim() + "\n";
+                                blockText += decodeXmlEntities(chordTagsToInline(line.innerHTML).replace(/<[^>]+>/g, '')).trim() + "\n";
                             });
                         } else {
-                            blockText = v.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                            blockText = decodeXmlEntities(chordTagsToInline(v.innerHTML).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
                         }
                         blockText = blockText.trim();
                         let normalizedCurrent = blockText.replace(/\s+/g, ' ');
@@ -1204,10 +836,35 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
     updateDashboard();
 });
 
+function normalizeSearch(text) {
+    return (text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ');
+}
+
+// OpenLyrics: <chord name="G"/> oppure <chord root="G" .../> diventano [G]
+function chordTagsToInline(html) {
+    return String(html).replace(/<chord\b([^>]*)\/?>/gi, (m, attrs) => {
+        const name = attrs.match(/\bname="([^"]+)"/i) || attrs.match(/\broot="([^"]+)"/i);
+        if (!name) return '';
+        const bass = attrs.match(/\bbass="([^"]+)"/i);
+        const structure = attrs.match(/\bstructure="([^"]+)"/i);
+        let chord = name[1];
+        if (structure && !attrs.match(/\bname=/i)) chord += structure[1].replace(/^major$/, '').replace(/^minor$/, 'm');
+        if (bass) chord += '/' + bass[1];
+        return SongTools.parseChord(chord) ? '[' + chord + ']' : '';
+    }).replace(/<\/chord>/gi, '');
+}
+
+function decodeXmlEntities(text) {
+    const ta = document.createElement('textarea');
+    ta.innerHTML = text;
+    return ta.value;
+}
+
 function getFilteredHymns() {
     let filtered = [...hymnsDB];
-    if (searchTerm) {
-        filtered = filtered.filter(h => h.title.toLowerCase().includes(searchTerm.toLowerCase()));
+    const term = normalizeSearch(searchTerm).trim();
+    if (term) {
+        filtered = filtered.filter(h => normalizeSearch(h.title).includes(term) || normalizeSearch(h.content).includes(term));
     }
     if (currentTab === "favorites") {
         filtered = filtered.filter(h => isFavorite(h.id));
@@ -1217,54 +874,88 @@ function getFilteredHymns() {
 
 function renderHymns() {
     const list = document.getElementById('hymnsList');
+    // Conserva la posizione di scorrimento quando la lista viene ridisegnata
+    const mainScroller = document.querySelector('.main-content');
+    const savedMain = mainScroller ? mainScroller.scrollTop : 0;
+    requestAnimationFrame(() => {
+        if (mainScroller) mainScroller.scrollTop = savedMain;
+    });
     list.innerHTML = '';
     const filtered = getFilteredHymns();
     if (filtered.length === 0) {
-        list.innerHTML = '<p class="text-muted" style="text-align:center; padding:40px;">Nessun cantico trovato</p>';
+        list.innerHTML = '<p class="empty-state"><i class="ri-music-2-line"></i>Nessun cantico trovato</p>';
         return;
     }
+    const isMobile = window.innerWidth <= 768;
+    const fragment = document.createDocumentFragment();
     filtered.forEach((hymn) => {
         const card = document.createElement('div');
         card.className = 'hymn-card';
+        const id = escapeHtml(hymn.id);
         const favActive = isFavorite(hymn.id);
-        const isMobile = window.innerWidth < 768;
+        // "12 - Titolo" diventa numero in evidenza + titolo
+        const m = String(hymn.title || '').match(/^\s*(\d+)\s*[-–.:)]?\s*(.*)$/);
+        const number = m && m[2] ? m[1] : '';
+        const name = m && m[2] ? m[2] : (hymn.title || '');
+        const chordsIcon = CHORDS_ENABLED && hymnHasChords(hymn) ? '<i class="ri-music-2-line hymn-badge-chords" title="Con accordi"></i>' : '';
+        const main = `
+            <div class="hymn-main" onclick="openHymnView('${id}')">
+                ${number ? `<span class="hymn-number">${escapeHtml(number)}</span>` : ''}
+                <span class="hymn-name">${escapeHtml(name)}</span>
+                ${chordsIcon}
+            </div>`;
         if (isMobile) {
-            card.innerHTML = `
-                <div style="flex:1" onclick="openHymnView('${hymn.id}')">
-                    <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
-                </div>
-                <div class="mobile-menu" style="position:relative;">
-                    <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
-                    <div class="mobile-menu-dropdown hidden" style="z-index: 200;">
-                        <button onclick="event.stopPropagation(); shareHymn('${hymn.id}')"><i class="ri-share-line"></i> Condividi</button>
-                        <button onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')"><i class="ri-heart-${favActive ? 'fill' : 'line'}"></i> Preferito</button>
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('cantico', '${hymn.id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
+            card.innerHTML = `${main}
+                <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${id}')" title="Preferito">
+                    <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
+                </button>
+                <div class="mobile-menu">
+                    <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)" title="Altro"><i class="ri-more-2-fill"></i></button>
+                    <div class="mobile-menu-dropdown hidden">
+                        <button onclick="event.stopPropagation(); shareHymn('${id}')"><i class="ri-share-line"></i> Condividi</button>
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); deleteHymn('${id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
                     </div>
-                </div>
-            `;
+                </div>`;
         } else {
-            card.innerHTML = `
-                <div style="flex:1" onclick="openHymnView('${hymn.id}')">
-                    <span style="font-weight:600;">${escapeHtml(hymn.title)}</span>
-                </div>
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <button class="icon-btn" onclick="event.stopPropagation(); shareHymn('${hymn.id}')"><i class="ri-share-line"></i></button>
-                    <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${hymn.id}')">
+            card.innerHTML = `${main}
+                <div class="hymn-actions">
+                    <button class="favorite-btn ${favActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${id}')" title="Preferito">
                         <i class="ri-heart-${favActive ? 'fill' : 'line'}"></i>
                     </button>
-                    <div class="admin-list-controls" style="display:flex; gap:8px;">
-                        <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${hymn.id}')"><i class="ri-pencil-line"></i></button>
-                        <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${hymn.id}')"><i class="ri-delete-bin-line"></i></button>
-                        ${isAdmin ? `<button class="icon-btn" onclick="event.stopPropagation(); askPresentationMode('cantico', '${hymn.id}')"><i class="ri-projector-line"></i></button>` : ''}
-                    </div>
-                </div>
-            `;
+                    <button class="icon-btn" onclick="event.stopPropagation(); shareHymn('${id}')" title="Condividi"><i class="ri-share-line"></i></button>
+                    ${isAdmin ? `
+                    <div class="admin-list-controls">
+                        <button class="icon-btn" onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')" title="Proietta"><i class="ri-projector-line"></i></button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${id}')" title="Modifica"><i class="ri-pencil-line"></i></button>
+                        <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${id}')" title="Elimina"><i class="ri-delete-bin-line"></i></button>
+                    </div>` : ''}
+                </div>`;
         }
-        list.appendChild(card);
+        fragment.appendChild(card);
     });
+    list.appendChild(fragment);
 }
+
+// Riconosce anche gli accordi scritti sopra il testo (risultato memorizzato per contenuto)
+const chordsCache = new Map();
+function hymnHasChords(hymn) {
+    const content = hymn.content || '';
+    if (!chordsCache.has(content)) chordsCache.set(content, SongTools.hasChords(content));
+    return chordsCache.get(content);
+}
+
+// Ridisegna la lista se si passa da telefono a computer (o si ruota il tablet)
+let lastLayoutMobile = window.innerWidth <= 768;
+window.addEventListener('resize', () => {
+    const nowMobile = window.innerWidth <= 768;
+    if (nowMobile !== lastLayoutMobile) {
+        lastLayoutMobile = nowMobile;
+        renderHymns();
+        renderAvvisi();
+    }
+});
 
 function toggleReaderMobileMenu(btn) {
     const dropdown = btn.nextElementSibling;
@@ -1282,7 +973,7 @@ document.addEventListener('click', function(e) {
 async function shareHymn(id) {
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
-    await shareContent(hymn.title, hymn.content.substring(0, 500));
+    await shareContent(hymn.title, SongTools.lyricsText(hymn.content).substring(0, 500));
 }
 
 function setupFavoritesTabs() {
@@ -1313,29 +1004,69 @@ async function deleteHymn(id) {
         }
     }
 }
-function openEditModal(id) {
+function openEditModal(id = null) {
+    if (!isAdmin) return;
     editHymnId = id;
-    const hymn = hymnsDB.find(h => h.id === id);
-    document.getElementById('editHymnTitle').value = hymn.title;
-    document.getElementById('editHymnBody').value = hymn.content;
+    const hymn = id ? hymnsDB.find(h => h.id === id) : null;
+    if (id && !hymn) return;
+    const { meta, body } = SongTools.splitMeta(hymn ? hymn.content : '');
+    document.getElementById('editModalHeading').textContent = hymn ? 'Modifica Cantico' : 'Nuovo Cantico';
+    document.getElementById('editHymnTitle').value = hymn ? hymn.title : '';
+    document.getElementById('editHymnKey').value = meta.key || '';
+    document.getElementById('editHymnTempo').value = meta.tempo || '';
+    document.getElementById('editHymnTime').value = meta.time || '';
+    document.getElementById('editHymnBody').value = body;
+    updateEditPreview();
     document.getElementById('editModal').classList.remove('hidden');
 }
 function closeEditModal() {
     document.getElementById('editModal').classList.add('hidden');
 }
+function getEditedContent() {
+    const key = document.getElementById('editHymnKey').value.trim();
+    const tempo = parseInt(document.getElementById('editHymnTempo').value, 10);
+    const time = document.getElementById('editHymnTime').value;
+    return SongTools.buildContent({
+        key: key && SongTools.parseChord(key) ? key : '',
+        tempo: tempo >= 30 && tempo <= 240 ? tempo : null,
+        time
+    }, document.getElementById('editHymnBody').value);
+}
+function updateEditPreview() {
+    const preview = document.getElementById('editHymnPreview');
+    if (!preview) return;
+    SongTools.render(preview, getEditedContent(), { showChords: true, notation: appSettings.notation });
+}
+['editHymnBody', 'editHymnKey'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateEditPreview);
+});
+document.getElementById('newHymnBtn').addEventListener('click', () => openEditModal(null));
 document.getElementById('saveEditHymnBtn').onclick = async () => {
+    if (!isAdmin) return;
+    const updatedTitle = document.getElementById('editHymnTitle').value.trim();
+    const updatedContent = getEditedContent();
+    if (!updatedTitle) { alert("Inserisci il titolo del cantico."); return; }
     try {
-        const i = hymnsDB.findIndex(h => h.id === editHymnId);
-        const updatedTitle = document.getElementById('editHymnTitle').value;
-        const updatedContent = document.getElementById('editHymnBody').value;
-        const { error } = await supabaseClient.from('cantici').update({ title: updatedTitle, content: updatedContent }).eq('id', editHymnId);
-        if (error) throw error;
-        hymnsDB[i].title = updatedTitle;
-        hymnsDB[i].content = updatedContent;
+        if (editHymnId) {
+            const { error } = await supabaseClient.from('cantici').update({ title: updatedTitle, content: updatedContent }).eq('id', editHymnId);
+            if (error) throw error;
+            const i = hymnsDB.findIndex(h => h.id === editHymnId);
+            if (i !== -1) { hymnsDB[i].title = updatedTitle; hymnsDB[i].content = updatedContent; }
+        } else {
+            const newHymn = { id: crypto.randomUUID(), title: updatedTitle, content: updatedContent };
+            const { error } = await supabaseClient.from('cantici').insert([newHymn]);
+            if (error) throw error;
+            hymnsDB.push(newHymn);
+            updateDashboard();
+        }
         renderHymns();
+        if (isReaderOpen() && window.currentHymnId === editHymnId) {
+            document.getElementById('currentHymnTitle').textContent = updatedTitle;
+            renderCurrentHymn();
+        }
         closeEditModal();
     } catch (e) {
-        alert("Errore aggiornamento cantico: " + e.message);
+        alert("Errore salvataggio cantico: " + e.message);
     }
 };
 
@@ -1374,11 +1105,12 @@ function exportHymnsToZip() {
     const zip = new JSZip();
     const filtered = getFilteredHymns();
     filtered.forEach((hymn) => {
-        const blocks = hymn.content.split(/\n\s*\n/);
+        // Esportazione del solo testo (senza accordi)
+        const blocks = SongTools.lyricSections(hymn.content);
         let formattedContent = '';
-        blocks.forEach((block, blockIdx) => {
-            const isChorus = /coro|chorus|rit|ritornello/i.test(block);
-            let cleanBlock = block.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+        blocks.forEach((section, blockIdx) => {
+            const isChorus = section.isChorus;
+            const cleanBlock = section.lines.join('\n');
             if (isChorus) {
                 formattedContent += `[chór]\n${cleanBlock}\n[/chór]\n\n`;
             } else {
@@ -1418,57 +1150,296 @@ function escapeXml(unsafe) {
     });
 }
 
-// --- VISUALIZZAZIONE CANTICO SENZA ACCORDI ---
-let currentHymnFontSize = 18;
+// --- IMPOSTAZIONI APP (salvate sul dispositivo) ---
+// Accordi: funzione pronta ma in pausa finché i cantici non hanno gli accordi.
+// Per attivarla basta mettere true.
+const CHORDS_ENABLED = false;
+if (!CHORDS_ENABLED) document.body.classList.add('chords-coming-soon');
+
+const DEFAULT_SETTINGS = { theme: 'auto', chordsOn: false, notation: 'it', fontSize: 18, wakeLock: true, metroSound: true, scrollSpeed: 3, toolsOpen: false };
+
+function applyTheme() {
+    const root = document.documentElement;
+    if (appSettings.theme === 'light' || appSettings.theme === 'dark') root.setAttribute('data-theme', appSettings.theme);
+    else root.removeAttribute('data-theme');
+}
+let appSettings = { ...DEFAULT_SETTINGS };
+try { appSettings = { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem('appSettings')) || {}) }; } catch (e) { /* valori predefiniti */ }
+let transposeMap = {};
+try { transposeMap = JSON.parse(localStorage.getItem('transposeMap')) || {}; } catch (e) { transposeMap = {}; }
+
+function saveSettings() {
+    try { localStorage.setItem('appSettings', JSON.stringify(appSettings)); } catch (e) { /* ignora */ }
+}
+function saveTransposeMap() {
+    try { localStorage.setItem('transposeMap', JSON.stringify(transposeMap)); } catch (e) { /* ignora */ }
+}
+
+function setupSettingsPanel() {
+    const bind = (id, key, type) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (type === 'check') el.checked = !!appSettings[key];
+        else el.value = String(appSettings[key]);
+        el.addEventListener(type === 'range' ? 'input' : 'change', () => {
+            appSettings[key] = type === 'check' ? el.checked : (type === 'text' ? el.value : Number(el.value));
+            saveSettings();
+            applySettings(key);
+        });
+    };
+    bind('setTheme', 'theme', 'text');
+    bind('setChordsOn', 'chordsOn', 'check');
+    bind('setNotation', 'notation', 'text');
+    bind('setFontSize', 'fontSize', 'number');
+    bind('setWakeLock', 'wakeLock', 'check');
+    bind('setMetroSound', 'metroSound', 'check');
+    bind('setScrollSpeed', 'scrollSpeed', 'range');
+    applySettings();
+}
+
+function applySettings(changedKey) {
+    applyTheme();
+    Metronome.state.sound = appSettings.metroSound;
+    AutoScroll.setSpeed(appSettings.scrollSpeed);
+    const speedEl = document.getElementById('scrollSpeed');
+    if (speedEl) speedEl.value = appSettings.scrollSpeed;
+    const chordsToggle = document.getElementById('chordsToggle');
+    if (chordsToggle) chordsToggle.checked = appSettings.chordsOn;
+    const setChords = document.getElementById('setChordsOn');
+    if (setChords) setChords.checked = appSettings.chordsOn;
+    if (changedKey === 'fontSize' || changedKey === undefined) {
+        currentHymnFontSize = appSettings.fontSize;
+        updateHymnFontSize();
+    }
+    if (changedKey === 'wakeLock') {
+        if (appSettings.wakeLock && isReaderOpen()) requestWakeLock(); else releaseWakeLock();
+    }
+    if (isReaderOpen()) renderCurrentHymn();
+}
+
+// --- SCHERMO SEMPRE ACCESO DURANTE LA LETTURA ---
+let wakeLockSentinel = null;
+async function requestWakeLock() {
+    if (!appSettings.wakeLock || !('wakeLock' in navigator)) return;
+    try {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+    } catch (e) { wakeLockSentinel = null; }
+}
+function releaseWakeLock() {
+    if (wakeLockSentinel) { wakeLockSentinel.release().catch(() => {}); wakeLockSentinel = null; }
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isReaderOpen()) requestWakeLock();
+});
+
+// --- LETTORE CANTICO CON ACCORDI ---
+let currentHymnFontSize = appSettings.fontSize;
 window.currentHymnId = null;
+
+function isReaderOpen() {
+    const reader = document.getElementById('hymnReaderView');
+    return reader && !reader.classList.contains('hidden') && window.currentHymnId;
+}
+
+function getHymnTranspose(id) {
+    return transposeMap[id] || { t: 0, capo: 0 };
+}
+
+function renderCurrentHymn() {
+    const hymn = hymnsDB.find(h => h.id === window.currentHymnId);
+    if (!hymn) return;
+    const textView = document.getElementById('hymnTextView');
+    const tr = getHymnTranspose(hymn.id);
+    const info = SongTools.render(textView, hymn.content, {
+        showChords: CHORDS_ENABLED && appSettings.chordsOn,
+        transpose: tr.t,
+        capo: tr.capo,
+        notation: appSettings.notation
+    });
+    const reader = document.getElementById('hymnReaderView');
+    const chordsShown = CHORDS_ENABLED && appSettings.chordsOn;
+    reader.classList.toggle('chords-on', chordsShown && info.hasChords);
+    textView.classList.toggle('chords-on', chordsShown && info.hasChords);
+    document.getElementById('chordsMissing').classList.toggle('hidden', !(chordsShown && !info.hasChords));
+    document.getElementById('keyDisplay').textContent = info.keyLabel
+        ? info.keyLabel + (tr.t ? ` (${tr.t > 0 ? '+' : ''}${tr.t})` : '')
+        : '—';
+    document.getElementById('capoSelect').value = String(tr.capo);
+    return info;
+}
 
 function openHymnView(id) {
     const hymn = hymnsDB.find(h => h.id === id);
     if (!hymn) return;
+    stopReaderTools();
     window.currentHymnId = id;
+    if (typeof trackRecentHymn === 'function') trackRecentHymn(id);
     document.getElementById('hymnsListView').classList.add('hidden');
     document.getElementById('hymnReaderView').classList.remove('hidden');
     document.getElementById('currentHymnTitle').textContent = hymn.title;
-    
-    const textView = document.getElementById('hymnTextView');
-    renderHymnTextContent(hymn, textView);
+
+    const info = renderCurrentHymn();
+    // Il metronomo parte dal BPM e dal tempo indicati nel cantico
+    const meta = (info && info.meta) || {};
+    Metronome.setBpm(meta.tempo || 80);
+    const beats = meta.time ? parseInt(String(meta.time).split('/')[0], 10) : 4;
+    Metronome.setBeats([2, 3, 4, 6].includes(beats) ? beats : 4);
+    document.getElementById('bpmInput').value = Metronome.state.bpm;
+    document.getElementById('timeSelect').value = String(Metronome.state.beats);
+    renderBeatDots();
+
     updateHymnFontSize();
+    const textView = document.getElementById('hymnTextView');
     textView.scrollTop = 0;
+    const main = document.querySelector('.main-content');
+    if (main) main.scrollTop = 0;
+    requestWakeLock();
 }
 
-function renderHymnTextContent(hymn, container) {
-    container.innerHTML = '';
-    const blocks = hymn.content.split(/\n\s*\n/);
-    let blockCounter = 0;
+function closeHymnView() {
+    setToolsMenu(false);
+    stopReaderTools();
+    releaseWakeLock();
+    window.currentHymnId = null;
+    document.getElementById('hymnReaderView').classList.add('hidden');
+    document.getElementById('hymnsListView').classList.remove('hidden');
+}
 
-    blocks.forEach((block) => {
-        const cleanBlock = block.trim();
-        if (!cleanBlock) return;
-        blockCounter++;
+function stopReaderTools() {
+    if (Metronome.state.playing) Metronome.stop();
+    if (AutoScroll.state.running) AutoScroll.stop();
+    updateMetroButton();
+    updateScrollButton();
+}
 
-        const isChorus = /^(coro|chorus|rit|ritornello)\b/i.test(cleanBlock);
-        let blockContent = cleanBlock.replace(/^(Coro|Chorus|Rit|Ritornello)\s*[:\-]?\s*/i, '').trim();
+function changeTranspose(delta, reset) {
+    const id = window.currentHymnId;
+    if (!id) return;
+    const tr = { ...getHymnTranspose(id) };
+    tr.t = reset ? 0 : ((tr.t + delta + 18) % 12) - 6; // da -6 a +5
+    if (reset) tr.capo = 0;
+    if (tr.t === 0 && tr.capo === 0) delete transposeMap[id]; else transposeMap[id] = tr;
+    saveTransposeMap();
+    renderCurrentHymn();
+}
 
-        const blockDiv = document.createElement('div');
-        blockDiv.className = `hymn-text-block ${isChorus ? 'hymn-text-chorus' : ''}`;
+function renderBeatDots() {
+    const wrap = document.getElementById('metroBeats');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    for (let i = 0; i < Metronome.state.beats; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'metro-dot' + (i === 0 ? ' first' : '');
+        wrap.appendChild(dot);
+    }
+}
 
-        const label = document.createElement('div');
-        label.className = 'hymn-block-label';
-        label.textContent = isChorus ? 'Coro' : `Strofa ${blockCounter}`;
-        blockDiv.appendChild(label);
+function updateMetroButton() {
+    const btn = document.getElementById('metroToggle');
+    if (!btn) return;
+    btn.innerHTML = Metronome.state.playing ? '<i class="ri-stop-fill"></i>' : '<i class="ri-play-fill"></i>';
+    btn.classList.toggle('active', Metronome.state.playing);
+    if (!Metronome.state.playing) document.querySelectorAll('.metro-dot').forEach(d => d.classList.remove('on'));
+}
 
-        const lines = blockContent.split('\n');
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed === '') return;
-            const lineDiv = document.createElement('div');
-            lineDiv.className = 'hymn-line';
-            lineDiv.textContent = trimmed;
-            blockDiv.appendChild(lineDiv);
-        });
+function updateScrollButton() {
+    const btn = document.getElementById('scrollToggle');
+    if (!btn) return;
+    btn.classList.toggle('active', AutoScroll.state.running);
+    btn.innerHTML = AutoScroll.state.running ? '<i class="ri-pause-fill"></i>' : '<i class="ri-arrow-down-double-line"></i>';
+}
 
-        container.appendChild(blockDiv);
+Metronome.state.onBeat = (beat) => {
+    const dots = document.querySelectorAll('#metroBeats .metro-dot');
+    dots.forEach((d, i) => d.classList.toggle('on', i === beat));
+};
+AutoScroll.state.onStop = updateScrollButton;
+
+// Menu "Strumenti musicali" (pulsante ♪ in alto a destra)
+let toolsMenuOpen = false;
+function applyToolsVisibility() {
+    document.getElementById('readerToolbar').classList.toggle('hidden', !toolsMenuOpen);
+    const btn = document.getElementById('toolsToggleBtn');
+    btn.classList.toggle('is-on', toolsMenuOpen);
+    btn.setAttribute('aria-expanded', String(toolsMenuOpen));
+}
+function setToolsMenu(open) {
+    toolsMenuOpen = open;
+    applyToolsVisibility();
+}
+
+function setupReaderTools() {
+    document.getElementById('toolsToggleBtn').onclick = (e) => {
+        e.stopPropagation();
+        setToolsMenu(!toolsMenuOpen);
+    };
+    document.getElementById('toolsMenuClose').onclick = () => setToolsMenu(false);
+    // Chiude il menu toccando fuori o con Esc (metronomo e scorrimento continuano)
+    document.addEventListener('click', (e) => {
+        if (toolsMenuOpen && !e.target.closest('.tools-menu-wrap')) setToolsMenu(false);
     });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && toolsMenuOpen) setToolsMenu(false);
+    });
+    applyToolsVisibility();
+    document.getElementById('chordsToggle').addEventListener('change', (e) => {
+        appSettings.chordsOn = e.target.checked;
+        saveSettings();
+        applySettings('chordsOn');
+    });
+    document.getElementById('transposeUp').onclick = () => changeTranspose(1);
+    document.getElementById('transposeDown').onclick = () => changeTranspose(-1);
+    document.getElementById('transposeReset').onclick = () => changeTranspose(0, true);
+    document.getElementById('capoSelect').addEventListener('change', (e) => {
+        const id = window.currentHymnId;
+        if (!id) return;
+        const tr = { ...getHymnTranspose(id), capo: parseInt(e.target.value, 10) || 0 };
+        if (tr.t === 0 && tr.capo === 0) delete transposeMap[id]; else transposeMap[id] = tr;
+        saveTransposeMap();
+        renderCurrentHymn();
+    });
+
+    document.getElementById('metroToggle').onclick = () => {
+        if (Metronome.state.playing) Metronome.stop(); else Metronome.start();
+        updateMetroButton();
+    };
+    const bpmInput = document.getElementById('bpmInput');
+    const setBpm = (v) => { Metronome.setBpm(v); bpmInput.value = Metronome.state.bpm; };
+    bpmInput.addEventListener('change', () => setBpm(bpmInput.value));
+    document.getElementById('bpmUp').onclick = () => setBpm(Metronome.state.bpm + 1);
+    document.getElementById('bpmDown').onclick = () => setBpm(Metronome.state.bpm - 1);
+    document.getElementById('timeSelect').addEventListener('change', (e) => {
+        Metronome.setBeats(e.target.value);
+        renderBeatDots();
+    });
+    let taps = [];
+    document.getElementById('tapTempo').onclick = () => {
+        const now = performance.now();
+        taps = taps.filter(t => now - t < 3000);
+        taps.push(now);
+        if (taps.length >= 2) {
+            const intervals = taps.slice(1).map((t, i) => t - taps[i]).slice(-4);
+            const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+            setBpm(60000 / avg);
+        }
+    };
+
+    document.getElementById('scrollToggle').onclick = () => {
+        if (AutoScroll.state.running) AutoScroll.stop();
+        else AutoScroll.start(document.getElementById('hymnTextView'));
+        updateScrollButton();
+    };
+    document.getElementById('scrollSpeed').addEventListener('input', (e) => {
+        AutoScroll.setSpeed(e.target.value);
+        appSettings.scrollSpeed = AutoScroll.state.speed;
+        saveSettings();
+        const s = document.getElementById('setScrollSpeed');
+        if (s) s.value = appSettings.scrollSpeed;
+    });
+
+    document.getElementById('addChordsBtn').onclick = () => {
+        if (window.currentHymnId) openEditModal(window.currentHymnId);
+    };
 }
 
 document.getElementById('increaseHymnFont').onclick = () => {
@@ -1488,10 +1459,10 @@ function updateHymnFontSize() {
     document.getElementById('hymnTextView').style.fontSize = `${currentHymnFontSize}px`;
 }
 
-document.getElementById('backToHymns').onclick = () => {
-    document.getElementById('hymnReaderView').classList.add('hidden');
-    document.getElementById('hymnsListView').classList.remove('hidden');
-};
+document.getElementById('backToHymns').onclick = closeHymnView;
+
+setupReaderTools();
+setupSettingsPanel();
 
 // --- BIBBIA ---
 const bibleBooks = [
@@ -1529,7 +1500,6 @@ chapterSelect.addEventListener('change', () => {
 });
 bookSelect.dispatchEvent(new Event('change'));
 
-let currentBibleFontSize = 22;
 window.changeChapter = function (direction) {
     const current = parseInt(chapterSelect.value);
     const max = chapterSelect.options.length - 1;
@@ -1559,43 +1529,22 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     const verse = verseSelect.value;
     const reader = document.getElementById('bibleReaderContent');
     if (!chapter) return alert("Seleziona almeno un capitolo.");
-    
+
     showSpinner(reader);
-    
+
     try {
         const data = await fetchBibleData(version, bookId, chapter);
-        let html = `<div style="text-align: center; margin-bottom: 30px;"><h2 style="font-weight:800; font-size:32px; color: var(--text-main); margin:0;">${escapeHtml(bookName)} ${chapter}</h2></div><div style="margin-bottom: 20px;">`;
-        data.forEach(v => {
-            const cleanText = v.text.replace(/<\/?(?:span|i|b|div)[^>]*>/g, '');
-            const isHighlight = highlightsDB.some(h => h.book == bookId && h.chapter == chapter && h.verse == v.verse);
-            html += `<span class="bible-verse ${isHighlight ? 'highlighted' : ''}" id="verse-${v.verse}" data-book="${bookId}" data-bookname="${escapeHtml(bookName)}" data-chapter="${chapter}" data-verse="${v.verse}" data-text="${escapeHtml(cleanText).replace(/"/g, '&quot;')}">
-                        <sup style="color:var(--accent-color); font-weight:bold; font-size: 14px; margin-right:6px;">${v.verse}</sup>
-                        ${cleanText}
-                     </span>`;
-        });
-        html += `</div>`;
-        reader.innerHTML = html;
+        reader.innerHTML = renderBibleChapter(data, { bookId, bookName, chapter, version });
+        setReadingImmersive(false);
+        if (!verse) document.querySelector('.main-content').scrollTo({ top: 0 });
         updateBibleFontSize();
         document.getElementById('bibleCurrentChapterDisplay').textContent = `${bookName} ${chapter}`;
         updateBibleControlsVisibility();
-        document.querySelectorAll('.bible-verse').forEach(el => {
-            el.addEventListener('click', function () {
-                const bId = this.dataset.book;
-                const bName = this.dataset.bookname;
-                const ch = this.dataset.chapter;
-                const ve = this.dataset.verse;
-                const txt = this.dataset.text;
-                const existingIndex = highlightsDB.findIndex(h => h.book === bId && h.chapter === ch && h.verse == ve);
-                if (existingIndex >= 0) {
-                    highlightsDB.splice(existingIndex, 1);
-                    this.classList.remove('highlighted');
-                } else {
-                    highlightsDB.push({ book: bId, bookName: bName, chapter: ch, verse: ve, text: txt, id: Date.now() });
-                    this.classList.add('highlighted');
-                }
-                localStorage.setItem('highlightsDB', JSON.stringify(highlightsDB));
-                renderHighlights();
-            });
+        // Tocco su un versetto: lo seleziona (sottolineato) e apre la barra delle azioni
+        clearVerseSelection();
+        bibleChapterInfo = { bookId, bookName, chapter, version };
+        reader.querySelectorAll('.bible-verse').forEach(el => {
+            el.addEventListener('click', () => toggleVerseSelection(el));
         });
         if (verse) {
             setTimeout(() => {
@@ -1614,95 +1563,603 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
     }
 });
 
-function updateBibleFontSize() {
-    document.getElementById('bibleReaderContent').style.fontSize = `${currentBibleFontSize}px`;
+// --- LETTURA DELLA BIBBIA: versetti di seguito, come in una Bibbia stampata ---
+// Dal testo di un versetto separa: titolo di paragrafo, riferimenti/note e testo.
+// Le fonti attuali danno solo il testo; titoli e riferimenti compaiono se una fonte li fornisce.
+function splitBibleVerse(v) {
+    const raw = String(v.text || '');
+    const doc = new DOMParser().parseFromString(raw, 'text/html');
+    let heading = String(v.title || v.heading || '').trim();
+    doc.body.querySelectorAll('h, h1, h2, h3, h4, title, .heading, [class*="title"]').forEach(el => {
+        if (!heading) heading = el.textContent.trim();
+        el.remove();
+    });
+    const refs = [];
+    doc.body.querySelectorAll('sup, .footnote, .crossref, note, [class*="ref"]').forEach(el => {
+        const t = el.textContent.trim();
+        if (t && !/^\d+$/.test(t)) refs.push(t);
+        el.remove();
+    });
+    if (v.comment) {
+        const c = new DOMParser().parseFromString(String(v.comment), 'text/html').body.textContent.trim();
+        if (c) refs.push(c);
+    }
+    // Un "a capo" nel testo indica l'inizio di un nuovo paragrafo
+    const newParagraph = /^\s*<br\s*\/?>/i.test(raw) || /¶/.test(raw);
+    const text = doc.body.textContent.replace(/¶/g, '').replace(/\s+/g, ' ').trim();
+    return { heading, refs, text, newParagraph };
 }
-document.getElementById('increaseBibleFont').onclick = () => { currentBibleFontSize += 2; updateBibleFontSize(); };
+
+function renderBibleChapter(data, { bookId, bookName, chapter, version }) {
+    const versionName = document.querySelector(`#bibleVersion option[value="${version}"]`)?.textContent || '';
+    let html = `<header class="bible-chapter-head"><h2>${escapeHtml(bookName)} ${escapeHtml(String(chapter))}</h2><span>${escapeHtml(versionName)}</span></header>`;
+    let paragraphOpen = false;
+    const openParagraph = () => { html += '<p class="bible-paragraph">'; paragraphOpen = true; };
+    const closeParagraph = () => { if (paragraphOpen) html += '</p>'; paragraphOpen = false; };
+
+    data.forEach((v, i) => {
+        const part = splitBibleVerse(v);
+        if (part.heading) {
+            closeParagraph();
+            html += `<h3 class="bible-heading">${escapeHtml(part.heading)}</h3>`;
+        }
+        if (!paragraphOpen || (part.newParagraph && i > 0)) { closeParagraph(); openParagraph(); }
+        const text = escapeHtml(part.text);
+        const hl = highlightsDB.find(h => h.book == bookId && h.chapter == chapter && h.verse == v.verse);
+        html += `<span class="bible-verse${hl ? ' highlighted' : ''}"${hl ? ` data-hl="${escapeHtml(hl.color || 'yellow')}"` : ''} id="verse-${v.verse}" data-book="${bookId}" data-bookname="${escapeHtml(bookName)}" data-chapter="${chapter}" data-verse="${v.verse}" data-text="${text}">`
+            + `<sup class="bible-verse-num">${escapeHtml(String(v.verse))}</sup>${text}`
+            + (part.refs.length ? `<span class="bible-refs">${part.refs.map(escapeHtml).join(' · ')}</span>` : '')
+            + `</span> `;
+    });
+    closeParagraph();
+    return `<div class="bible-text">${html}</div>`;
+}
+
+// --- SELEZIONE DEI VERSETTI ---
+// Tocco: il versetto viene sottolineato; si possono sceglierne altri.
+// La barra in basso permette di evidenziare (5 colori), copiare, condividere,
+// creare un'immagine o aggiungere i versetti a un appunto.
+const HIGHLIGHT_COLORS = [
+    { id: 'yellow', name: 'Giallo' },
+    { id: 'green', name: 'Verde' },
+    { id: 'blue', name: 'Azzurro' },
+    { id: 'pink', name: 'Rosa' },
+    { id: 'orange', name: 'Arancio' }
+];
+let bibleChapterInfo = null;
+const selectedVerses = new Set();
+
+function selectedVerseEls() {
+    return [...selectedVerses]
+        .map(v => document.getElementById(`verse-${v}`))
+        .filter(Boolean)
+        .sort((a, b) => Number(a.dataset.verse) - Number(b.dataset.verse));
+}
+
+// "16-18, 20" a partire dai numeri dei versetti
+function formatVerseRanges(nums) {
+    const sorted = [...nums].map(Number).sort((a, b) => a - b);
+    const parts = [];
+    for (let i = 0; i < sorted.length; i++) {
+        let j = i;
+        while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
+        parts.push(i === j ? `${sorted[i]}` : `${sorted[i]}-${sorted[j]}`);
+        i = j;
+    }
+    return parts.join(', ');
+}
+
+function selectionInfo() {
+    const els = selectedVerseEls();
+    if (!els.length || !bibleChapterInfo) return null;
+    const ref = `${bibleChapterInfo.bookName} ${bibleChapterInfo.chapter}:${formatVerseRanges(els.map(e => e.dataset.verse))}`;
+    const text = els.map(e => new DOMParser().parseFromString(e.dataset.text, 'text/html').body.textContent).join(' ');
+    const versionName = document.querySelector(`#bibleVersion option[value="${bibleChapterInfo.version}"]`)?.textContent || '';
+    return { els, ref, text, versionName };
+}
+
+function toggleVerseSelection(el) {
+    const v = el.dataset.verse;
+    if (selectedVerses.has(v)) selectedVerses.delete(v); else selectedVerses.add(v);
+    el.classList.toggle('selected', selectedVerses.has(v));
+    updateVerseActionBar();
+}
+
+function clearVerseSelection() {
+    selectedVerses.clear();
+    document.querySelectorAll('.bible-verse.selected').forEach(e => e.classList.remove('selected'));
+    updateVerseActionBar();
+}
+
+function updateVerseActionBar() {
+    const bar = document.getElementById('verseActionBar');
+    if (!bar) return;
+    const info = selectionInfo();
+    const open = !!info;
+    bar.classList.toggle('open', open);
+    document.body.classList.toggle('verse-selecting', open);
+    if (!open) return;
+    document.getElementById('verseActionRef').textContent = info.ref;
+    // colore attivo se tutti i versetti scelti hanno lo stesso
+    const colors = new Set(info.els.map(e => e.dataset.hl || ''));
+    const current = colors.size === 1 ? [...colors][0] : '';
+    bar.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('active', b.dataset.color === current));
+    bar.querySelector('[data-act="unhighlight"]').hidden = ![...colors].some(Boolean);
+}
+
+function highlightSelection(color) {
+    const info = selectionInfo();
+    if (!info) return;
+    const { bookId, bookName, chapter } = bibleChapterInfo;
+    info.els.forEach(el => {
+        const v = el.dataset.verse;
+        highlightsDB = highlightsDB.filter(h => !(h.book == bookId && h.chapter == chapter && h.verse == v));
+        if (color) {
+            highlightsDB.push({ book: String(bookId), bookName, chapter: String(chapter), verse: String(v),
+                text: new DOMParser().parseFromString(el.dataset.text, 'text/html').body.textContent, color, id: Date.now() + Number(v) });
+            el.classList.add('highlighted');
+            el.dataset.hl = color;
+        } else {
+            el.classList.remove('highlighted');
+            delete el.dataset.hl;
+        }
+    });
+    localStorage.setItem('highlightsDB', JSON.stringify(highlightsDB));
+    renderHighlights();
+    updateDashboard();
+    clearVerseSelection();
+}
+
+async function handleVerseAction(act) {
+    const info = selectionInfo();
+    if (!info) return;
+    const quoted = `“${info.text}”\n— ${info.ref}${info.versionName ? ` (${info.versionName})` : ''}`;
+    if (act === 'copy') {
+        showVerseToast(await copyText(quoted) ? 'Copiato' : 'Copia non riuscita');
+        clearVerseSelection();
+    } else if (act === 'share') {
+        await shareContent(info.ref, quoted);
+        clearVerseSelection();
+    } else if (act === 'image') {
+        clearVerseSelection();
+        if (typeof openShareVerseModal === 'function') openShareVerseModal({ text: info.text, ref: info.ref, kicker: 'Parola di Dio' });
+    } else if (act === 'note') {
+        clearVerseSelection();
+        insertIntoNote(`> "${info.text}"\n> [${info.ref}]`);
+    } else if (act === 'unhighlight') {
+        highlightSelection(null);
+    } else if (act === 'close') {
+        clearVerseSelection();
+    }
+}
+
+// Copia negli appunti: metodo moderno, con quello classico come riserva
+async function copyText(text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (e) { /* si prova il metodo classico */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+}
+
+let verseToastTimer = null;
+function showVerseToast(message) {
+    const t = document.getElementById('verseToast');
+    if (!t) return;
+    t.textContent = message;
+    t.classList.add('show');
+    clearTimeout(verseToastTimer);
+    verseToastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+(function setupVerseActionBar() {
+    const bar = document.getElementById('verseActionBar');
+    if (!bar) return;
+    const colors = bar.querySelector('.verse-colors');
+    colors.innerHTML = HIGHLIGHT_COLORS.map(c => `<button type="button" class="hl-dot hl-${c.id}" data-color="${c.id}" title="Evidenzia: ${c.name}" aria-label="Evidenzia in ${c.name}"></button>`).join('');
+    colors.querySelectorAll('[data-color]').forEach(b => { b.onclick = () => highlightSelection(b.dataset.color); });
+    bar.querySelectorAll('[data-act]').forEach(b => { b.onclick = () => handleVerseAction(b.dataset.act); });
+    // Esc o cambio di sezione: si annulla la selezione
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && selectedVerses.size) clearVerseSelection(); });
+    document.querySelectorAll('.nav-item[data-target]').forEach(n => n.addEventListener('click', () => { if (selectedVerses.size) clearVerseSelection(); }));
+})();
+
+// --- IMPOSTAZIONI DI LETTURA DELLA BIBBIA ---
+const BIBLE_FONTS = [
+    { id: 'serif', name: 'Classico (con grazie)', css: '"Lora", Georgia, "Times New Roman", serif' },
+    { id: 'system', name: 'Sistema (stile Apple)', css: 'var(--font)' },
+    { id: 'playfair', name: 'Elegante', css: '"Playfair Display", Georgia, serif' },
+    { id: 'montserrat', name: 'Moderno', css: '"Montserrat", "Inter", sans-serif' }
+];
+const BIBLE_THEMES = [
+    { id: 'default', name: 'Normale' },
+    { id: 'sepia', name: 'Carta' },
+    { id: 'night', name: 'Notte' }
+];
+const DEFAULT_BIBLE_PREFS = { font: 'serif', size: 20, lineHeight: 1.75, numbers: true, justify: false, theme: 'default' };
+function getBiblePrefs() {
+    return { ...DEFAULT_BIBLE_PREFS, ...(appSettings.bible || {}) };
+}
+function saveBiblePrefs(prefs) {
+    appSettings.bible = prefs;
+    saveSettings();
+}
+let currentBibleFontSize = getBiblePrefs().size;
+
+function applyBiblePrefs() {
+    const prefs = getBiblePrefs();
+    currentBibleFontSize = prefs.size;
+    const card = document.querySelector('#bibbia .bible-card');
+    const reader = document.getElementById('bibleReaderContent');
+    if (!card || !reader) return;
+    if (prefs.font !== 'system') {
+        // Carica i caratteri solo quando servono
+        if (typeof ensureProjFonts === 'function') ensureProjFonts();
+    }
+    reader.style.setProperty('--bible-font', (BIBLE_FONTS.find(f => f.id === prefs.font) || BIBLE_FONTS[0]).css);
+    reader.style.setProperty('--bible-line', String(prefs.lineHeight));
+    reader.style.fontSize = `${prefs.size}px`;
+    reader.classList.toggle('no-verse-numbers', !prefs.numbers);
+    reader.classList.toggle('justify', !!prefs.justify);
+    card.dataset.theme = prefs.theme;
+}
+
+function updateBibleFontSize() {
+    const prefs = getBiblePrefs();
+    prefs.size = currentBibleFontSize;
+    saveBiblePrefs(prefs);
+    applyBiblePrefs();
+    const range = document.querySelector('#bibleSettingsMenu [data-b="size"]');
+    if (range) { range.value = String(prefs.size); const l = document.querySelector('#bibleSettingsMenu [data-size-label]'); if (l) l.textContent = prefs.size + 'px'; }
+}
+document.getElementById('increaseBibleFont').onclick = () => { if (currentBibleFontSize < 40) currentBibleFontSize += 2; updateBibleFontSize(); };
 document.getElementById('decreaseBibleFont').onclick = () => { if (currentBibleFontSize > 14) currentBibleFontSize -= 2; updateBibleFontSize(); };
+
+function renderBibleSettings(menu) {
+    const p = getBiblePrefs();
+    menu.innerHTML = `
+        <div class="bible-menu-title">Impostazioni di lettura</div>
+        <label class="ps-field"><span>Carattere</span>
+            <select class="apple-select" data-b="font">${BIBLE_FONTS.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}</select>
+        </label>
+        <label class="ps-field"><span>Grandezza <b data-size-label>${p.size}px</b></span>
+            <input type="range" min="14" max="40" step="1" data-b="size">
+        </label>
+        <div class="ps-field"><span>Interlinea</span>
+            <div class="segmented bible-seg" data-b="lineHeight">
+                <button type="button" class="favorites-tab" data-v="1.5">Stretta</button>
+                <button type="button" class="favorites-tab" data-v="1.75">Normale</button>
+                <button type="button" class="favorites-tab" data-v="2.05">Ampia</button>
+            </div>
+        </div>
+        <div class="ps-field"><span>Pagina</span>
+            <div class="segmented bible-seg" data-b="theme">
+                ${BIBLE_THEMES.map(t => `<button type="button" class="favorites-tab" data-v="${t.id}">${t.name}</button>`).join('')}
+            </div>
+        </div>
+        <div class="ps-toggles">
+            <label class="ps-check"><input type="checkbox" data-b="numbers"> Numeri dei versetti</label>
+            <label class="ps-check"><input type="checkbox" data-b="justify"> Giustificato</label>
+        </div>`;
+    const set = (key, value) => {
+        const prefs = getBiblePrefs();
+        prefs[key] = value;
+        saveBiblePrefs(prefs);
+        applyBiblePrefs();
+    };
+    const font = menu.querySelector('[data-b="font"]');
+    font.value = p.font;
+    font.onchange = () => set('font', font.value);
+    const size = menu.querySelector('[data-b="size"]');
+    size.value = String(p.size);
+    size.oninput = () => { menu.querySelector('[data-size-label]').textContent = size.value + 'px'; set('size', Number(size.value)); };
+    menu.querySelectorAll('.bible-seg').forEach(seg => {
+        const key = seg.dataset.b;
+        const current = String(p[key]);
+        seg.querySelectorAll('[data-v]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.v === current);
+            btn.onclick = () => {
+                seg.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('active', b === btn));
+                set(key, key === 'lineHeight' ? Number(btn.dataset.v) : btn.dataset.v);
+            };
+        });
+    });
+    ['numbers', 'justify'].forEach(key => {
+        const box = menu.querySelector(`[data-b="${key}"]`);
+        box.checked = !!p[key];
+        box.onchange = () => set(key, box.checked);
+    });
+}
+
+(function setupBibleSettings() {
+    const btn = document.getElementById('bibleSettingsBtn');
+    const menu = document.getElementById('bibleSettingsMenu');
+    if (!btn || !menu) return;
+    const close = () => { menu.classList.add('hidden'); btn.classList.remove('is-on'); btn.setAttribute('aria-expanded', 'false'); };
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        if (menu.classList.contains('hidden')) {
+            renderBibleSettings(menu);
+            menu.classList.remove('hidden');
+            btn.classList.add('is-on');
+            btn.setAttribute('aria-expanded', 'true');
+        } else close();
+    };
+    menu.onclick = (e) => e.stopPropagation();
+    document.addEventListener('click', () => { if (!menu.classList.contains('hidden')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) close(); });
+    applyBiblePrefs();
+    // i caratteri vengono caricati da projection.js: si riapplica a pagina pronta
+    window.addEventListener('load', applyBiblePrefs);
+})();
+
+// --- LETTURA A SCHERMO PIENO ---
+// Scorrendo in giù si nascondono intestazione, barra di navigazione e barra del capitolo;
+// scorrendo in su (o arrivando in cima / in fondo al capitolo) ricompaiono.
+function setReadingImmersive(on) {
+    if (document.body.classList.contains('reading-immersive') === on) return;
+    document.body.classList.toggle('reading-immersive', on);
+    if (on) {
+        const menu = document.getElementById('bibleSettingsMenu');
+        if (menu && !menu.classList.contains('hidden')) document.body.click();
+    }
+}
+(function setupImmersiveBible() {
+    const main = document.querySelector('.main-content');
+    const section = document.getElementById('bibbia');
+    const bar = document.querySelector('#bibleProgress span');
+    if (!main || !section) return;
+    let lastY = main.scrollTop;
+    const update = () => {
+        const y = main.scrollTop;
+        const max = main.scrollHeight - main.clientHeight;
+        const hasText = !!document.querySelector('#bibleReaderContent .bible-verse');
+        if (!section.classList.contains('active') || !hasText) {
+            setReadingImmersive(false);
+            if (bar) bar.style.transform = 'scaleX(0)';
+            lastY = y;
+            return;
+        }
+        const progress = max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
+        if (bar) bar.style.transform = 'scaleX(' + progress + ')';
+        const dy = y - lastY;
+        if (y < 80 || y > max - 60) setReadingImmersive(false);      // in cima o in fondo: comandi visibili
+        else if (dy > 6) setReadingImmersive(true);                  // scorre in giù: solo testo
+        else if (dy < -10) setReadingImmersive(false);               // scorre in su: tornano i comandi
+        if (Math.abs(dy) > 6 || y < 80 || y > max - 60) lastY = y;
+    };
+    main.addEventListener('scroll', update, { passive: true });
+    window.updateReadingImmersive = update;
+})();
 
 // --- APPUNTI ---
 let activeNoteId = null;
 let currentEditingNoteId = null;
+let notesSearch = '';
+let notesFilter = 'all';
+
+const NOTE_CATEGORIES = [
+    { id: 'Predica', icon: 'ri-mic-line', tone: 'blue' },
+    { id: 'Studio Biblico', icon: 'ri-book-open-line', tone: 'green' },
+    { id: 'Riunione Giovani', icon: 'ri-group-line', tone: 'orange' },
+    { id: 'Nota', icon: 'ri-sticky-note-line', tone: 'purple' }
+];
+function noteCategory(name) {
+    return NOTE_CATEGORIES.find(c => c.id === name) || NOTE_CATEGORIES[NOTE_CATEGORIES.length - 1];
+}
+function noteCatId(n) {
+    return NOTE_CATEGORIES.some(c => c.id === n.category) ? n.category : 'Nota';
+}
+function noteDate(n) {
+    const d = n.updated_at ? new Date(n.updated_at) : null;
+    return d && !isNaN(d) ? d : null;
+}
+function formatNoteDate(d, long) {
+    if (!d) return '';
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    if (!long && sameDay) return 'Oggi, ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('it-IT', long
+        ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+        : { day: 'numeric', month: 'short', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+}
+// Testo semplice senza simboli di formattazione (per anteprima, ricerca, condivisione)
+function notePlainText(body) {
+    return String(body || '')
+        .replace(/^#{1,3}\s+/gm, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/^>\s?/gm, '')
+        .replace(/^[-•]\s+/gm, '• ');
+}
+
+// Formattazione leggera: # titolo, **grassetto**, *corsivo*, - elenco, > citazione, [Giovanni 3:16]
+function renderNoteBody(body) {
+    const lines = escapeHtml(String(body || '')).split('\n');
+    let html = '';
+    let list = false;
+    const inline = s => s
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\[([^\]\n]{3,40}?\s\d{1,3}:\d{1,3}(?:-\d{1,3})?)\]/g, '<span class="note-verse-ref"><i class="ri-book-open-line"></i> $1</span>');
+    const closeList = () => { if (list) { html += '</ul>'; list = false; } };
+    lines.forEach(line => {
+        if (/^###?\s+/.test(line)) { closeList(); html += `<h4>${inline(line.replace(/^###?\s+/, ''))}</h4>`; }
+        else if (/^#\s+/.test(line)) { closeList(); html += `<h3>${inline(line.replace(/^#\s+/, ''))}</h3>`; }
+        else if (/^(-|•)\s+/.test(line)) { if (!list) { html += '<ul>'; list = true; } html += `<li>${inline(line.replace(/^(-|•)\s+/, ''))}</li>`; }
+        else if (/^&gt;\s?/.test(line)) { closeList(); html += `<blockquote>${inline(line.replace(/^&gt;\s?/, ''))}</blockquote>`; }
+        else if (!line.trim()) { closeList(); html += '<div class="note-gap"></div>'; }
+        else { closeList(); html += `<p>${inline(line)}</p>`; }
+    });
+    closeList();
+    return html;
+}
+
+function getFilteredNotes() {
+    const term = normalizeSearch(notesSearch).trim();
+    return [...notesDB]
+        .filter(n => notesFilter === 'all' || noteCatId(n) === notesFilter)
+        .filter(n => !term || normalizeSearch([n.title, n.speaker, n.refs, n.body, n.category].join(' ')).includes(term))
+        .sort((a, b) => (noteDate(b) || 0) - (noteDate(a) || 0));
+}
 
 function renderNotes() {
     const ul = document.getElementById('notesUl');
+    if (!ul) return;
+    // Conteggi per i filtri
+    document.querySelectorAll('#notesFilters [data-filter]').forEach(btn => {
+        const f = btn.dataset.filter;
+        const count = f === 'all' ? notesDB.length : notesDB.filter(n => noteCatId(n) === f).length;
+        const badge = btn.querySelector('.count');
+        if (badge) badge.textContent = count;
+        btn.classList.toggle('active', f === notesFilter);
+    });
+    const countEl = document.getElementById('notesCount');
+    if (countEl) countEl.textContent = notesDB.length === 1 ? '1 appunto' : `${notesDB.length} appunti`;
+
+    const notes = getFilteredNotes();
     ul.innerHTML = '';
-    const sortedNotes = [...notesDB].reverse();
-    sortedNotes.forEach(n => {
+    if (!notes.length) {
+        ul.innerHTML = notesDB.length
+            ? '<li class="notes-empty"><i class="ri-search-line"></i><strong>Nessun risultato</strong><span>Prova con un\'altra parola o cambia filtro.</span></li>'
+            : '<li class="notes-empty"><i class="ri-quill-pen-line"></i><strong>Nessun appunto</strong><span>Prendi nota di prediche e studi biblici: li ritrovi qui, su tutti i tuoi dispositivi.</span><button class="btn-apple" onclick="openNoteModal()"><i class="ri-add-line"></i> Nuovo appunto</button></li>';
+        return;
+    }
+    notes.forEach(n => {
+        const cat = noteCategory(n.category);
         const li = document.createElement('li');
-        li.className = 'sermon-card';
+        li.className = 'note-card';
+        li.tabIndex = 0;
+        const preview = notePlainText(n.body).replace(/\s+/g, ' ').trim();
+        const meta = [n.speaker ? `<span><i class="ri-user-voice-line"></i> ${escapeHtml(n.speaker)}</span>` : '',
+                      n.refs ? `<span><i class="ri-book-mark-line"></i> ${escapeHtml(n.refs)}</span>` : ''].join('');
         li.innerHTML = `
-            <span class="sermon-badge">${escapeHtml(n.category || 'Appunto')}</span>
-            <div style="display:flex; align-items:center; gap:8px; padding-right: 60px;">
-                <i class="ri-file-list-3-line text-muted"></i> 
-                <span style="font-size:15px; font-weight:500;">${escapeHtml(n.title || "Senza titolo")}</span>
+            <div class="note-card-top">
+                <span class="note-cat tone-${cat.tone}"><i class="${cat.icon}"></i> ${escapeHtml(n.category || 'Nota')}</span>
+                <span class="note-date">${escapeHtml(formatNoteDate(noteDate(n)))}</span>
             </div>
-            <button class="delete-sermon-from-list" onclick="event.stopPropagation(); deleteNoteFromList('${n.id}')">
-                <i class="ri-delete-bin-line"></i>
-            </button>
-        `;
-        li.onclick = () => {
-            openNoteViewModal(n);
-        };
+            <h3 class="note-card-title">${escapeHtml(n.title || 'Senza titolo')}</h3>
+            ${meta ? `<div class="note-card-meta">${meta}</div>` : ''}
+            ${preview ? `<p class="note-card-preview">${escapeHtml(preview.slice(0, 220))}</p>` : ''}
+            <button class="note-card-delete" title="Elimina" onclick="event.stopPropagation(); deleteNoteFromList('${escapeHtml(n.id)}')"><i class="ri-delete-bin-line"></i></button>`;
+        li.onclick = () => openNoteViewModal(n);
+        li.onkeydown = (e) => { if (e.key === 'Enter') openNoteViewModal(n); };
         ul.appendChild(li);
     });
 }
 
 async function deleteNoteFromList(id) {
-    if (confirm("Sei sicuro di voler eliminare questo appunto?")) {
-        await supabaseClient.from('appunti').delete().eq('id', id);
-        notesDB = notesDB.filter(n => n.id !== id);
-        saveNotes();
-        if (activeNoteId === id) activeNoteId = null;
-        renderNotes();
-        updateDashboard();
-    }
+    const note = notesDB.find(n => n.id === id);
+    if (!confirm(`Eliminare l'appunto "${note && note.title ? note.title : 'Senza titolo'}"? Non si potrà recuperare.`)) return false;
+    const { error } = await supabaseClient.from('appunti').delete().eq('id', id);
+    if (error) { alert('Errore durante l\'eliminazione: ' + error.message); return false; }
+    notesDB = notesDB.filter(n => n.id !== id);
+    localStorage.setItem('notesDB', JSON.stringify(notesDB));
+    if (activeNoteId === id) activeNoteId = null;
+    renderNotes();
+    updateDashboard();
+    return true;
 }
 
+function setupNotesToolbar() {
+    const search = document.getElementById('notesSearch');
+    if (search) search.addEventListener('input', () => { notesSearch = search.value; renderNotes(); });
+    document.querySelectorAll('#notesFilters [data-filter]').forEach(btn => {
+        btn.onclick = () => { notesFilter = btn.dataset.filter; renderNotes(); };
+    });
+}
+
+// --- VERSETTI EVIDENZIATI ---
 function renderHighlights() {
     const ul = document.getElementById('highlightsUl');
+    if (!ul) return;
     ul.innerHTML = '';
+    const countEl = document.getElementById('highlightsCount');
+    if (countEl) countEl.textContent = highlightsDB.length;
     if (highlightsDB.length === 0) {
-        ul.innerHTML = '<li style="padding: 15px; font-size:12px; color:var(--text-muted); text-align:center;">Nessun versetto evidenziato.</li>';
+        ul.innerHTML = '<li class="notes-empty notes-empty-small"><i class="ri-mark-pen-line"></i><span>Tocca un versetto nella Bibbia per evidenziarlo: lo ritrovi qui.</span></li>';
         return;
     }
     [...highlightsDB].reverse().forEach(h => {
         const li = document.createElement('li');
-        li.className = 'highlight-item';
-        li.innerHTML = `<strong style="color:#ff9500;">${escapeHtml(h.bookName)} ${h.chapter}:${h.verse}</strong><br>"${escapeHtml(h.text.substring(0, 80))}${h.text.length > 80 ? '...' : ''}"`;
-        li.onclick = () => {
-            const modalBody = document.getElementById('modalNoteBody');
-            if (modalBody && document.getElementById('noteModal').classList.contains('hidden') === false) {
-                const currentText = modalBody.value;
-                modalBody.value = currentText + `\n\n[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"\n`;
-                modalBody.focus();
-            } else {
-                const textToCopy = `[${h.bookName} ${h.chapter}:${h.verse}] "${h.text}"`;
-                navigator.clipboard.writeText(textToCopy);
-                alert("Versetto copiato negli appunti!");
-            }
-            li.style.background = "#34c759";
-            li.style.color = "white";
-            setTimeout(() => { li.style.background = ""; li.style.color = ""; }, 500);
-        };
+        li.className = 'highlight-card';
+        li.dataset.hl = h.color || 'yellow';
+        const ref = `${h.bookName} ${h.chapter}:${h.verse}`;
+        li.innerHTML = `
+            <div class="highlight-ref">${escapeHtml(ref)}</div>
+            <p class="highlight-text">${escapeHtml(h.text)}</p>
+            <div class="highlight-actions">
+                <button data-act="insert" class="hl-insert" title="Inserisci nell'appunto aperto"><i class="ri-add-line"></i> Inserisci</button>
+                <button data-act="copy" title="Copia"><i class="ri-file-copy-line"></i></button>
+                <button data-act="open" title="Apri nella Bibbia"><i class="ri-book-open-line"></i></button>
+                <button data-act="remove" title="Rimuovi"><i class="ri-close-line"></i></button>
+            </div>`;
+        li.querySelectorAll('[data-act]').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const act = btn.dataset.act;
+                if (act === 'insert') insertIntoNote(`> "${h.text}"\n> [${ref}]`);
+                if (act === 'copy') {
+                    try { await navigator.clipboard.writeText(`"${h.text}" — ${ref}`); flashHighlight(btn); } catch (err) { /* ignora */ }
+                }
+                if (act === 'open') openHighlightInBible(h);
+                if (act === 'remove') {
+                    highlightsDB = highlightsDB.filter(x => !(x.book == h.book && x.chapter == h.chapter && x.verse == h.verse));
+                    localStorage.setItem('highlightsDB', JSON.stringify(highlightsDB));
+                    document.getElementById(`verse-${h.verse}`)?.classList.remove('highlighted');
+                    renderHighlights();
+                    updateDashboard();
+                }
+            };
+        });
         ul.appendChild(li);
     });
 }
+function flashHighlight(btn) {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="ri-check-line"></i>';
+    setTimeout(() => { btn.innerHTML = original; }, 1200);
+}
+function openHighlightInBible(h) {
+    document.querySelector('.nav-item[data-target="bibbia"]')?.click();
+    bookSelect.value = String(h.book);
+    bookSelect.dispatchEvent(new Event('change'));
+    chapterSelect.value = String(h.chapter);
+    chapterSelect.dispatchEvent(new Event('change'));
+    verseSelect.value = String(h.verse);
+    document.getElementById('fetchBibleBtn').click();
+}
 
+// --- LETTURA DI UN APPUNTO ---
 function openNoteViewModal(note) {
-    document.getElementById('viewNoteTitle').textContent = note.title || "Senza titolo";
-    document.getElementById('viewNoteCategory').textContent = note.category || "Appunto";
+    activeNoteId = note.id;
+    const cat = noteCategory(note.category);
+    document.getElementById('viewNoteTitle').textContent = note.title || 'Senza titolo';
+    document.getElementById('viewNoteCategory').innerHTML = `<span class="note-cat tone-${cat.tone}"><i class="${cat.icon}"></i> ${escapeHtml(note.category || 'Nota')}</span>`
+        + (noteDate(note) ? `<span class="note-view-date">${escapeHtml(formatNoteDate(noteDate(note), true))}</span>` : '');
     document.getElementById('viewNoteSpeaker').innerHTML = note.speaker ? `<i class="ri-user-voice-line"></i> ${escapeHtml(note.speaker)}` : '';
     document.getElementById('viewNoteRefs').innerHTML = note.refs ? `<i class="ri-book-mark-line"></i> ${escapeHtml(note.refs)}` : '';
-    document.getElementById('viewNoteBody').textContent = note.body || "";
-    const editBtn = document.getElementById('editNoteFromViewBtn');
-    const printBtn = document.getElementById('printNoteFromViewBtn');
-    editBtn.onclick = () => {
-        closeNoteViewModal();
-        openNoteModal(note);
+    const body = document.getElementById('viewNoteBody');
+    body.innerHTML = note.body ? renderNoteBody(note.body) : '<p class="text-muted">Nessun contenuto.</p>';
+    document.getElementById('editNoteFromViewBtn').onclick = () => { closeNoteViewModal(); openNoteModal(note); };
+    document.getElementById('printNoteFromViewBtn').onclick = () => printNote(note);
+    document.getElementById('shareNoteFromViewBtn').onclick = () => {
+        const parts = [note.title, [note.speaker, note.refs].filter(Boolean).join(' · '), notePlainText(note.body)].filter(Boolean);
+        shareContent(note.title || 'Appunto', parts.slice(1).join('\n\n'));
     };
-    printBtn.onclick = () => {
-        printNote(note);
+    document.getElementById('deleteNoteFromViewBtn').onclick = async () => {
+        if (await deleteNoteFromList(note.id)) closeNoteViewModal();
     };
     document.getElementById('noteViewModal').classList.remove('hidden');
 }
@@ -1711,58 +2168,86 @@ function closeNoteViewModal() {
     document.getElementById('noteViewModal').classList.add('hidden');
 }
 
+// Stampa / salva come PDF con impaginazione pulita
 function printNote(note) {
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Stampa Appunto - ${escapeHtml(note.title)}</title>
+    if (!printWindow) { alert('Il popup è stato bloccato. Consenti i popup per stampare.'); return; }
+    const meta = [escapeHtml(note.category || 'Nota'), note.speaker ? escapeHtml(note.speaker) : '', note.refs ? escapeHtml(note.refs) : '',
+                  noteDate(note) ? escapeHtml(formatNoteDate(noteDate(note), true)) : ''].filter(Boolean).join(' · ');
+    printWindow.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>${escapeHtml(note.title || 'Appunto')}</title>
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-            h1 { color: #007aff; }
-            .meta { color: #666; margin-bottom: 20px; }
-            .content { white-space: pre-wrap; line-height: 1.6; }
-        </style>
-        </head>
-        <body>
-            <h1>${escapeHtml(note.title)}</h1>
-            <div class="meta">${note.category || 'Appunto'}${note.speaker ? ' · ' + escapeHtml(note.speaker) : ''}${note.refs ? ' · ' + escapeHtml(note.refs) : ''}</div>
-            <div class="content">${escapeHtml(note.body).replace(/\n/g, '<br>')}</div>
-            <p style="margin-top: 40px; font-size: 12px; color: #999;">Generato da Open Worship</p>
-        </body>
-        </html>
-    `);
+            @page { margin: 22mm 20mm; }
+            body { font-family: Georgia, "Times New Roman", serif; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 24px; line-height: 1.65; font-size: 12pt; }
+            header { border-bottom: 2px solid #007aff; padding-bottom: 12px; margin-bottom: 22px; }
+            .kicker { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 9pt; letter-spacing: .08em; text-transform: uppercase; color: #007aff; font-weight: 700; }
+            h1 { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 22pt; margin: 6px 0 6px; }
+            .meta { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: #666; font-size: 10pt; }
+            h3 { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 14pt; margin: 18px 0 6px; }
+            h4 { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 12pt; margin: 14px 0 4px; }
+            p { margin: 0 0 6px; }
+            ul { margin: 4px 0 8px 20px; padding: 0; }
+            blockquote { margin: 8px 0; padding: 6px 14px; border-left: 3px solid #ff9500; background: #fff7ec; font-style: italic; }
+            .note-gap { height: 8px; }
+            .note-verse-ref { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #007aff; font-weight: 600; }
+            .note-verse-ref i { display: none; }
+            footer { margin-top: 36px; padding-top: 10px; border-top: 1px solid #ddd; font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 9pt; color: #999; }
+        </style></head><body>
+        <header><div class="kicker">Appunto</div><h1>${escapeHtml(note.title || 'Senza titolo')}</h1><div class="meta">${meta}</div></header>
+        <main>${renderNoteBody(note.body)}</main>
+        <footer>Open Worship</footer>
+        </body></html>`);
     printWindow.document.close();
-    printWindow.print();
+    printWindow.onload = () => printWindow.print();
+    setTimeout(() => { try { printWindow.print(); } catch (e) { /* già stampato */ } }, 600);
+}
+
+// --- EDITOR ---
+const NOTE_DRAFT_KEY = 'noteDraft';
+function noteFields() {
+    return {
+        title: document.getElementById('modalNoteTitle'),
+        category: document.getElementById('modalNoteCategory'),
+        speaker: document.getElementById('modalNoteSpeaker'),
+        refs: document.getElementById('modalNoteRefs'),
+        body: document.getElementById('modalNoteBody')
+    };
+}
+function updateNoteWordCount() {
+    const f = noteFields();
+    const words = (f.body.value.match(/\S+/g) || []).length;
+    const el = document.getElementById('noteWordCount');
+    if (el) el.textContent = words === 1 ? '1 parola' : `${words} parole`;
+}
+function saveNoteDraft() {
+    const f = noteFields();
+    const draft = { id: currentEditingNoteId, title: f.title.value, category: f.category.value, speaker: f.speaker.value, refs: f.refs.value, body: f.body.value, at: Date.now() };
+    try { localStorage.setItem(NOTE_DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* ignora */ }
+    const st = document.getElementById('noteSaveState');
+    if (st) st.textContent = 'Bozza salvata sul dispositivo';
+}
+function clearNoteDraft() {
+    try { localStorage.removeItem(NOTE_DRAFT_KEY); } catch (e) { /* ignora */ }
 }
 
 function openNoteModal(note = null) {
     const modal = document.getElementById('noteModal');
-    const titleEl = document.getElementById('noteModalTitle');
-    const inputTitle = document.getElementById('modalNoteTitle');
-    const inputCategory = document.getElementById('modalNoteCategory');
-    const inputSpeaker = document.getElementById('modalNoteSpeaker');
-    const inputRefs = document.getElementById('modalNoteRefs');
-    const inputBody = document.getElementById('modalNoteBody');
-    if (note) {
-        currentEditingNoteId = note.id;
-        titleEl.textContent = "Modifica Appunto";
-        inputTitle.value = note.title || "";
-        inputCategory.value = note.category || "Appunto";
-        inputSpeaker.value = note.speaker || "";
-        inputRefs.value = note.refs || "";
-        inputBody.value = note.body || "";
-    } else {
-        currentEditingNoteId = null;
-        titleEl.textContent = "Nuovo Appunto";
-        inputTitle.value = "";
-        inputCategory.value = "Appunto";
-        inputSpeaker.value = "";
-        inputRefs.value = "";
-        inputBody.value = "";
-    }
+    const f = noteFields();
+    let draft = null;
+    try { draft = JSON.parse(localStorage.getItem(NOTE_DRAFT_KEY) || 'null'); } catch (e) { draft = null; }
+    const draftMatches = draft && (draft.id || null) === (note ? note.id : null) && (draft.body || draft.title);
+    currentEditingNoteId = note ? note.id : null;
+    document.getElementById('noteModalTitle').textContent = note ? 'Modifica appunto' : 'Nuovo appunto';
+    const src = draftMatches ? draft : (note || {});
+    f.title.value = src.title || '';
+    f.category.value = NOTE_CATEGORIES.some(c => c.id === src.category) ? src.category : 'Predica';
+    f.speaker.value = src.speaker || '';
+    f.refs.value = src.refs || '';
+    f.body.value = src.body || '';
+    const st = document.getElementById('noteSaveState');
+    if (st) st.textContent = draftMatches ? 'Bozza recuperata' : '';
+    updateNoteWordCount();
     modal.classList.remove('hidden');
-    inputTitle.focus();
+    setTimeout(() => (note ? f.body : f.title).focus(), 50);
 }
 
 function closeNoteModal() {
@@ -1770,46 +2255,108 @@ function closeNoteModal() {
     currentEditingNoteId = null;
 }
 
-document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
-document.getElementById('saveNoteModalBtn').addEventListener('click', async () => {
-    const title = document.getElementById('modalNoteTitle').value.trim();
-    const category = document.getElementById('modalNoteCategory').value;
-    const speaker = document.getElementById('modalNoteSpeaker').value.trim();
-    const refs = document.getElementById('modalNoteRefs').value.trim();
-    const body = document.getElementById('modalNoteBody').value.trim();
+// Inserisce testo nell'appunto aperto, oppure ne apre uno nuovo con quel testo
+function insertIntoNote(text) {
+    const modal = document.getElementById('noteModal');
+    if (modal.classList.contains('hidden')) {
+        openNoteModal();
+        clearNoteDraft();
+        noteFields().body.value = text + '\n';
+        updateNoteWordCount();
+        return;
+    }
+    const body = noteFields().body;
+    const start = body.selectionStart ?? body.value.length;
+    const before = body.value.slice(0, start);
+    const pad = before && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
+    body.setRangeText(pad + text + '\n', start, body.selectionEnd ?? start, 'end');
+    body.focus();
+    updateNoteWordCount();
+    saveNoteDraft();
+}
+
+// Pulsanti di formattazione
+function applyNoteFormat(kind) {
+    const body = noteFields().body;
+    const s = body.selectionStart, e = body.selectionEnd;
+    const sel = body.value.slice(s, e);
+    const wrap = (l, r, placeholder) => {
+        const inner = sel || placeholder;
+        body.setRangeText(l + inner + r, s, e, 'select');
+        body.setSelectionRange(s + l.length, s + l.length + inner.length);
+    };
+    const linePrefix = (prefix) => {
+        const lineStart = body.value.lastIndexOf('\n', s - 1) + 1;
+        const block = body.value.slice(lineStart, e);
+        const lines = block.split('\n').map(l => (l.startsWith(prefix) ? l.slice(prefix.length) : prefix + l));
+        body.setRangeText(lines.join('\n'), lineStart, e, 'end');
+    };
+    if (kind === 'bold') wrap('**', '**', 'testo in grassetto');
+    if (kind === 'italic') wrap('*', '*', 'testo in corsivo');
+    if (kind === 'heading') linePrefix('# ');
+    if (kind === 'list') linePrefix('- ');
+    if (kind === 'quote') linePrefix('> ');
+    if (kind === 'verse') wrap('[', ']', 'Giovanni 3:16');
+    body.focus();
+    updateNoteWordCount();
+    saveNoteDraft();
+}
+
+async function saveCurrentNote() {
+    const f = noteFields();
+    const title = f.title.value.trim();
+    const body = f.body.value.trim();
     if (!title && !body) { alert("Inserisci almeno un titolo o del contenuto."); return; }
+    const saveBtn = document.getElementById('saveNoteModalBtn');
+    saveBtn.disabled = true;
     const data = {
         id: currentEditingNoteId || crypto.randomUUID(),
         user_id: currentUser.id,
-        title: title,
-        speaker: speaker,
-        category: category,
-        refs: refs,
-        body: body,
+        title,
+        speaker: f.speaker.value.trim(),
+        category: f.category.value,
+        refs: f.refs.value.trim(),
+        body,
         updated_at: new Date()
     };
     const { error } = await supabaseClient.from('appunti').upsert([data]);
+    saveBtn.disabled = false;
     if (error) {
-        alert("Errore salvataggio: " + error.message);
+        alert("Errore salvataggio: " + error.message + "\nLa bozza resta salvata sul dispositivo.");
         return;
     }
-    if (currentEditingNoteId) {
-        const idx = notesDB.findIndex(n => n.id === currentEditingNoteId);
-        if (idx !== -1) notesDB[idx] = data;
-        else notesDB.unshift(data);
-    } else {
-        notesDB.unshift(data);
-        activeNoteId = data.id;
-    }
-    saveNotes();
+    const idx = notesDB.findIndex(n => n.id === data.id);
+    if (idx !== -1) notesDB[idx] = data; else notesDB.unshift(data);
+    activeNoteId = data.id;
+    localStorage.setItem('notesDB', JSON.stringify(notesDB));
+    clearNoteDraft();
     renderNotes();
     updateDashboard();
     closeNoteModal();
-    const saveBtn = document.getElementById('saveNoteModalBtn');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.innerHTML = "<i class='ri-check-line'></i> Salvato";
-    setTimeout(() => saveBtn.innerHTML = originalText, 1500);
-});
+}
+
+(function setupNoteEditor() {
+    document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
+    document.getElementById('saveNoteModalBtn').addEventListener('click', saveCurrentNote);
+    const f = noteFields();
+    let draftTimer = null;
+    [f.title, f.speaker, f.refs, f.body].forEach(el => el.addEventListener('input', () => {
+        updateNoteWordCount();
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(saveNoteDraft, 600);
+    }));
+    f.category.addEventListener('change', saveNoteDraft);
+    document.querySelectorAll('#noteFormatBar [data-format]').forEach(btn => {
+        btn.addEventListener('mousedown', e => e.preventDefault()); // non perde la selezione
+        btn.addEventListener('click', () => applyNoteFormat(btn.dataset.format));
+    });
+    document.getElementById('noteModal').addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveCurrentNote(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); applyNoteFormat('bold'); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); applyNoteFormat('italic'); }
+    });
+    setupNotesToolbar();
+})();
 
 // Funzioni globali esposte
 window.openAvvisoModal = openAvvisoModal;
@@ -1826,8 +2373,6 @@ window.openAvvisoDetailModal = openAvvisoDetailModal;
 window.closeAvvisoDetailModal = closeAvvisoDetailModal;
 window.shareAvviso = shareAvviso;
 window.shareHymn = shareHymn;
-window.askPresentationMode = askPresentationMode;
-window.startHymnPresentation = startHymnPresentation;
 window.closeAccountModal = closeAccountModal;
 window.toggleReaderMobileMenu = toggleReaderMobileMenu;
 window.shareCurrentHymn = shareCurrentHymn;
