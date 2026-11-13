@@ -19,10 +19,32 @@ const PROJ_BACKGROUNDS = [
     { id: 'a-stars', name: 'Cielo stellato (animato)', anim: 'stars' },
     { id: 'a-bokeh', name: 'Luci soffuse (animato)', anim: 'bokeh' },
     { id: 'a-rays', name: 'Raggi di luce (animato)', anim: 'rays' },
+    { id: 'a-clouds', name: 'Nuvole (animato)', anim: 'clouds' },
+    { id: 'a-particles', name: 'Luci che salgono (animato)', anim: 'particles' },
+    { id: 'a-ocean', name: 'Mare (animato)', anim: 'ocean' },
+    { id: 'a-sunrise', name: 'Alba (animato)', anim: 'sunrise' },
+    { id: 'a-snow', name: 'Neve (animato)', anim: 'snow' },
     { id: 'img1', name: 'Luce', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1920") center/cover no-repeat` },
     { id: 'img2', name: 'Montagne', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1920") center/cover no-repeat` },
     { id: 'img3', name: 'Cielo', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1444084316824-dc26d6657664?w=1920") center/cover no-repeat` },
     { id: 'img4', name: 'Natura', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920") center/cover no-repeat` },
+    { id: 'ph-montagne-alba', name: 'Montagne all\'alba', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920") center/cover no-repeat` },
+    { id: 'ph-lago-alpino', name: 'Lago alpino', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920") center/cover no-repeat` },
+    { id: 'ph-tramonto-prato', name: 'Tramonto sul prato', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1920") center/cover no-repeat` },
+    { id: 'ph-spiaggia', name: 'Spiaggia', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920") center/cover no-repeat` },
+    { id: 'ph-via-lattea', name: 'Via Lattea', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920") center/cover no-repeat` },
+    { id: 'ph-bosco', name: 'Bosco', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920") center/cover no-repeat` },
+    { id: 'ph-mare-tramonto', name: 'Mare al tramonto', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1920") center/cover no-repeat` },
+    { id: 'ph-albero', name: 'Albero', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1920") center/cover no-repeat` },
+    { id: 'ph-valle', name: 'Valle alpina', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920") center/cover no-repeat` },
+    { id: 'ph-lago-sera', name: 'Lago di sera', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=1920") center/cover no-repeat` },
+    { id: 'ph-stelle', name: 'Cielo stellato', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920") center/cover no-repeat` },
+    { id: 'ph-alberi-cielo', name: 'Alberi verso il cielo', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1920") center/cover no-repeat` },
+    { id: 'ph-colline', name: 'Colline verdi', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920") center/cover no-repeat` },
+    { id: 'ph-onde', name: 'Onde', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1920") center/cover no-repeat` },
+    { id: 'ph-ponte', name: 'Ponte nel bosco', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920") center/cover no-repeat` },
+    { id: 'ph-montagne-rosa', name: 'Montagne al tramonto', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=1920") center/cover no-repeat` },
+    { id: 'ph-fiori', name: 'Fiori', css: `${IMG_SHADE}, url("https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1920") center/cover no-repeat` },
     { id: 'custom', name: 'La mia immagine', css: null }
 ];
 
@@ -152,7 +174,26 @@ const PROJ_SHARED_CSS = `
 .anim-rays::before{background:repeating-conic-gradient(from 0deg at 50% -10%,rgba(255,220,150,.10) 0deg 6deg,transparent 6deg 18deg);animation:owSpin 90s linear infinite;transform-origin:50% 10%}
 .anim-rays::after{background:radial-gradient(40% 35% at 50% 0%,rgba(255,210,120,.35),transparent 70%);animation:owBreath 7s ease-in-out infinite alternate}
 @keyframes owSpin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion: reduce){.proj-bg[class*="anim-"]::before,.proj-bg[class*="anim-"]::after,.anim-waves{animation:none!important}}
+.anim-clouds{background:linear-gradient(180deg,#0d2a4f 0%,#2f6aa8 60%,#7fb2e0 100%)}
+.anim-clouds::before{background:radial-gradient(22% 14% at 20% 30%,rgba(255,255,255,.55),transparent 70%),radial-gradient(28% 16% at 60% 22%,rgba(255,255,255,.45),transparent 70%),radial-gradient(20% 12% at 85% 40%,rgba(255,255,255,.4),transparent 70%);filter:blur(14px);animation:owDriftX 60s linear infinite alternate}
+.anim-clouds::after{background:radial-gradient(30% 16% at 30% 70%,rgba(255,255,255,.35),transparent 70%),radial-gradient(24% 14% at 75% 80%,rgba(255,255,255,.3),transparent 70%);filter:blur(20px);animation:owDriftX 90s linear infinite alternate-reverse}
+@keyframes owDriftX{from{transform:translateX(-12%)}to{transform:translateX(12%)}}
+.anim-particles{background:radial-gradient(ellipse at 50% 100%,#2a1a4a 0%,#0b0a18 70%)}
+.anim-particles::before{background-image:radial-gradient(2px 2px at 20px 40px,rgba(255,220,150,.9),transparent),radial-gradient(1.5px 1.5px at 90px 120px,rgba(255,255,255,.8),transparent),radial-gradient(2.5px 2.5px at 160px 70px,rgba(255,200,120,.8),transparent),radial-gradient(1.5px 1.5px at 230px 160px,rgba(255,255,255,.7),transparent);background-size:260px 200px;animation:owRise 18s linear infinite}
+.anim-particles::after{background-image:radial-gradient(3px 3px at 60px 90px,rgba(255,210,140,.6),transparent),radial-gradient(2px 2px at 190px 30px,rgba(255,255,255,.6),transparent);background-size:300px 240px;filter:blur(1px);animation:owRise 28s linear infinite}
+@keyframes owRise{from{background-position:0 0}to{background-position:0 -1200px}}
+.anim-ocean{background:linear-gradient(180deg,#021a2b 0%,#04394f 55%,#0a5b6e 100%)}
+.anim-ocean::before{background:repeating-linear-gradient(170deg,rgba(255,255,255,.06) 0 2px,transparent 2px 38px);filter:blur(2px);animation:owSwell 12s ease-in-out infinite alternate}
+.anim-ocean::after{background:radial-gradient(60% 30% at 50% 0%,rgba(120,220,255,.25),transparent 70%),repeating-linear-gradient(175deg,rgba(255,255,255,.05) 0 3px,transparent 3px 60px);animation:owSwell 18s ease-in-out infinite alternate-reverse}
+@keyframes owSwell{from{transform:translate(-4%,0) skewY(-2deg)}to{transform:translate(4%,3%) skewY(2deg)}}
+.anim-sunrise{background:linear-gradient(180deg,#120a2e,#4a1f5c,#b8456a,#f29b4b,#ffd27a);background-size:100% 300%;animation:owDawn 30s ease-in-out infinite alternate}
+.anim-sunrise::before{background:radial-gradient(30% 22% at 50% 100%,rgba(255,236,170,.75),rgba(255,180,90,.25) 50%,transparent 75%);animation:owBreath 8s ease-in-out infinite alternate}
+@keyframes owDawn{from{background-position:0 0}to{background-position:0 100%}}
+.anim-snow{background:linear-gradient(180deg,#0b1830 0%,#1d3557 100%)}
+.anim-snow::before{background-image:radial-gradient(2px 2px at 30px 20px,#fff,transparent),radial-gradient(1.5px 1.5px at 110px 80px,#fff,transparent),radial-gradient(2.5px 2.5px at 190px 140px,rgba(255,255,255,.9),transparent),radial-gradient(1.5px 1.5px at 250px 40px,#fff,transparent);background-size:280px 220px;animation:owFall 16s linear infinite}
+.anim-snow::after{background-image:radial-gradient(3px 3px at 70px 60px,rgba(255,255,255,.7),transparent),radial-gradient(2px 2px at 200px 180px,rgba(255,255,255,.7),transparent);background-size:320px 260px;filter:blur(1px);animation:owFall 26s linear infinite}
+@keyframes owFall{from{background-position:0 0}to{background-position:-120px 1200px}}
+@media (prefers-reduced-motion: reduce){.proj-bg[class*="anim-"]::before,.proj-bg[class*="anim-"]::after,.anim-waves,.anim-sunrise{animation:none!important}}
 `;
 (function injectSharedCss() {
     const style = document.createElement('style');

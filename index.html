@@ -62,6 +62,12 @@
     </script>
 </head>
 <body>
+    <div id="loadingBar" class="loading-bar" role="progressbar" aria-label="Caricamento"><span></span></div>
+    <div id="appSplash" class="app-splash hidden" role="status" aria-live="polite">
+        <img src="immagini/icon-192.png" alt="" class="app-splash-logo">
+        <div class="app-splash-spinner"></div>
+        <p>Caricamento in corso…</p>
+    </div>
     <!-- ACCESSO -->
     <div id="loginScreen" class="login-container">
         <div class="login-video-wrapper">
@@ -259,6 +265,12 @@
                                     <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
                                 </select>
                             </div>
+                            <div class="tools-section-title">Testo</div>
+                            <label class="tool-chip" title="Testo del cantico su due colonne">
+                                <input type="checkbox" id="hymnColumnsToggle">
+                                <span class="tool-switch"></span>
+                                <span>Due colonne</span>
+                            </label>
                             <div class="tools-section-title">Metronomo</div>
                             <div class="tool-group metro-group">
                                 <button class="tool-btn" id="metroToggle" title="Avvia/ferma metronomo"><i class="ri-play-fill"></i></button>
@@ -460,6 +472,10 @@
                         <option value="22">Grande</option>
                         <option value="26">Molto grande</option>
                     </select>
+                </div>
+                <div class="settings-row">
+                    <span>Cantici su due colonne<small>il testo si divide in due colonne</small></span>
+                    <label class="switch"><input type="checkbox" id="setHymnColumns"><span class="slider round"></span></label>
                 </div>
                 <div class="settings-row">
                     <span>Schermo sempre acceso<small>mentre leggi un cantico</small></span>

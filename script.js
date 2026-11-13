@@ -1,6 +1,44 @@
 // --- CONNESSIONE SUPABASE CLOUD ---
 const supabaseUrl = 'https://tgwiazgovhecxquvzzhn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnd2lhemdvdmhlY3hxdXZ6emhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTA2NjcsImV4cCI6MjA5MDU2NjY2N30.srb3N0_csi4qBFBFyVeUMWueIWWidwV7vVcOLg0LJs8';
+// --- CARICAMENTO VISIBILE ---
+// Ogni richiesta verso Supabase o la Bibbia online accende la barra di caricamento in alto
+// (solo se l'attesa supera un attimo, per non farla lampeggiare).
+const AppLoading = (() => {
+    let pending = 0, timer = null;
+    const bar = () => document.getElementById('loadingBar');
+    const update = () => {
+        clearTimeout(timer);
+        if (pending > 0) timer = setTimeout(() => { bar() && bar().classList.add('active'); document.body.classList.add('is-loading'); }, 180);
+        else { bar() && bar().classList.remove('active'); document.body.classList.remove('is-loading'); }
+    };
+    return {
+        start() { pending++; update(); },
+        stop() { pending = Math.max(0, pending - 1); update(); }
+    };
+})();
+(function trackNetworkWaits() {
+    const originalFetch = window.fetch.bind(window);
+    const tracked = /supabase\.co|bolls\.life|getbible\.net/;
+    window.fetch = function (input, init) {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        // il canale in tempo reale e le richieste lunghe non accendono la barra
+        if (!tracked.test(url) || /realtime/.test(url)) return originalFetch(input, init);
+        AppLoading.start();
+        return originalFetch(input, init).finally(() => AppLoading.stop());
+    };
+})();
+
+// Pulsante con rotellina mentre l'operazione è in corso
+async function withBusyButton(btn, task) {
+    if (!btn) return task();
+    if (btn.classList.contains('is-busy')) return;
+    btn.classList.add('is-busy');
+    btn.disabled = true;
+    try { return await task(); }
+    finally { btn.classList.remove('is-busy'); btn.disabled = false; }
+}
+
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- LISTA EMAIL AMMINISTRATORI ---
@@ -140,7 +178,7 @@ async function checkUser() {
 }
 checkUser();
 
-document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+document.getElementById('googleLoginBtn').addEventListener('click', (e) => withBusyButton(e.currentTarget, async () => {
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
@@ -152,7 +190,7 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     } catch (err) {
         alert("Errore di connessione a Google.");
     }
-});
+}));
 
 // --- FUNZIONE LOGOUT CORRETTA E ROBUSTA ---
 async function handleLogout() {
@@ -683,7 +721,17 @@ function shareCurrentHymn() {
     shareContent(hymn.title, SongTools.lyricsText(hymn.content));
 }
 
+let firstDataLoaded = false;
+function hideAppSplash() {
+    const s = document.getElementById('appSplash');
+    if (s) s.classList.add('hidden');
+}
 async function loadCloudData() {
+    if (!firstDataLoaded) document.getElementById('appSplash')?.classList.remove('hidden');
+    try { return await loadCloudDataInner(); }
+    finally { if (!firstDataLoaded) { firstDataLoaded = true; hideAppSplash(); } }
+}
+async function loadCloudDataInner() {
     try {
         const { data: cantici, error: canticiErr } = await supabaseClient.from('cantici').select('*');
         if (!canticiErr && cantici) {
@@ -884,7 +932,7 @@ function closeAvvisoModal() {
     document.getElementById('avvisoModal').classList.add('hidden');
 }
 
-document.getElementById('saveAvvisoBtn').onclick = async () => {
+document.getElementById('saveAvvisoBtn').onclick = (e) => withBusyButton(e.currentTarget, async () => {
     const title = document.getElementById('avvisoTitle').value.trim();
     const date = document.getElementById('avvisoDate').value;
     const desc = document.getElementById('avvisoDesc').value.trim();
@@ -910,7 +958,7 @@ document.getElementById('saveAvvisoBtn').onclick = async () => {
     } catch (e) {
         alert("Errore nel salvataggio dell'avviso: " + e.message);
     }
-};
+});
 
 async function deleteAvviso(id) {
     if (confirm("Sicuro di voler eliminare questo avviso?")) {
@@ -1222,7 +1270,7 @@ function updateEditPreview() {
     document.getElementById(id).addEventListener('input', updateEditPreview);
 });
 document.getElementById('newHymnBtn').addEventListener('click', () => openEditModal(null));
-document.getElementById('saveEditHymnBtn').onclick = async () => {
+document.getElementById('saveEditHymnBtn').onclick = (e) => withBusyButton(e.currentTarget, async () => {
     if (!isAdmin) return;
     const updatedTitle = document.getElementById('editHymnTitle').value.trim();
     const updatedContent = getEditedContent();
@@ -1249,7 +1297,7 @@ document.getElementById('saveEditHymnBtn').onclick = async () => {
     } catch (e) {
         alert("Errore salvataggio cantico: " + e.message);
     }
-};
+});
 
 // --- ESPORTAZIONE CANTICI ---
 function setupExportButton() {
@@ -1337,7 +1385,7 @@ function escapeXml(unsafe) {
 const CHORDS_ENABLED = false;
 if (!CHORDS_ENABLED) document.body.classList.add('chords-coming-soon');
 
-const DEFAULT_SETTINGS = { theme: 'auto', chordsOn: false, notation: 'it', fontSize: 18, wakeLock: true, metroSound: true, scrollSpeed: 3, toolsOpen: false };
+const DEFAULT_SETTINGS = { theme: 'auto', chordsOn: false, notation: 'it', fontSize: 18, wakeLock: true, metroSound: true, scrollSpeed: 3, toolsOpen: false, hymnColumns: false };
 
 function applyTheme() {
     const root = document.documentElement;
@@ -1375,6 +1423,7 @@ function setupSettingsPanel() {
     bind('setWakeLock', 'wakeLock', 'check');
     bind('setMetroSound', 'metroSound', 'check');
     bind('setScrollSpeed', 'scrollSpeed', 'range');
+    bind('setHymnColumns', 'hymnColumns', 'check');
     applySettings();
 }
 
@@ -1441,6 +1490,9 @@ function renderCurrentHymn() {
     const chordsShown = CHORDS_ENABLED && appSettings.chordsOn;
     reader.classList.toggle('chords-on', chordsShown && info.hasChords);
     textView.classList.toggle('chords-on', chordsShown && info.hasChords);
+    textView.classList.toggle('two-columns', !!appSettings.hymnColumns);
+    const colToggle = document.getElementById('hymnColumnsToggle');
+    if (colToggle) colToggle.checked = !!appSettings.hymnColumns;
     document.getElementById('chordsMissing').classList.toggle('hidden', !(chordsShown && !info.hasChords));
     document.getElementById('keyDisplay').textContent = info.keyLabel
         ? info.keyLabel + (tr.t ? ` (${tr.t > 0 ? '+' : ''}${tr.t})` : '')
@@ -1563,6 +1615,13 @@ function setupReaderTools() {
         if (e.key === 'Escape' && toolsMenuOpen) setToolsMenu(false);
     });
     applyToolsVisibility();
+    document.getElementById('hymnColumnsToggle').addEventListener('change', (e) => {
+        appSettings.hymnColumns = e.target.checked;
+        saveSettings();
+        const s = document.getElementById('setHymnColumns');
+        if (s) s.checked = appSettings.hymnColumns;
+        renderCurrentHymn();
+    });
     document.getElementById('chordsToggle').addEventListener('change', (e) => {
         appSettings.chordsOn = e.target.checked;
         saveSettings();
@@ -2518,7 +2577,7 @@ async function saveCurrentNote() {
 
 (function setupNoteEditor() {
     document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
-    document.getElementById('saveNoteModalBtn').addEventListener('click', saveCurrentNote);
+    document.getElementById('saveNoteModalBtn').addEventListener('click', (e) => withBusyButton(e.currentTarget, saveCurrentNote));
     const f = noteFields();
     let draftTimer = null;
     [f.title, f.speaker, f.refs, f.body].forEach(el => el.addEventListener('input', () => {
