@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v7';
+const CACHE_NAME = 'open-worship-cache-v8';
 const urlsToCache = [
     './',
     './index.html',
@@ -28,7 +28,8 @@ self.addEventListener('fetch', event => {
     // Solo le richieste GET dell'app passano dalla cache; login e dati restano diretti
     if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        // no-cache: chiede sempre al server se il file è cambiato, così gli aggiornamenti arrivano subito
+        fetch(event.request, { cache: 'no-cache' }).catch(() => caches.match(event.request))
     );
 });
 
@@ -56,4 +57,19 @@ self.addEventListener('notificationclick', event => {
         const target = avvisoId ? `${appUrl}?avviso=${encodeURIComponent(avvisoId)}` : appUrl;
         await self.clients.openWindow(target);
     })());
+});
+
+// Notifica push inviata dal server (arriva anche con l'app chiusa)
+self.addEventListener('push', event => {
+    let d = {};
+    try { d = event.data ? event.data.json() : {}; } catch (e) { d = { body: event.data ? event.data.text() : '' }; }
+    const title = d.title || 'Open Worship';
+    event.waitUntil(self.registration.showNotification(title, {
+        body: d.body || '',
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        lang: 'it',
+        tag: d.avvisoId ? 'avviso-' + d.avvisoId : 'ow-push',
+        data: { avvisoId: d.avvisoId || null }
+    }));
 });

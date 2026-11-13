@@ -375,6 +375,88 @@ function notifyMissedAvvisi(list) {
     }, () => openAvvisoFromNotification(null));
 }
 
+// --- NOTIFICHE PUSH (arrivano anche con l'app chiusa) ---
+// Chiave pubblica: quella privata resta solo nei Secrets di Supabase
+const VAPID_PUBLIC_KEY = 'BI4K-MUso9vixB1-24VvZEplay0GiMVydYnJZiVoWF8-GEYeznXwBaUwF6j6wvHaWhzLrlWaFTfQ1OtzJSNWv68';
+
+function urlBase64ToUint8Array(base64) {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+    const raw = atob((base64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+// Registra questo dispositivo per le push e lo salva su Supabase
+async function subscribePush() {
+    if (!('PushManager' in window)) return { ok: false, motivo: 'Questo browser non supporta le notifiche push.' };
+    if (!currentUser) return { ok: false, motivo: 'Accesso non effettuato.' };
+    const reg = await getServiceWorkerRegistration();
+    if (!reg || !reg.pushManager) return { ok: false, motivo: 'Service worker non attivo: ricarica la pagina e riprova.' };
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    }
+    const j = sub.toJSON();
+    const { error } = await supabaseClient.from('push_subscriptions').upsert({
+        user_id: currentUser.id,
+        endpoint: j.endpoint,
+        p256dh: j.keys.p256dh,
+        auth: j.keys.auth,
+        user_agent: navigator.userAgent.slice(0, 200)
+    }, { onConflict: 'endpoint' });
+    if (error) return { ok: false, motivo: 'Registrazione su Supabase non riuscita: ' + error.message };
+    return { ok: true };
+}
+
+async function unsubscribePush() {
+    const reg = await getServiceWorkerRegistration();
+    const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+    if (!sub) return;
+    await supabaseClient.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+    await sub.unsubscribe();
+}
+
+// Stato delle notifiche, mostrato sotto l'interruttore (aiuta a capire cosa non va)
+async function getNotificationStatus() {
+    checkNotificationSupport();
+    const s = { supportate: 'Notification' in window, permesso: 'Notification' in window ? Notification.permission : 'non disponibile', installata: isPWA, serviceWorker: false, push: false, pushSupportate: 'PushManager' in window };
+    const reg = await getServiceWorkerRegistration();
+    s.serviceWorker = !!(reg && reg.active);
+    if (reg && reg.pushManager) { try { s.push = !!(await reg.pushManager.getSubscription()); } catch (e) { s.push = false; } }
+    return s;
+}
+
+async function updateNotificationStatus() {
+    const el = document.getElementById('notificationStatus');
+    if (!el) return;
+    const s = await getNotificationStatus();
+    const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+    let msg = '';
+    if (isIOS && !s.installata) msg = 'Su iPhone installa l\'app nella schermata Home per ricevere le notifiche.';
+    else if (!s.supportate) msg = 'Questo browser non supporta le notifiche.';
+    else if (s.permesso === 'denied') msg = 'Notifiche bloccate: consentile nelle impostazioni del browser per questo sito.';
+    else if (!enabled) msg = 'Disattivate.';
+    else if (!s.serviceWorker) msg = 'Attive solo con l\'app aperta (ricarica la pagina per completare l\'attivazione).';
+    else if (s.push) msg = 'Attive anche con l\'app chiusa.';
+    else msg = 'Attive con l\'app aperta. Con l\'app chiusa non ancora.';
+    el.textContent = msg;
+    el.dataset.ok = enabled && s.push ? 'true' : 'false';
+}
+
+async function testNotification() {
+    const btn = document.getElementById('testNotificationBtn');
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+        const ok = await requestNotificationPermission();
+        if (!ok) { updateNotificationStatus(); return; }
+    }
+    const shown = await showAppNotification('Prova notifica', { body: 'Se vedi questo messaggio, le notifiche funzionano su questo dispositivo.', tag: 'ow-test' });
+    if (btn) {
+        const original = btn.innerHTML;
+        btn.innerHTML = shown ? '<i class="ri-check-line"></i> Inviata' : '<i class="ri-error-warning-line"></i> Non riuscita';
+        setTimeout(() => { btn.innerHTML = original; }, 2000);
+    }
+    updateNotificationStatus();
+}
+
 // --- LOADER APPLE STYLE ---
 function showSpinner(container) {
     if (typeof container === 'string') container = document.getElementById(container);
@@ -505,9 +587,10 @@ async function showApp() {
             const saved = localStorage.getItem('notificationsEnabled') === 'true';
             notificationsSwitch.checked = saved;
 
-            // Attiva il canale se già abilitato e permesso concesso
-            if (saved && Notification.permission === 'granted') {
+            // Già attive: si riattiva il canale in tempo reale e si rinnova la registrazione push
+            if (saved && 'Notification' in window && Notification.permission === 'granted') {
                 setupRealtimeAvvisi();
+                subscribePush().catch(() => {});
             }
 
             notificationsSwitch.addEventListener('change', async (e) => {
@@ -515,26 +598,34 @@ async function showApp() {
                 localStorage.setItem('notificationsEnabled', enabled);
 
                 if (enabled) {
-                    // Richiedi il permesso (se non ancora concesso)
-                    if (Notification.permission !== 'granted') {
-                        const granted = await requestNotificationPermission();
-                        if (!granted) {
-                            notificationsSwitch.checked = false;
-                            localStorage.setItem('notificationsEnabled', false);
-                            return;
-                        }
+                    const alreadyGranted = 'Notification' in window && Notification.permission === 'granted';
+                    const granted = alreadyGranted || await requestNotificationPermission();
+                    if (!granted) {
+                        notificationsSwitch.checked = false;
+                        localStorage.setItem('notificationsEnabled', false);
+                        updateNotificationStatus();
+                        return;
                     }
-                    // Ora permesso concesso, attiva il canale
                     setupRealtimeAvvisi();
+                    // Push: avvisi anche con l'app chiusa
+                    const push = await subscribePush().catch(err => ({ ok: false, motivo: err.message }));
+                    if (alreadyGranted) {
+                        await showAppNotification('Notifiche attivate', { body: 'Riceverai gli avvisi della chiesa.', tag: 'ow-welcome' });
+                    }
+                    if (!push.ok) console.warn('Registrazione push non riuscita:', push.motivo);
                 } else {
-                    // Disattiva il canale
                     if (avvisiChannel) {
                         avvisiChannel.unsubscribe();
                         avvisiChannel = null;
                     }
+                    await unsubscribePush().catch(() => {});
                 }
+                updateNotificationStatus();
             });
         }
+        const testBtn = document.getElementById('testNotificationBtn');
+        if (testBtn) testBtn.onclick = testNotification;
+        updateNotificationStatus();
 
 
     }, 400);
