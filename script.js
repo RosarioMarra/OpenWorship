@@ -104,6 +104,31 @@ async function shareContent(title, text, url) {
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 
+// Accesso completato in un'altra finestra (finestra di Google, Chrome) mentre l'app
+// installata è rimasta sulla schermata di accesso: appena l'app torna in primo piano,
+// o quando Supabase segnala l'accesso, si entra senza ripetere il login.
+let appShown = false;
+function loginScreenVisible() {
+    return mainApp.classList.contains('hidden');
+}
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && loginScreenVisible() && !appShown) {
+        currentUser = session.user;
+        showApp();
+    }
+});
+async function recheckSessionOnReturn() {
+    if (!loginScreenVisible() || appShown) return;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session && !appShown) {
+        currentUser = session.user;
+        showApp();
+    }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recheckSessionOnReturn(); });
+window.addEventListener('focus', recheckSessionOnReturn);
+window.addEventListener('pageshow', recheckSessionOnReturn);
+
 async function checkUser() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -119,7 +144,9 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
     try {
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin + window.location.pathname }
+            // Sempre lo stesso indirizzo di ritorno (anche se l'app è aperta come .../index.html),
+            // così Supabase lo riconosce tra quelli consentiti
+            options: { redirectTo: window.location.origin + window.location.pathname.replace(/index\.html$/, '') }
         });
         if (error) alert("Errore durante il login: " + error.message);
     } catch (err) {
@@ -158,6 +185,7 @@ async function handleLogout() {
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
+    appShown = false;
 }
 
 const mobileLogoutBtn = document.getElementById('mobileLogoutBtnModal');
@@ -256,7 +284,9 @@ function getServiceWorkerRegistration() {
 // altrimenti direttamente dalla pagina (computer)
 async function showAppNotification(title, options = {}, onPageClick) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-    const opts = { icon: 'immagini/icon-192.png', badge: 'immagini/icon-badge.png', lang: 'it', ...options };
+    // Su Android il logo c'è già a sinistra (icona dell'app): l'immagine grande a destra lo ripeterebbe
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const opts = { badge: 'immagini/icon-badge.png', lang: 'it', ...(isAndroid ? {} : { icon: 'immagini/icon-192.png' }), ...options };
     const reg = await getServiceWorkerRegistration();
     if (reg && reg.showNotification) {
         try { await reg.showNotification(title, opts); return true; } catch (e) { console.warn('Notifica dal service worker non riuscita:', e); }
@@ -479,8 +509,10 @@ let appInitialized = false;
 
 // Mostra app principale dopo login
 async function showApp() {
+    if (appShown) return;         // evita di aprire l'app due volte (più segnali di accesso insieme)
+    appShown = true;
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) { loginScreen.style.opacity = '1'; return; }
+    if (!user) { appShown = false; loginScreen.style.opacity = '1'; return; }
     currentUser = user;
     isAdmin = await resolveAdmin(user);
 

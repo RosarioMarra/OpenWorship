@@ -2,7 +2,7 @@
   "name": "Open Worship",
   "short_name": "Open Worship",
   "description": "Gestione cantici, bibbia e avvisi",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f2f2f7",
   "theme_color": "#007aff",
@@ -39,5 +39,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "scope": "./",
+  "id": "./"
 }

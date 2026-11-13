@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v9';
+const CACHE_NAME = 'open-worship-cache-v11';
 const urlsToCache = [
     './',
     './index.html',
@@ -67,7 +67,8 @@ self.addEventListener('push', event => {
     const title = d.title || 'Open Worship';
     event.waitUntil(self.registration.showNotification(title, {
         body: d.body || '',
-        icon: 'immagini/icon-192.png',
+        // su Android il logo c'è già a sinistra: niente immagine grande ripetuta a destra
+        ...(/Android/i.test(self.navigator.userAgent) ? {} : { icon: 'immagini/icon-192.png' }),
         badge: 'immagini/icon-badge.png',
         lang: 'it',
         tag: d.avvisoId ? 'avviso-' + d.avvisoId : 'ow-push',
