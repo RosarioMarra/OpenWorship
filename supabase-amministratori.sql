@@ -1,7 +1,7 @@
 -- =====================================================================
 -- OPEN WORSHIP - GESTIONE AMMINISTRATORI DALL'APP
 -- Da eseguire una volta in Supabase > SQL Editor
--- (dopo supabase-sicurezza.sql).
+-- Si può eseguire anche più volte: non cancella nessun dato.
 --
 -- Cosa fa:
 --  - il proprietario (prima riga qui sotto) ha il controllo totale:
@@ -23,6 +23,20 @@ alter table public.amministratori add column if not exists aggiunto_il timestamp
 insert into public.amministratori (email, proprietario)
 values ('marraros11@gmail.com', true)
 on conflict (email) do update set proprietario = true;
+
+-- È un amministratore chi sta usando l'app?
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1 from public.amministratori a
+        where lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    );
+$$;
 
 -- È il proprietario chi sta usando l'app?
 create or replace function public.is_owner()
@@ -97,10 +111,12 @@ begin
 end;
 $$;
 
+revoke all on function public.is_admin() from public;
 revoke all on function public.is_owner() from public;
 revoke all on function public.list_admins() from public;
 revoke all on function public.add_admin(text) from public;
 revoke all on function public.remove_admin(text) from public;
+grant execute on function public.is_admin() to authenticated;
 grant execute on function public.is_owner() to authenticated;
 grant execute on function public.list_admins() to authenticated;
 grant execute on function public.add_admin(text) to authenticated;

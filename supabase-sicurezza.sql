@@ -83,8 +83,8 @@ create policy "avvisi_eliminazione_admin" on public.avvisi
 alter table public.appunti enable row level security;
 create policy "appunti_solo_proprietario" on public.appunti
     for all to authenticated
-    using (user_id = auth.uid())
-    with check (user_id = auth.uid());
+    using (user_id::text = auth.uid()::text)
+    with check (user_id::text = auth.uid()::text);
 
 -- 7. Verifica: deve elencare 9 regole ----------------------------------
 select tablename, policyname, cmd from pg_policies
