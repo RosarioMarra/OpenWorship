@@ -229,50 +229,69 @@ async function fetchBibleData(version, bookId, chapter) {
     }
 }
 
-// ========== NOTIFICHE MOBILE (PWA) ==========
+// ========== NOTIFICHE (computer, Android, iPhone) ==========
+// Su telefono le notifiche vanno mostrate tramite il service worker:
+// Android non permette "new Notification()" e iPhone le mostra solo
+// se l'app è installata nella schermata Home (iOS 16.4 o successivo).
 let notificationsSupported = false;
 let isPWA = false;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 function checkNotificationSupport() {
-    if (!('Notification' in window)) {
-        console.warn('Questo browser non supporta le notifiche');
-        notificationsSupported = false;
+    isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    notificationsSupported = 'Notification' in window;
+    return notificationsSupported;
+}
+
+// Service worker pronto (con limite di attesa, per non bloccarsi se manca)
+function getServiceWorkerRegistration() {
+    if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+    return Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(resolve => setTimeout(() => resolve(null), 4000))
+    ]).catch(() => null);
+}
+
+// Mostra una notifica: prima tramite service worker (necessario su telefono),
+// altrimenti direttamente dalla pagina (computer)
+async function showAppNotification(title, options = {}, onPageClick) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+    const opts = { icon: 'icon-192.png', badge: 'icon-192.png', lang: 'it', ...options };
+    const reg = await getServiceWorkerRegistration();
+    if (reg && reg.showNotification) {
+        try { await reg.showNotification(title, opts); return true; } catch (e) { console.warn('Notifica dal service worker non riuscita:', e); }
+    }
+    try {
+        const n = new Notification(title, opts);
+        n.onclick = () => { window.focus(); if (onPageClick) onPageClick(); n.close(); };
+        return true;
+    } catch (e) {
+        console.error('Notifica non riuscita:', e);
         return false;
     }
-    notificationsSupported = true;
-    // Verifica se l'app è in modalità standalone (PWA installata)
-    isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone === true;
-    return true;
 }
 
 async function requestNotificationPermission() {
-    if (!notificationsSupported) {
-        alert('Il tuo browser non supporta le notifiche.');
+    checkNotificationSupport();
+    // iPhone: senza installazione nella Home le notifiche web non esistono
+    if (isIOS && !isPWA) {
+        alert('Su iPhone le notifiche funzionano solo con l\'app installata:\n\n1. In Safari tocca Condividi (il quadrato con la freccia)\n2. Scegli "Aggiungi alla schermata Home"\n3. Apri Open Worship dall\'icona nella Home e attiva di nuovo le notifiche');
         return false;
     }
-
-    // Su iOS, le notifiche funzionano solo se l'app è installata (PWA)
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !isPWA) {
-        const installMsg = 'Per ricevere notifiche su iOS, devi installare questa app: premi "Condividi" → "Aggiungi alla Home". Vuoi continuare lo stesso?';
-        if (!confirm(installMsg)) {
-            return false;
-        }
+    if (!notificationsSupported) {
+        alert('Questo browser non supporta le notifiche.');
+        return false;
     }
-
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            // Notifica di benvenuto
-            new Notification('✅ Notifiche attivate', {
-                body: 'Riceverai gli avvisi in tempo reale.',
-                icon: '/icon-192.png'
-            });
+            await showAppNotification('Notifiche attivate', { body: 'Riceverai gli avvisi della chiesa.', tag: 'ow-welcome' });
             return true;
-        } else {
-            alert('Hai negato il permesso per le notifiche.');
-            return false;
         }
+        alert(permission === 'denied'
+            ? 'Le notifiche sono bloccate per questo sito. Per attivarle: impostazioni del browser → Siti → Notifiche → consenti Open Worship.'
+            : 'Permesso per le notifiche non concesso.');
+        return false;
     } catch (err) {
         console.error('Errore richiesta permesso:', err);
         alert('Impossibile richiedere il permesso per le notifiche.');
@@ -283,17 +302,16 @@ async function requestNotificationPermission() {
 function setupRealtimeAvvisi() {
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
     if (!notificationsEnabled) return;
-
-    if (Notification.permission !== 'granted') return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
     if (avvisiChannel) {
         avvisiChannel.unsubscribe();
         avvisiChannel = null;
     }
-
     avvisiChannel = supabaseClient
         .channel('avvisi-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avvisi' }, (payload) => {
+            if (payload.new && payload.new.id) markAvvisiSeen([payload.new.id]);
             showAvvisoNotification(payload.new);
         })
         .subscribe((status) => {
@@ -303,23 +321,58 @@ function setupRealtimeAvvisi() {
 
 function showAvvisoNotification(avviso) {
     if (!avviso) return;
-    if (Notification.permission !== 'granted') return;
+    const desc = String(avviso.desc || '');
+    const body = `${desc.substring(0, 120)}${desc.length > 120 ? '…' : ''}${avviso.date ? `\n${new Date(avviso.date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}` : ''}`;
+    showAppNotification(`Nuovo avviso: ${avviso.title}`, {
+        body,
+        tag: 'avviso-' + avviso.id,
+        data: { avvisoId: avviso.id }
+    }, () => openAvvisoFromNotification(avviso.id));
+}
 
-    const title = `📢 Nuovo avviso: ${avviso.title}`;
-    const body = `${avviso.desc.substring(0, 100)}${avviso.desc.length > 100 ? '…' : ''}\nData: ${new Date(avviso.date).toLocaleDateString('it-IT')}`;
-    const icon = '/icon-192.png';
+function openAvvisoFromNotification(id) {
+    document.querySelector('.nav-item[data-target="avvisi"]')?.click();
+    if (id) setTimeout(() => openAvvisoDetailModal(id), 300);
+}
 
-    try {
-        const notification = new Notification(title, { body, icon });
-        notification.onclick = () => {
-            window.focus();
-            document.querySelector('.nav-item[data-target="avvisi"]').click();
-            openAvvisoDetailModal(avviso.id);
-            notification.close();
-        };
-    } catch (e) {
-        console.error('Errore nel mostrare la notifica:', e);
-    }
+// Tocco su una notifica mostrata dal service worker: il service worker
+// riporta l'app in primo piano e chiede di aprire l'avviso
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'open-avviso') openAvvisoFromNotification(e.data.id);
+    });
+}
+// Apertura dell'app da una notifica quando era chiusa (?avviso=ID)
+(function openAvvisoFromUrl() {
+    const id = new URLSearchParams(location.search).get('avviso');
+    if (!id) return;
+    window.__pendingAvvisoId = id;
+    history.replaceState(null, '', location.pathname);
+})();
+
+// Avvisi pubblicati mentre l'app era chiusa: alla riapertura si avvisa
+function getSeenAvvisi() {
+    try { return JSON.parse(localStorage.getItem('seenAvvisi') || 'null'); } catch (e) { return null; }
+}
+function markAvvisiSeen(ids) {
+    const seen = new Set(getSeenAvvisi() || []);
+    ids.forEach(id => seen.add(id));
+    try { localStorage.setItem('seenAvvisi', JSON.stringify([...seen].slice(-300))); } catch (e) { /* ignora */ }
+}
+function notifyMissedAvvisi(list) {
+    const seen = getSeenAvvisi();
+    const ids = list.map(a => a.id);
+    if (seen === null) { markAvvisiSeen(ids); return; } // primo avvio: niente notifiche sugli avvisi vecchi
+    const nuovi = list.filter(a => !seen.includes(a.id));
+    if (!nuovi.length) return;
+    markAvvisiSeen(nuovi.map(a => a.id));
+    if (localStorage.getItem('notificationsEnabled') !== 'true') return;
+    if (nuovi.length === 1) showAvvisoNotification(nuovi[0]);
+    else showAppNotification(`${nuovi.length} nuovi avvisi`, {
+        body: nuovi.slice(0, 3).map(a => '• ' + a.title).join('\n'),
+        tag: 'avvisi-nuovi',
+        data: { avvisoId: null }
+    }, () => openAvvisoFromNotification(null));
 }
 
 // --- LOADER APPLE STYLE ---
@@ -522,7 +575,12 @@ async function loadCloudData() {
         } else console.error("Errore download cantici", canticiErr);
 
         const { data: avvisi, error: avvisiErr } = await supabaseClient.from('avvisi').select('*');
-        if (!avvisiErr && avvisi) avvisiDB = avvisi;
+        if (!avvisiErr && avvisi) {
+            avvisiDB = avvisi;
+            notifyMissedAvvisi(avvisi);
+            // app aperta da una notifica: si mostra l'avviso
+            if (window.__pendingAvvisoId) { const id = window.__pendingAvvisoId; window.__pendingAvvisoId = null; openAvvisoFromNotification(id); }
+        }
         else console.error("Errore download avvisi", avvisiErr);
         renderAvvisi();
 
