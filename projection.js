@@ -697,10 +697,47 @@ window.addEventListener('resize', () => {
 let projCloseChecker = null;
 let projMessageHandler = () => {};
 
+// Rilevamento del secondo schermo (Chrome ed Edge, API "Window Management").
+// Con il permesso già concesso i dati degli schermi sono pronti in anticipo,
+// così la finestra si apre subito sullo schermo esterno senza perdere il clic.
+let projScreenDetails = null;
+function screenEsterno(details) {
+    if (!details || !details.screens || details.screens.length < 2) return null;
+    const altri = details.screens.filter(s => s !== details.currentScreen);
+    return altri.find(s => !s.isInternal) || altri[0] || null;
+}
+async function caricaSchermi(chiediPermesso) {
+    if (!('getScreenDetails' in window)) return null;
+    try {
+        if (!chiediPermesso && navigator.permissions) {
+            const p = await navigator.permissions.query({ name: 'window-management' });
+            if (p.state !== 'granted') return null;
+        }
+        projScreenDetails = await window.getScreenDetails();
+        return projScreenDetails;
+    } catch (e) { return null; }
+}
+caricaSchermi(false);
+
+// Prima volta: la finestra si apre subito, poi (dopo il permesso) si sposta sullo schermo esterno
+async function spostaSuSchermoEsterno(win) {
+    const details = projScreenDetails || await caricaSchermi(true);
+    const target = screenEsterno(details);
+    if (!target || !win || win.closed) return;
+    try {
+        win.moveTo(target.availLeft, target.availTop);
+        win.resizeTo(target.availWidth, target.availHeight);
+    } catch (e) { /* il browser non permette di spostarla */ }
+    try { win.postMessage({ type: 'fullscreen' }, '*'); } catch (e) { /* ignora */ }
+}
+
 function openSecondScreen() {
-    const width = 1280, height = 720;
-    const left = Math.max(0, window.screen.width - width);
-    presentationWindow = window.open('', 'openWorshipProiezione', `width=${width},height=${height},left=${left},top=0`);
+    const target = screenEsterno(projScreenDetails);
+    const features = target
+        ? `popup,fullscreen,left=${target.availLeft},top=${target.availTop},width=${target.availWidth},height=${target.availHeight}`
+        : `popup,width=1280,height=720,left=${Math.max(0, window.screen.width - 1280)},top=0`;
+    presentationWindow = window.open('', 'openWorshipProiezione', features);
+    if (presentationWindow && !target) spostaSuSchermoEsterno(presentationWindow);
     if (!presentationWindow) {
         alert("Il popup è stato bloccato. Consenti i popup per questo sito e riprova.");
         Proj.mode = null;
@@ -761,11 +798,14 @@ function buildSecondScreenHtml() {
   .ps-desc{font-weight:500;line-height:1.45}
   .is-blank .proj-text,.is-blank .proj-bg{opacity:0}
   .hint{position:fixed;bottom:12px;right:16px;color:rgba(255,255,255,.35);font-size:12px;z-index:2;transition:opacity 1s}
+  .fs-ask{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);z-index:3;padding:14px 26px;border-radius:999px;background:rgba(0,122,255,.92);color:#fff;font-size:20px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap;display:none}
+  .fs-ask.show{display:block}
   ${PROJ_SHARED_CSS}
 </style></head>
 <body>
 <div class="proj-screen" id="screen"><div class="proj-bg" id="bg"></div><div class="proj-text" id="text"></div></div>
-<div class="hint" id="hint">Doppio clic: schermo intero · Frecce: cambia strofa</div>
+<div class="hint" id="hint">Clic: schermo intero · Esc: esci · Frecce: cambia strofa</div>
+<div class="fs-ask" id="fsAsk">Clicca una volta per lo schermo intero</div>
 <script>
   var slides = [], parentOrigin = '*', current = -1, timer = null;
   var st = { font: '', weight: '700', upper: false, scale: 1, transition: 'fade', duration: 600 };
@@ -814,19 +854,26 @@ function buildSecondScreenHtml() {
     else if (d.type === 'bg') setBg(d.bg);
     else if (d.type === 'blank') screenEl.classList.toggle('is-blank', !!d.on);
     else if (d.type === 'style') { st = d.style; applyStyle(); fit(); }
+    else if (d.type === 'fullscreen') goFullscreen();
   });
+  // Schermo intero: si prova da sola; se il browser vuole un clic, lo si chiede ben visibile
+  var fsAsk = document.getElementById('fsAsk');
+  function updateFsAsk(){ fsAsk.classList.toggle('show', !document.fullscreenElement); }
+  function goFullscreen(){
+    if (document.fullscreenElement || !document.documentElement.requestFullscreen) { updateFsAsk(); return; }
+    document.documentElement.requestFullscreen().then(updateFsAsk, updateFsAsk);
+  }
+  document.addEventListener('fullscreenchange', updateFsAsk);
+  document.addEventListener('click', function(){ if (!document.fullscreenElement) goFullscreen(); });
   document.addEventListener('keydown', function(e){
     if (e.key === 'F11') return;
     if (window.opener) { window.opener.postMessage({ type: 'key', key: e.key }, parentOrigin); e.preventDefault(); }
-  });
-  document.addEventListener('dblclick', function(){
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
-    else document.exitFullscreen();
   });
   window.addEventListener('resize', fit);
   if (document.fonts) document.fonts.ready.then(fit);
   setTimeout(function(){ document.getElementById('hint').style.opacity = 0; }, 5000);
   if (window.opener) window.opener.postMessage({ type: 'ready' }, '*');
+  setTimeout(goFullscreen, 150);
 <\/script>
 </body></html>`;
 }
