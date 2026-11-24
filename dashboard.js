@@ -87,6 +87,7 @@ function updateDashboard() {
 
     renderDashAvvisi();
     renderDashHymns();
+    if (typeof renderDashScaletta === 'function') renderDashScaletta();
     fitDashboardToScreen();
 }
 

@@ -155,6 +155,9 @@
                         <button class="quick-action admin-only-controls" id="quickAvviso" title="Nuovo avviso"><span class="qa-icon tone-blue"><i class="ri-notification-3-line"></i></span><span class="qa-long">Nuovo avviso</span><span class="qa-short">Avviso</span></button>
                     </div>
 
+                    <!-- Prossima scaletta -->
+                    <div class="dash-scaletta-wrap" id="dashScaletta"></div>
+
                     <div class="dash-columns">
                         <!-- Prossimi avvisi -->
                         <section class="dash-panel">
@@ -230,7 +233,7 @@
                             <div class="segmented favorites-header">
                                 <button class="favorites-tab active" data-tab="all">Tutti</button>
                                 <button class="favorites-tab" data-tab="favorites"><i class="ri-heart-line"></i> Preferiti</button>
-                                <button class="favorites-tab" data-tab="scalette"><i class="ri-list-ordered"></i> Scaletta</button>
+                                <button class="favorites-tab" data-tab="scalette"><i class="ri-list-ordered"></i> Servizi</button>
                             </div>
                         </div>
                         <div class="list-container" id="hymnsList"></div>
@@ -294,7 +297,7 @@
                             </div>
                             <button id="shareHymnBtn" class="icon-btn" title="Condividi"><i class="ri-share-line"></i></button>
                             <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta"><i class="ri-projector-line"></i></button>
-                            <button id="addHymnToScalettaBtn" class="icon-btn admin-only-controls" title="Aggiungi alla scaletta"><i class="ri-play-list-add-line"></i></button>
+                            <button id="addHymnToScalettaBtn" class="icon-btn admin-only-controls" title="Aggiungi a un servizio"><i class="ri-play-list-add-line"></i></button>
                             <div class="apple-font-controls" role="group" aria-label="Dimensione testo">
                                 <button id="decreaseHymnFont" class="font-btn small-a" title="Testo più piccolo">A</button>
                                 <div class="font-divider"></div>
@@ -509,7 +512,7 @@
     <!-- SCALETTA: crea / modifica -->
     <div id="scalettaModal" class="modal hidden">
         <div class="modal-content">
-            <h2 id="scalettaModalTitle">Nuova scaletta</h2>
+            <h2 id="scalettaModalTitle">Nuovo servizio</h2>
             <label class="field-label" for="scalettaData">DATA DEL SERVIZIO</label>
             <input type="date" id="scalettaData" class="apple-select field">
             <label class="field-label" for="scalettaTitolo">TITOLO (FACOLTATIVO)</label>
@@ -527,14 +530,14 @@
     <!-- CANTICO: aggiungi a una scaletta -->
     <div id="addToScalettaModal" class="modal hidden">
         <div class="modal-content add-to-scaletta">
-            <h2>Aggiungi alla scaletta</h2>
+            <h2>Aggiungi a un servizio</h2>
             <p class="add-to-scaletta-hymn" id="addToScalettaHymn"></p>
             <label class="field-label" for="addToScalettaEtichetta">ETICHETTA</label>
             <select id="addToScalettaEtichetta" class="apple-select field"></select>
-            <label class="field-label">SCALETTA</label>
+            <label class="field-label">SERVIZIO</label>
             <div class="add-to-scaletta-list" id="addToScalettaList"></div>
             <div class="modal-actions">
-                <button class="btn-text" id="addToScalettaNew"><i class="ri-add-line"></i> Nuova scaletta</button>
+                <button class="btn-text" id="addToScalettaNew"><i class="ri-add-line"></i> Nuovo servizio</button>
                 <div class="modal-actions-right">
                     <button class="btn-secondary" onclick="closeAddToScaletta()">Chiudi</button>
                 </div>

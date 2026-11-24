@@ -5239,3 +5239,122 @@ body.is-admin .admins-panel { display: block; }
         width: 100%;
     }
 }
+
+/* ---------- HOME: PROSSIMA SCALETTA ---------- */
+.dash-scaletta-wrap:empty {
+    display: none;
+}
+.dash-scaletta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+button.dash-scaletta:hover {
+    border-color: var(--accent-color);
+    box-shadow: var(--shadow-md);
+}
+button.dash-scaletta:active {
+    transform: scale(0.99);
+}
+.dash-scaletta.is-empty {
+    cursor: default;
+}
+.dash-scaletta .scaletta-date {
+    width: 48px;
+    height: 54px;
+    border-radius: 13px;
+    background: var(--accent-color);
+    color: #fff;
+}
+.dash-scaletta .scaletta-date b {
+    font-size: 20px;
+}
+.dash-scaletta-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-size: 20px;
+}
+.dash-scaletta-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 3px;
+}
+.dash-scaletta-label {
+    color: var(--accent-color);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.dash-scaletta.is-empty .dash-scaletta-label {
+    color: var(--text-muted);
+}
+.dash-scaletta-title {
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dash-scaletta-title small {
+    margin-left: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+.dash-scaletta.is-empty .dash-scaletta-title {
+    font-weight: 500;
+}
+.dash-scaletta-songs {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dash-scaletta-go {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 22px;
+}
+.dash-scaletta .btn-text {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+@media (max-width: 768px) {
+    .dash-scaletta {
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 18px;
+    }
+    .dash-scaletta .scaletta-date {
+        width: 42px;
+        height: 48px;
+    }
+    .dash-scaletta .scaletta-date b {
+        font-size: 18px;
+    }
+}

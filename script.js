@@ -1246,7 +1246,7 @@ function renderHymns() {
                     <div class="mobile-menu-dropdown hidden">
                         <button onclick="event.stopPropagation(); shareHymn('${id}')"><i class="ri-share-line"></i> Condividi</button>
                         ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')"><i class="ri-play-list-add-line"></i> Aggiungi alla scaletta</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')"><i class="ri-play-list-add-line"></i> Aggiungi a un servizio</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteHymn('${id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
                     </div>
@@ -1261,7 +1261,7 @@ function renderHymns() {
                     ${isAdmin ? `
                     <div class="admin-list-controls">
                         <button class="icon-btn" onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')" title="Proietta"><i class="ri-projector-line"></i></button>
-                        <button class="icon-btn" onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')" title="Aggiungi alla scaletta"><i class="ri-play-list-add-line"></i></button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')" title="Aggiungi a un servizio"><i class="ri-play-list-add-line"></i></button>
                         <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${id}')" title="Modifica"><i class="ri-pencil-line"></i></button>
                         <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${id}')" title="Elimina"><i class="ri-delete-bin-line"></i></button>
                     </div>` : ''}
