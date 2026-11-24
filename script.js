@@ -73,15 +73,53 @@ function saveFavorites() {
     localStorage.setItem('favoritesDB', JSON.stringify(favoritesDB));
 }
 
-function toggleFavorite(hymnId) {
+// I preferiti sono salvati anche online (tabella "preferiti"), così si ritrovano su ogni dispositivo
+async function toggleFavorite(hymnId) {
     const index = favoritesDB.indexOf(hymnId);
-    if (index === -1) {
-        favoritesDB.push(hymnId);
-    } else {
-        favoritesDB.splice(index, 1);
-    }
+    const adding = index === -1;
+    if (adding) favoritesDB.push(hymnId);
+    else favoritesDB.splice(index, 1);
     saveFavorites();
     renderHymns();
+    if (typeof updateDashboard === 'function') updateDashboard();
+    if (!currentUser) return;
+    const { error } = adding
+        ? await supabaseClient.from('preferiti').insert([{ user_id: currentUser.id, cantico_id: hymnId }])
+        : await supabaseClient.from('preferiti').delete().eq('user_id', currentUser.id).eq('cantico_id', hymnId);
+    // 23505 = era già tra i preferiti online
+    if (error && error.code !== '23505') {
+        console.error('Preferito non salvato online', error);
+        if (typeof showVerseToast === 'function') showVerseToast('Preferito salvato solo su questo dispositivo');
+    }
+}
+
+// Scarica i preferiti dell'utente. Al primo accesso con questa versione
+// si caricano online anche quelli già salvati sul dispositivo.
+async function syncFavorites() {
+    if (!currentUser) return;
+    const { data, error } = await supabaseClient.from('preferiti').select('cantico_id').eq('user_id', currentUser.id);
+    if (error || !data) { console.error('Errore download preferiti', error); return; }
+    const cloud = data.map(r => String(r.cantico_id));
+    let merged = cloud;
+    const syncedKey = 'favoritesSynced_' + currentUser.id;
+    if (!localStorage.getItem(syncedKey)) {
+        const esistenti = new Set(hymnsDB.map(h => String(h.id)));
+        const soloLocali = favoritesDB.map(String).filter(id => !cloud.includes(id) && esistenti.has(id));
+        if (soloLocali.length) {
+            const { error: upErr } = await supabaseClient.from('preferiti')
+                .insert(soloLocali.map(id => ({ user_id: currentUser.id, cantico_id: id })));
+            if (upErr && upErr.code !== '23505') { console.error('Caricamento preferiti non riuscito', upErr); return; }
+        }
+        merged = [...cloud, ...soloLocali];
+        localStorage.setItem(syncedKey, '1');
+    }
+    const changed = JSON.stringify([...merged].sort()) !== JSON.stringify(favoritesDB.map(String).sort());
+    favoritesDB = merged;
+    saveFavorites();
+    if (changed) {
+        renderHymns();
+        if (typeof updateDashboard === 'function') updateDashboard();
+    }
 }
 
 function isFavorite(hymnId) {
@@ -217,6 +255,9 @@ async function handleLogout() {
     closeProjection();
     notesDB = [];
     localStorage.removeItem('notesDB');
+    // i preferiti appartengono all'account: chi entra dopo su questo dispositivo non li eredita
+    favoritesDB = [];
+    localStorage.removeItem('favoritesDB');
     mainApp.classList.add('hidden');
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
@@ -823,6 +864,7 @@ async function loadCloudDataInner() {
                 console.error("Errore download appunti", appuntiErr);
             }
         }
+        await syncFavorites();
         if (typeof loadScalette === 'function') await loadScalette();
         renderNotes();
         updateDashboard();
@@ -1168,6 +1210,7 @@ function renderHymns() {
     });
     // Scheda "Scaletta": al posto dell'elenco dei cantici si mostrano le scalette del servizio
     document.querySelector('.hymns-toolbar .search-bar')?.classList.toggle('hidden', currentTab === 'scalette');
+    list.classList.toggle('scalette-mode', currentTab === 'scalette');
     if (currentTab === 'scalette') { if (typeof renderScalette === 'function') renderScalette(); return; }
     list.innerHTML = '';
     const filtered = getFilteredHymns();
@@ -1203,6 +1246,7 @@ function renderHymns() {
                     <div class="mobile-menu-dropdown hidden">
                         <button onclick="event.stopPropagation(); shareHymn('${id}')"><i class="ri-share-line"></i> Condividi</button>
                         ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')"><i class="ri-projector-line"></i> Proietta</button>` : ''}
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')"><i class="ri-play-list-add-line"></i> Aggiungi alla scaletta</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openEditModal('${id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteHymn('${id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
                     </div>
@@ -1217,6 +1261,7 @@ function renderHymns() {
                     ${isAdmin ? `
                     <div class="admin-list-controls">
                         <button class="icon-btn" onclick="event.stopPropagation(); askPresentationMode('cantico', '${id}')" title="Proietta"><i class="ri-projector-line"></i></button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); openAggiungiAScaletta('${id}')" title="Aggiungi alla scaletta"><i class="ri-play-list-add-line"></i></button>
                         <button class="icon-btn" onclick="event.stopPropagation(); openEditModal('${id}')" title="Modifica"><i class="ri-pencil-line"></i></button>
                         <button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteHymn('${id}')" title="Elimina"><i class="ri-delete-bin-line"></i></button>
                     </div>` : ''}

@@ -294,6 +294,7 @@
                             </div>
                             <button id="shareHymnBtn" class="icon-btn" title="Condividi"><i class="ri-share-line"></i></button>
                             <button id="projectHymnBtn" class="icon-btn admin-only-controls" title="Proietta"><i class="ri-projector-line"></i></button>
+                            <button id="addHymnToScalettaBtn" class="icon-btn admin-only-controls" title="Aggiungi alla scaletta"><i class="ri-play-list-add-line"></i></button>
                             <div class="apple-font-controls" role="group" aria-label="Dimensione testo">
                                 <button id="decreaseHymnFont" class="font-btn small-a" title="Testo più piccolo">A</button>
                                 <div class="font-divider"></div>
@@ -518,6 +519,24 @@
                 <div class="modal-actions-right">
                     <button class="btn-secondary" onclick="closeScalettaModal()">Annulla</button>
                     <button class="btn-apple" id="saveScalettaBtn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CANTICO: aggiungi a una scaletta -->
+    <div id="addToScalettaModal" class="modal hidden">
+        <div class="modal-content add-to-scaletta">
+            <h2>Aggiungi alla scaletta</h2>
+            <p class="add-to-scaletta-hymn" id="addToScalettaHymn"></p>
+            <label class="field-label" for="addToScalettaEtichetta">ETICHETTA</label>
+            <select id="addToScalettaEtichetta" class="apple-select field"></select>
+            <label class="field-label">SCALETTA</label>
+            <div class="add-to-scaletta-list" id="addToScalettaList"></div>
+            <div class="modal-actions">
+                <button class="btn-text" id="addToScalettaNew"><i class="ri-add-line"></i> Nuova scaletta</button>
+                <div class="modal-actions-right">
+                    <button class="btn-secondary" onclick="closeAddToScaletta()">Chiudi</button>
                 </div>
             </div>
         </div>

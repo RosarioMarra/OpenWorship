@@ -45,6 +45,7 @@ async function loadScalette() {
     scaletteDB = data;
     try { localStorage.setItem('scaletteDB', JSON.stringify(scaletteDB)); } catch (e) { /* spazio pieno */ }
     if (currentTab === 'scalette') renderScalette();
+    apriScalettaDaLink();
 }
 
 async function salvaScaletta(scaletta) {
@@ -72,27 +73,54 @@ function renderScalette() {
     const oggi = oggiIso();
     const prossime = scaletteDB.filter(s => s.data >= oggi).sort((a, b) => a.data.localeCompare(b.data));
     const passate = scaletteDB.filter(s => s.data < oggi).sort((a, b) => b.data.localeCompare(a.data));
-    const card = s => {
-        const d = dataLocale(s.data);
+    const card = (s, prossimo) => {
         const n = (s.voci || []).length;
         return `
-        <button type="button" class="scaletta-card" onclick="apriScaletta('${escapeHtml(s.id)}')">
-            <span class="scaletta-date"><b>${d.getDate()}</b><small>${d.toLocaleDateString('it-IT', { month: 'short' })}</small></span>
+        <button type="button" class="scaletta-card${prossimo ? ' is-next' : ''}" onclick="apriScaletta('${escapeHtml(s.id)}')">
+            ${tesseraData(s.data)}
             <span class="scaletta-card-main">
+                ${prossimo ? '<span class="scaletta-next-badge">Prossimo servizio</span>' : ''}
                 <span class="scaletta-card-title">${escapeHtml(s.titolo || 'Servizio')}</span>
-                <span class="scaletta-card-sub">${escapeHtml(dataLunga(s.data))} · ${n} ${n === 1 ? 'cantico' : 'cantici'}</span>
+                <span class="scaletta-card-sub"><i class="ri-music-2-line"></i> ${n} ${n === 1 ? 'cantico' : 'cantici'}</span>
             </span>
-            <i class="ri-arrow-right-s-line"></i>
+            <i class="ri-arrow-right-s-line scaletta-card-go"></i>
         </button>`;
     };
-    list.innerHTML = `
-        <div class="scalette-head">
-            <p>Le scalette dei cantici per ogni servizio.</p>
-            ${isAdmin ? '<button type="button" class="btn-apple" onclick="openScalettaModal()"><i class="ri-add-line"></i> Nuova scaletta</button>' : ''}
+    const gruppo = (titolo, elenco, conProssimo) => elenco.length ? `
+        <section class="scalette-group">
+            <h3 class="scalette-group-title">${titolo}</h3>
+            <div class="scalette-grid">${elenco.map((s, i) => card(s, conProssimo && i === 0)).join('')}</div>
+        </section>` : '';
+    const nuova = isAdmin ? '<button type="button" class="btn-apple" onclick="openScalettaModal()"><i class="ri-add-line"></i> Nuova scaletta</button>' : '';
+    const totale = scaletteDB.length;
+
+    list.innerHTML = totale ? `
+        <div class="scalette-toolbar">
+            <span class="scalette-count">${totale} ${totale === 1 ? 'scaletta' : 'scalette'}</span>
+            ${nuova}
         </div>
-        ${!scaletteDB.length ? '<p class="empty-state"><i class="ri-list-ordered"></i>Nessuna scaletta</p>' : ''}
-        ${prossime.length ? `<div class="scalette-group-title">Prossime</div>${prossime.map(card).join('')}` : ''}
-        ${passate.length ? `<div class="scalette-group-title">Passate</div>${passate.map(card).join('')}` : ''}`;
+        ${gruppo('Prossime', prossime, true)}
+        ${gruppo('Passate', passate, false)}` : `
+        <div class="scalette-empty">
+            <span class="scalette-empty-icon"><i class="ri-list-ordered"></i></span>
+            <h3>Nessuna scaletta</h3>
+            <p>${isAdmin ? 'Crea la scaletta dei cantici per il prossimo servizio.' : 'Qui troverai i cantici dei prossimi servizi.'}</p>
+            ${nuova}
+        </div>`;
+}
+
+// Tessera con giorno della settimana, giorno e mese
+function tesseraData(iso, grande) {
+    const d = dataLocale(iso);
+    const giorno = d.toLocaleDateString('it-IT', { weekday: 'short' }).replace('.', '');
+    const mese = d.toLocaleDateString('it-IT', { month: 'short' }).replace('.', '');
+    return `<span class="scaletta-date${grande ? ' is-large' : ''}"><small>${giorno}</small><b>${d.getDate()}</b><small>${mese}</small></span>`;
+}
+
+// "12 - Titolo" diventa { numero: "12", nome: "Titolo" }
+function partiTitolo(titolo) {
+    const m = String(titolo || '').match(/^\s*(\d+)\s*[-–.:)]?\s*(.*)$/);
+    return m && m[2] ? { numero: m[1], nome: m[2] } : { numero: '', nome: String(titolo || '') };
 }
 
 function renderScalettaDettaglio(list, s) {
@@ -100,43 +128,55 @@ function renderScalettaDettaglio(list, s) {
     const righe = voci.map((v, i) => {
         const et = etichettaInfo(v.etichetta);
         const id = escapeHtml(v.cantico_id);
+        const t = partiTitolo(titoloCantico(v.cantico_id));
         return `
         <li class="scaletta-voce">
             <span class="scaletta-num">${i + 1}</span>
-            <div class="scaletta-voce-main" onclick="openHymnView('${id}')">
-                <span class="scaletta-tag ${et.tono}">${et.nome}</span>
-                <span class="scaletta-voce-title">${escapeHtml(titoloCantico(v.cantico_id))}</span>
-            </div>
+            <button type="button" class="scaletta-voce-main" onclick="openHymnView('${id}')" title="Apri il cantico">
+                <span class="scaletta-voce-title">${escapeHtml(t.nome)}</span>
+                <span class="scaletta-voce-meta">
+                    <span class="scaletta-tag ${et.tono}">${et.nome}</span>
+                    ${t.numero ? `<span class="scaletta-hymn-no">Cantico n. ${escapeHtml(t.numero)}</span>` : ''}
+                </span>
+            </button>
             ${isAdmin ? `
             <div class="scaletta-voce-actions">
                 <select class="apple-select scaletta-tag-select" title="Etichetta" onchange="cambiaEtichettaVoce(${i}, this.value)">
                     ${SCALETTA_ETICHETTE.map(e => `<option value="${e.id}" ${e.id === et.id ? 'selected' : ''}>${e.nome}</option>`).join('')}
                 </select>
-                <button type="button" class="icon-btn" title="Sposta su" ${i === 0 ? 'disabled' : ''} onclick="spostaVoce(${i}, -1)"><i class="ri-arrow-up-line"></i></button>
-                <button type="button" class="icon-btn" title="Sposta giù" ${i === voci.length - 1 ? 'disabled' : ''} onclick="spostaVoce(${i}, 1)"><i class="ri-arrow-down-line"></i></button>
-                <button type="button" class="icon-btn icon-danger" title="Togli dalla scaletta" onclick="togliVoce(${i})"><i class="ri-close-line"></i></button>
-            </div>` : ''}
+                <button type="button" class="scaletta-mini-btn" title="Sposta su" ${i === 0 ? 'disabled' : ''} onclick="spostaVoce(${i}, -1)"><i class="ri-arrow-up-s-line"></i></button>
+                <button type="button" class="scaletta-mini-btn" title="Sposta giù" ${i === voci.length - 1 ? 'disabled' : ''} onclick="spostaVoce(${i}, 1)"><i class="ri-arrow-down-s-line"></i></button>
+                <button type="button" class="scaletta-mini-btn is-danger" title="Togli dalla scaletta" onclick="togliVoce(${i})"><i class="ri-close-line"></i></button>
+            </div>` : '<i class="ri-arrow-right-s-line scaletta-voce-go"></i>'}
         </li>`;
     }).join('');
+    const n = voci.length;
 
     list.innerHTML = `
         <div class="scaletta-detail">
-            <button type="button" class="btn-text back-btn" onclick="chiudiScaletta()"><i class="ri-arrow-left-s-line"></i><span>Tutte le scalette</span></button>
-            <div class="scaletta-detail-head">
-                <div>
+            <button type="button" class="scaletta-back" onclick="chiudiScaletta()"><i class="ri-arrow-left-s-line"></i> Tutte le scalette</button>
+            <div class="scaletta-hero">
+                ${tesseraData(s.data, true)}
+                <div class="scaletta-hero-text">
                     <h2>${escapeHtml(s.titolo || 'Servizio')}</h2>
                     <p>${escapeHtml(dataLunga(s.data))}</p>
+                    <p class="scaletta-hero-count"><i class="ri-music-2-line"></i> ${n} ${n === 1 ? 'cantico' : 'cantici'}</p>
                 </div>
-                ${isAdmin ? `
-                <div class="scaletta-detail-actions">
+                <div class="scaletta-hero-actions">
+                    <button type="button" class="icon-btn" title="Condividi la scaletta" onclick="condividiScaletta('${escapeHtml(s.id)}')"><i class="ri-share-line"></i></button>
+                    ${isAdmin ? `
                     <button type="button" class="icon-btn" title="Modifica data e titolo" onclick="openScalettaModal('${escapeHtml(s.id)}')"><i class="ri-pencil-line"></i></button>
-                    <button type="button" class="icon-btn icon-danger" title="Elimina scaletta" onclick="eliminaScaletta('${escapeHtml(s.id)}')"><i class="ri-delete-bin-line"></i></button>
-                </div>` : ''}
+                    <button type="button" class="icon-btn icon-danger" title="Elimina scaletta" onclick="eliminaScaletta('${escapeHtml(s.id)}')"><i class="ri-delete-bin-line"></i></button>` : ''}
+                </div>
             </div>
-            ${voci.length ? `<ol class="scaletta-voci">${righe}</ol>` : '<p class="empty-state"><i class="ri-music-2-line"></i>Nessun cantico in questa scaletta</p>'}
+            ${n ? `<ol class="scaletta-voci">${righe}</ol>` : `
+            <div class="scalette-empty is-compact">
+                <span class="scalette-empty-icon"><i class="ri-music-2-line"></i></span>
+                <p>${isAdmin ? 'Nessun cantico ancora: aggiungi il primo qui sotto.' : 'Nessun cantico in questa scaletta.'}</p>
+            </div>`}
             ${isAdmin ? `
             <div class="scaletta-add">
-                <div class="scaletta-add-title">Aggiungi un cantico <small>diventerà il n. ${voci.length + 1}</small></div>
+                <div class="scaletta-add-title"><i class="ri-add-circle-line"></i> Aggiungi un cantico <small>sarà il n. ${n + 1}</small></div>
                 <div class="scaletta-add-row">
                     <select id="scalettaEtichetta" class="apple-select" title="Etichetta">
                         ${SCALETTA_ETICHETTE.map(e => `<option value="${e.id}" ${e.id === scalettaEtichettaScelta ? 'selected' : ''}>${e.nome}</option>`).join('')}
@@ -236,6 +276,7 @@ function openScalettaModal(id) {
 }
 function closeScalettaModal() {
     document.getElementById('scalettaModal').classList.add('hidden');
+    scalettaCanticoInAttesa = null;
 }
 document.getElementById('scalettaModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'scalettaModal') closeScalettaModal();
@@ -250,13 +291,119 @@ document.getElementById('saveScalettaBtn')?.addEventListener('click', (e) => wit
         s.data = data; s.titolo = titolo;
         if (!(await salvaScaletta(s))) return;
     } else {
-        const nuova = { id: crypto.randomUUID(), data, titolo, voci: [], updated_at: new Date().toISOString() };
+        // creata dalla finestra "Aggiungi alla scaletta": il cantico entra subito come n. 1
+        const attesa = scalettaCanticoInAttesa;
+        const voci = attesa ? [{ cantico_id: attesa.canticoId, etichetta: attesa.etichetta }] : [];
+        const nuova = { id: crypto.randomUUID(), data, titolo, voci, updated_at: new Date().toISOString() };
         const { error } = await supabaseClient.from('scalette').insert([nuova]);
         if (error) { alert('Creazione non riuscita: ' + error.message); return; }
         scaletteDB.push(nuova);
         try { localStorage.setItem('scaletteDB', JSON.stringify(scaletteDB)); } catch (err) { /* spazio pieno */ }
+        if (attesa) {
+            scalettaCanticoInAttesa = null;
+            closeScalettaModal();
+            showVerseToast(`Aggiunto a "${nuova.titolo || 'Servizio'}" come n. 1`);
+            if (currentTab === 'scalette') renderScalette();
+            return;
+        }
         scalettaApertaId = nuova.id;
     }
     closeScalettaModal();
     renderScalette();
 }));
+
+// ---------- dal cantico: "Aggiungi alla scaletta" ----------
+let scalettaCanticoInAttesa = null;
+let aggiungiCanticoId = null;
+
+function openAggiungiAScaletta(canticoId) {
+    if (!isAdmin) return;
+    aggiungiCanticoId = canticoId;
+    document.querySelectorAll('.mobile-menu-dropdown').forEach(d => d.classList.add('hidden'));
+    document.getElementById('addToScalettaHymn').textContent = titoloCantico(canticoId);
+    const sel = document.getElementById('addToScalettaEtichetta');
+    sel.innerHTML = SCALETTA_ETICHETTE.map(e => `<option value="${e.id}" ${e.id === scalettaEtichettaScelta ? 'selected' : ''}>${e.nome}</option>`).join('');
+
+    const oggi = oggiIso();
+    const prossime = scaletteDB.filter(s => s.data >= oggi).sort((a, b) => a.data.localeCompare(b.data));
+    const passate = scaletteDB.filter(s => s.data < oggi).sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
+    const riga = s => {
+        const n = (s.voci || []).length;
+        const gia = (s.voci || []).some(v => String(v.cantico_id) === String(canticoId));
+        return `
+        <button type="button" class="add-to-scaletta-item" onclick="aggiungiAScaletta('${escapeHtml(s.id)}')">
+            ${tesseraData(s.data)}
+            <span class="scaletta-card-main">
+                <span class="scaletta-card-title">${escapeHtml(s.titolo || 'Servizio')}</span>
+                <span class="scaletta-card-sub">${gia ? '<i class="ri-check-line"></i> già presente · ' : ''}sarà il n. ${n + 1}</span>
+            </span>
+            <i class="ri-add-circle-line"></i>
+        </button>`;
+    };
+    document.getElementById('addToScalettaList').innerHTML =
+        (prossime.length ? prossime.map(riga).join('') : '<p class="add-to-scaletta-none">Nessuna scaletta in programma: creane una nuova.</p>') +
+        (passate.length ? `<div class="scalette-group-title">Passate</div>${passate.map(riga).join('')}` : '');
+    document.getElementById('addToScalettaModal').classList.remove('hidden');
+}
+function closeAddToScaletta() {
+    document.getElementById('addToScalettaModal').classList.add('hidden');
+}
+async function aggiungiAScaletta(scalettaId) {
+    const s = scaletteDB.find(x => x.id === scalettaId);
+    if (!s || !aggiungiCanticoId) return;
+    const etichetta = document.getElementById('addToScalettaEtichetta').value;
+    scalettaEtichettaScelta = etichetta;
+    if ((s.voci || []).some(v => String(v.cantico_id) === String(aggiungiCanticoId)) &&
+        !confirm('Questo cantico è già nella scaletta. Aggiungerlo di nuovo?')) return;
+    s.voci = [...(s.voci || []), { cantico_id: aggiungiCanticoId, etichetta }];
+    closeAddToScaletta();
+    if (await salvaScaletta(s)) {
+        showVerseToast(`Aggiunto a "${s.titolo || 'Servizio'}" come n. ${s.voci.length}`);
+        if (currentTab === 'scalette') renderScalette();
+    }
+}
+document.getElementById('addToScalettaNew')?.addEventListener('click', () => {
+    scalettaCanticoInAttesa = { canticoId: aggiungiCanticoId, etichetta: document.getElementById('addToScalettaEtichetta').value };
+    scalettaEtichettaScelta = scalettaCanticoInAttesa.etichetta;
+    closeAddToScaletta();
+    openScalettaModal();
+});
+document.getElementById('addToScalettaModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'addToScalettaModal') closeAddToScaletta();
+});
+document.getElementById('addHymnToScalettaBtn')?.addEventListener('click', () => {
+    if (window.currentHymnId) openAggiungiAScaletta(window.currentHymnId);
+});
+
+// ---------- condivisione ----------
+// Testo con data, titolo e cantici numerati; il link apre direttamente questa scaletta nell'app
+async function condividiScaletta(id) {
+    const s = scaletteDB.find(x => x.id === id);
+    if (!s) return;
+    const voci = s.voci || [];
+    const righe = voci.map((v, i) => {
+        const t = partiTitolo(titoloCantico(v.cantico_id));
+        return `${i + 1}. ${t.nome}${t.numero ? ` (n. ${t.numero})` : ''} — ${etichettaInfo(v.etichetta).nome}`;
+    });
+    const titolo = `Scaletta: ${s.titolo || 'Servizio'}`;
+    const testo = `${dataLunga(s.data)}\n\n${righe.length ? righe.join('\n') : 'Nessun cantico ancora.'}`;
+    await shareContent(titolo, testo, `${APP_PUBLIC_URL}?scaletta=${encodeURIComponent(s.id)}`);
+}
+
+// Apertura dal link condiviso (?scaletta=ID): si ricorda anche dopo l'accesso con Google
+(function scalettaDaLink() {
+    const id = new URLSearchParams(location.search).get('scaletta');
+    if (!id) return;
+    try { sessionStorage.setItem('scalettaDaAprire', id); } catch (e) { /* ignora */ }
+    history.replaceState(null, '', location.pathname);
+})();
+function apriScalettaDaLink() {
+    let id = null;
+    try { id = sessionStorage.getItem('scalettaDaAprire'); } catch (e) { return; }
+    if (!id || !scaletteDB.some(s => s.id === id)) return;
+    try { sessionStorage.removeItem('scalettaDaAprire'); } catch (e) { /* ignora */ }
+    document.querySelector('.nav-item[data-target="cantici"]')?.click();
+    if (typeof closeHymnView === 'function' && !document.getElementById('hymnReaderView').classList.contains('hidden')) closeHymnView();
+    document.querySelector('#hymnsListView .favorites-tab[data-tab="scalette"]')?.click();
+    apriScaletta(id);
+}

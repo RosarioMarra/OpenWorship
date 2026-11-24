@@ -4675,87 +4675,92 @@ body.is-admin .admins-panel { display: block; }
 }
 
 /* ---------- SCALETTE DEL SERVIZIO ---------- */
-.scalette-head {
+/* Nella scheda Scaletta l'elenco non è più un riquadro unico: ogni blocco ha il suo */
+.list-container.scalette-mode {
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+.scalette-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 6px;
 }
-.scalette-head p {
-    margin: 0;
+.scalette-count {
     color: var(--text-muted);
     font-size: 14px;
+    font-weight: 500;
 }
-.scalette-head .btn-apple,
-.scaletta-add .btn-apple {
+.scalette-toolbar .btn-apple,
+.scalette-empty .btn-apple {
     display: inline-flex;
     align-items: center;
     gap: 6px;
 }
+.scalette-group {
+    margin-top: 18px;
+}
 .scalette-group-title {
-    margin: 18px 0 8px;
+    margin: 0 0 10px;
+    padding: 0 4px;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
-.scaletta-card {
+.scalette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+}
+
+/* Scheda della singola scaletta */
+.scaletta-card,
+.add-to-scaletta-item {
     display: flex;
     align-items: center;
     gap: 14px;
     width: 100%;
-    margin-bottom: 8px;
-    padding: 12px 14px;
+    min-width: 0;
+    padding: 14px 16px;
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
     color: var(--text-main);
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
-.scaletta-card:hover {
+.scaletta-card:hover,
+.add-to-scaletta-item:hover {
+    border-color: var(--accent-color);
     box-shadow: var(--shadow-md);
 }
-.scaletta-card:active {
+.scaletta-card:active,
+.add-to-scaletta-item:active {
     transform: scale(0.99);
 }
-.scaletta-card > i {
-    color: var(--text-muted);
-    font-size: 20px;
+.scaletta-card.is-next {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-sm);
 }
-.scaletta-date {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.scaletta-card-go {
     flex-shrink: 0;
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    color: var(--accent-color);
-    line-height: 1;
-}
-.scaletta-date b {
-    font-size: 20px;
-}
-.scaletta-date small {
-    margin-top: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
+    color: var(--text-muted);
+    font-size: 22px;
 }
 .scaletta-card-main {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;
-    gap: 3px;
+    gap: 4px;
 }
 .scaletta-card-title {
     overflow: hidden;
@@ -4765,48 +4770,191 @@ body.is-admin .admins-panel { display: block; }
     white-space: nowrap;
 }
 .scaletta-card-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     color: var(--text-muted);
     font-size: 13px;
 }
-.scaletta-detail .back-btn {
-    margin-bottom: 6px;
-    padding-left: 0;
+.scaletta-next-badge {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-color);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
-.scaletta-detail-head {
+
+/* Tessera della data: giorno della settimana, numero, mese */
+.scaletta-date {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 54px;
+    height: 60px;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    line-height: 1.05;
 }
-.scaletta-detail-head h2 {
-    margin: 0;
+.scaletta-date b {
     font-size: 22px;
+    font-weight: 700;
+}
+.scaletta-date small {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.scaletta-date.is-large {
+    width: 68px;
+    height: 76px;
+    border-radius: 18px;
+    background: var(--accent-color);
+    color: #fff;
+}
+.scaletta-date.is-large b {
+    font-size: 28px;
+}
+
+/* Nessuna scaletta */
+.scalette-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+.scalette-empty h3 {
+    margin: 4px 0 0;
+    font-size: 17px;
     font-weight: 600;
 }
-.scaletta-detail-head p {
-    margin: 4px 0 0;
+.scalette-empty p {
+    max-width: 320px;
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+.scalette-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-size: 24px;
+}
+.scalette-empty.is-compact {
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 14px;
+    padding: 20px;
+    text-align: left;
+}
+.scalette-empty.is-compact p {
+    margin: 0;
+}
+.scalette-empty.is-compact .scalette-empty-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    font-size: 19px;
+}
+
+/* Dettaglio */
+.scaletta-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 0 12px -4px;
+    padding: 6px 8px 6px 2px;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    color: var(--accent-color);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.scaletta-back i {
+    font-size: 22px;
+}
+.scaletta-back:hover {
+    background: var(--accent-soft);
+}
+.scaletta-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+}
+.scaletta-hero-text {
+    flex: 1;
+    min-width: 0;
+}
+.scaletta-hero-text h2 {
+    margin: 0 0 4px;
+    overflow-wrap: anywhere;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+.scaletta-hero-text p {
+    margin: 0;
     color: var(--text-muted);
     font-size: 14px;
 }
-.scaletta-detail-actions {
+.scaletta-hero-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px !important;
+}
+.scaletta-hero-actions {
     display: flex;
+    align-items: center;
+    align-self: flex-start;
+    flex-shrink: 0;
     gap: 6px;
 }
+
+/* Cantici della scaletta */
 .scaletta-voci {
-    margin: 0 0 16px;
+    margin: 0 0 14px;
     padding: 0;
+    overflow: hidden;
     list-style: none;
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: var(--bg-card);
-    overflow: hidden;
+    box-shadow: var(--shadow-sm);
 }
 .scaletta-voce {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
 }
 .scaletta-voce:last-child {
@@ -4817,12 +4965,12 @@ body.is-admin .admins-panel { display: block; }
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: var(--accent-color);
-    color: #fff;
-    font-size: 14px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-size: 15px;
     font-weight: 700;
 }
 .scaletta-voce-main {
@@ -4831,16 +4979,32 @@ body.is-admin .admins-panel { display: block; }
     align-items: flex-start;
     flex: 1;
     min-width: 0;
-    gap: 4px;
+    gap: 5px;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
     cursor: pointer;
+}
+.scaletta-voce-main:hover .scaletta-voce-title {
+    color: var(--accent-color);
 }
 .scaletta-voce-title {
     max-width: 100%;
     overflow: hidden;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 500;
+    line-height: 1.3;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.scaletta-voce-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 .scaletta-tag {
     padding: 2px 9px;
@@ -4849,35 +5013,79 @@ body.is-admin .admins-panel { display: block; }
     font-weight: 700;
     letter-spacing: 0.02em;
 }
+.scaletta-hymn-no {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.scaletta-voce-go {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 20px;
+}
 .scaletta-voce-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
     flex-shrink: 0;
-}
-.scaletta-voce-actions .icon-btn[disabled] {
-    opacity: 0.3;
-    pointer-events: none;
+    gap: 4px;
 }
 .scaletta-tag-select {
     width: auto;
     min-height: 34px;
+    margin-right: 4px;
     padding: 4px 28px 4px 10px;
     font-size: 13px;
 }
+.scaletta-mini-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: var(--bg-app);
+    color: var(--text-main);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.scaletta-mini-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent-color);
+}
+.scaletta-mini-btn.is-danger:hover {
+    background: rgba(255, 59, 48, 0.12);
+    color: #ff3b30;
+}
+.scaletta-mini-btn[disabled] {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* Aggiunta di un cantico */
 .scaletta-add {
-    padding: 14px;
-    border: 1px dashed var(--border-color);
-    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
 }
 .scaletta-add-title {
-    margin-bottom: 10px;
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 15px;
     font-weight: 600;
 }
+.scaletta-add-title i {
+    color: var(--accent-color);
+    font-size: 19px;
+}
 .scaletta-add-title small {
-    margin-left: 6px;
+    margin-left: auto;
     color: var(--text-muted);
+    font-size: 13px;
     font-weight: 400;
 }
 .scaletta-add-row {
@@ -4885,31 +5093,35 @@ body.is-admin .admins-panel { display: block; }
     gap: 8px;
 }
 .scaletta-add-row > select {
-    width: auto;
     flex-shrink: 0;
+    width: auto;
+    min-width: 150px;
 }
 .scaletta-search {
     flex: 1;
     min-width: 0;
     margin: 0;
+    box-shadow: none;
 }
 .scaletta-risultati {
     display: flex;
     flex-direction: column;
     margin-top: 8px;
 }
+.scaletta-risultati:empty {
+    display: none;
+}
 .scaletta-risultato {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 8px;
+    gap: 10px;
+    padding: 11px 10px;
     border: none;
-    border-bottom: 1px solid var(--border-color);
-    border-radius: 0;
+    border-radius: 10px;
     background: none;
     color: var(--text-main);
     font: inherit;
-    font-size: 14px;
+    font-size: 15px;
     text-align: left;
     cursor: pointer;
 }
@@ -4917,22 +5129,98 @@ body.is-admin .admins-panel { display: block; }
     background: var(--accent-soft);
 }
 .scaletta-risultato i {
+    flex-shrink: 0;
     color: var(--accent-color);
-    font-size: 18px;
+    font-size: 19px;
 }
 .scaletta-nessuno {
-    margin: 6px 0 0;
+    margin: 8px 4px 0;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 14px;
 }
+
+/* Finestra "Aggiungi alla scaletta" */
+.add-to-scaletta-hymn {
+    margin: -6px 0 14px;
+    color: var(--text-muted);
+    font-size: 15px;
+}
+.add-to-scaletta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 46vh;
+    margin-bottom: 14px;
+    overflow-y: auto;
+}
+.add-to-scaletta-list .scalette-group-title {
+    margin: 8px 0 0;
+}
+.add-to-scaletta-item {
+    padding: 10px 12px;
+    box-shadow: none;
+}
+.add-to-scaletta-item .scaletta-date {
+    width: 46px;
+    height: 52px;
+}
+.add-to-scaletta-item .scaletta-date b {
+    font-size: 19px;
+}
+.add-to-scaletta-item > i {
+    flex-shrink: 0;
+    color: var(--accent-color);
+    font-size: 22px;
+}
+.add-to-scaletta-none {
+    margin: 0;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--bg-app);
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
 @media (max-width: 768px) {
+    .scalette-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .scaletta-card {
+        padding: 12px 14px;
+    }
+    .scaletta-hero {
+        gap: 12px;
+        padding: 14px;
+    }
+    .scaletta-date.is-large {
+        width: 58px;
+        height: 66px;
+    }
+    .scaletta-date.is-large b {
+        font-size: 24px;
+    }
+    .scaletta-hero-text h2 {
+        font-size: 18px;
+    }
     .scaletta-voce {
         flex-wrap: wrap;
+        gap: 10px 12px;
+        padding: 12px 14px;
     }
     .scaletta-voce-actions {
         justify-content: flex-end;
         width: 100%;
-        padding-left: 42px;
+        padding-left: 44px;
+    }
+    .scaletta-tag-select {
+        flex: 1;
+        min-width: 0;
+        max-width: 180px;
+        margin-right: auto;
+    }
+    .scaletta-add {
+        padding: 14px;
     }
     .scaletta-add-row {
         flex-direction: column;
@@ -4941,8 +5229,13 @@ body.is-admin .admins-panel { display: block; }
         width: 100%;
     }
 }
-@media (max-width: 768px) {
-    .scaletta-detail .back-btn span {
-        display: inline;
+@media (max-width: 380px) {
+    .scaletta-hero {
+        flex-wrap: wrap;
+    }
+    .scaletta-hero-actions {
+        order: 3;
+        justify-content: flex-end;
+        width: 100%;
     }
 }
