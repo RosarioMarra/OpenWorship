@@ -823,6 +823,7 @@ async function loadCloudDataInner() {
                 console.error("Errore download appunti", appuntiErr);
             }
         }
+        if (typeof loadScalette === 'function') await loadScalette();
         renderNotes();
         updateDashboard();
     } catch (err) {
@@ -1165,6 +1166,9 @@ function renderHymns() {
     requestAnimationFrame(() => {
         if (mainScroller) mainScroller.scrollTop = savedMain;
     });
+    // Scheda "Scaletta": al posto dell'elenco dei cantici si mostrano le scalette del servizio
+    document.querySelector('.hymns-toolbar .search-bar')?.classList.toggle('hidden', currentTab === 'scalette');
+    if (currentTab === 'scalette') { if (typeof renderScalette === 'function') renderScalette(); return; }
     list.innerHTML = '';
     const filtered = getFilteredHymns();
     if (filtered.length === 0) {

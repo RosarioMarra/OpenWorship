@@ -230,6 +230,7 @@
                             <div class="segmented favorites-header">
                                 <button class="favorites-tab active" data-tab="all">Tutti</button>
                                 <button class="favorites-tab" data-tab="favorites"><i class="ri-heart-line"></i> Preferiti</button>
+                                <button class="favorites-tab" data-tab="scalette"><i class="ri-list-ordered"></i> Scaletta</button>
                             </div>
                         </div>
                         <div class="list-container" id="hymnsList"></div>
@@ -504,6 +505,24 @@
         </div>
     </div>
 
+    <!-- SCALETTA: crea / modifica -->
+    <div id="scalettaModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="scalettaModalTitle">Nuova scaletta</h2>
+            <label class="field-label" for="scalettaData">DATA DEL SERVIZIO</label>
+            <input type="date" id="scalettaData" class="apple-select field">
+            <label class="field-label" for="scalettaTitolo">TITOLO (FACOLTATIVO)</label>
+            <input type="text" id="scalettaTitolo" class="apple-select field" placeholder="Es. Culto domenicale, Santa Cena…" maxlength="80">
+            <div class="modal-actions">
+                <span></span>
+                <div class="modal-actions-right">
+                    <button class="btn-secondary" onclick="closeScalettaModal()">Annulla</button>
+                    <button class="btn-apple" id="saveScalettaBtn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AVVISO: crea / modifica -->
     <div id="avvisoModal" class="modal hidden">
         <div class="modal-content">
@@ -741,6 +760,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="chords.js"></script>
     <script src="script.js"></script>
+    <script src="scalette.js"></script>
     <script src="projection.js"></script>
     <script src="dashboard.js"></script>
     <script>

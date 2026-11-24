@@ -1,9 +1,10 @@
-const CACHE_NAME = 'open-worship-cache-v15';
+const CACHE_NAME = 'open-worship-cache-v16';
 const urlsToCache = [
     './',
     './index.html',
     './style.css',
     './script.js',
+    './scalette.js',
     './chords.js',
     './dashboard.js',
     './projection.js',
