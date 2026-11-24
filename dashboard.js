@@ -93,24 +93,36 @@ function updateDashboard() {
 
 // Su telefono la home deve stare in una schermata: si nascondono gli avvisi
 // e i cantici in più finché tutto entra sopra la barra di navigazione.
-// "I tuoi cantici" resta sempre visibile con almeno 2 cantici: se lo schermo
-// è troppo basso, il resto si raggiunge scorrendo.
+// "I tuoi cantici" resta visibile con almeno 1 cantico; sugli schermi molto bassi
+// si toglie anche l'anteprima dei cantici del prossimo servizio.
 function fitDashboardToScreen() {
     const section = document.getElementById('dashboard');
     if (!section || !section.classList.contains('active')) return;
     document.querySelectorAll('#dashAvvisiList .dash-avviso, #dashHymnsList .dash-hymn').forEach(el => { el.hidden = false; });
+    section.classList.remove('dash-tight', 'dash-tighter');
     if (window.innerWidth > 768) return;
     const nav = document.querySelector('.mobile-nav');
     const last = [...document.querySelectorAll('.dash-stats, .dash-columns')].reverse().find(el => el.offsetParent);
     if (!nav || !last) return;
+    // lo spazio lasciato in fondo per la barra è esattamente quello che serve
+    document.documentElement.style.setProperty('--dash-nav-space', Math.ceil(window.innerHeight - nav.getBoundingClientRect().top) + 'px');
     const limit = () => nav.getBoundingClientRect().top - 8;
+    const scroller = document.querySelector('.main-content');
+    // troppo alta se il contenuto finisce sotto la barra o se la pagina si può ancora scorrere
+    const overflows = () => last.getBoundingClientRect().bottom > limit() ||
+        (scroller && scroller.scrollHeight - scroller.clientHeight > 1);
     const visible = sel => [...document.querySelectorAll(sel)].filter(el => !el.hidden);
     let guard = 0;
-    while (last.getBoundingClientRect().bottom > limit() && guard++ < 12) {
+    while (overflows() && guard++ < 14) {
         const hymns = visible('#dashHymnsList .dash-hymn');
         const avvisi = visible('#dashAvvisiList .dash-avviso');
         if (avvisi.length > 1) avvisi[avvisi.length - 1].hidden = true;
         else if (hymns.length > 2) hymns[hymns.length - 1].hidden = true;
+        // schermi molto bassi: via l'anteprima dei cantici del servizio, poi un solo cantico recente
+        else if (!section.classList.contains('dash-tight')) section.classList.add('dash-tight');
+        else if (hymns.length > 1) hymns[hymns.length - 1].hidden = true;
+        // telefoni piccolissimi: niente barra di ricerca (c'è Cantici in basso) e versetto più corto
+        else if (!section.classList.contains('dash-tighter')) section.classList.add('dash-tighter');
         else break;
     }
 }

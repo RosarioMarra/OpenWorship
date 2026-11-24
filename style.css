@@ -5358,3 +5358,99 @@ button.dash-scaletta:active {
         font-size: 18px;
     }
 }
+
+/* ---------- HOME COMPATTA SU TELEFONO ---------- */
+/* Tutto deve stare in una schermata sopra la barra di navigazione */
+@media (max-width: 768px) {
+    #dashboard .section-header {
+        padding-top: 6px;
+        padding-bottom: 4px;
+    }
+    #dashboard .section-body {
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+    #dashboard .verse-inner {
+        gap: 5px;
+        padding: 12px 14px 10px;
+    }
+    #dashboard .verse-text {
+        font-size: 14.5px;
+        line-height: 1.35;
+    }
+    #dashboard .verse-btn {
+        height: 30px;
+        min-height: 30px;
+    }
+    #dashboard #quickSearchHymn {
+        min-height: 38px;
+    }
+    .dash-scaletta {
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 16px;
+    }
+    .dash-scaletta .scaletta-date {
+        width: 38px;
+        height: 44px;
+        border-radius: 11px;
+    }
+    .dash-scaletta .scaletta-date b {
+        font-size: 17px;
+    }
+    .dash-scaletta .scaletta-date small {
+        font-size: 9px;
+    }
+    .dash-scaletta-main {
+        gap: 1px;
+    }
+    .dash-scaletta-label {
+        font-size: 10px;
+    }
+    .dash-scaletta-title {
+        font-size: 14.5px;
+    }
+    .dash-scaletta-songs {
+        font-size: 12px;
+    }
+    #dashboard .dash-panel-head {
+        margin-bottom: 0;
+    }
+    #dashboard .dash-hymn {
+        min-height: 36px;
+    }
+    #dashboard .dash-avviso {
+        min-height: 46px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+    /* Schermi molto bassi: si toglie l'anteprima dei cantici del servizio */
+    #dashboard.dash-tight .dash-scaletta-songs {
+        display: none;
+    }
+}
+@media (max-width: 768px) and (max-height: 720px) {
+    #dashboard .verse-header {
+        display: none;
+    }
+}
+@media (max-width: 768px) {
+    #dashboard.dash-tighter .quick-actions {
+        display: none;
+    }
+    #dashboard.dash-tighter .verse-text {
+        -webkit-line-clamp: 2;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    #dashboard.dash-tighter .section-header {
+        padding-top: 2px;
+        padding-bottom: 2px;
+    }
+}
+@media (max-width: 768px) {
+    body:has(#dashboard.active) .main-content {
+        padding-bottom: var(--dash-nav-space, 102px);
+    }
+}
