@@ -88,6 +88,15 @@
             </button>
             <p class="login-footer-text">powered by Rosario Marra · <a href="https://www.rosariomarra.it" target="_blank" rel="noopener">www.rosariomarra.it</a></p>
         </div>
+        <!-- Nuovo utente in attesa che un amministratore approvi l'accesso -->
+        <div class="login-card access-card hidden" id="accessPendingCard" role="status" aria-live="polite">
+            <div class="access-avatar"><img id="accessAvatar" src="immagini/icon-192.png" alt=""></div>
+            <h1 id="accessTitle">Richiesta inviata</h1>
+            <p class="access-who" id="accessWho"></p>
+            <p class="login-subtitle access-text" id="accessText"></p>
+            <button type="button" class="btn-google" id="accessRecheckBtn"><i class="ri-refresh-line"></i> Controlla di nuovo</button>
+            <button type="button" class="btn-text access-logout" id="accessLogoutBtn"><i class="ri-logout-box-r-line"></i> Esci</button>
+        </div>
     </div>
 
     <!-- APP -->
@@ -106,7 +115,7 @@
                 <button class="nav-item" data-target="appunti" title="Appunti"><i class="ri-file-text-line"></i><span>Appunti</span></button>
             </nav>
             <div class="sidebar-footer">
-                <div class="user-profile-box" id="desktopProfileBox" role="button" tabindex="0" title="Account e impostazioni">
+                <div class="user-profile-box account-badge-host" id="desktopProfileBox" role="button" tabindex="0" title="Account e impostazioni">
                     <img id="userProfileImg" src="immagini/icon-192.png" alt="">
                     <div class="user-info">
                         <p id="userProfileName" class="user-name">Caricamento...</p>
@@ -421,7 +430,7 @@
                 <div class="nav-icon-wrapper"><i class="ri-file-text-line"></i></div><span>Appunti</span>
             </button>
             <button class="nav-item" id="mobileAccountBtn">
-                <div class="nav-icon-wrapper"><img id="mobileAvatarImg" src="immagini/icon-192.png" alt=""></div><span>Account</span>
+                <div class="nav-icon-wrapper account-badge-host"><img id="mobileAvatarImg" src="immagini/icon-192.png" alt=""></div><span>Account</span>
             </button>
         </nav>
     </div>
@@ -494,6 +503,11 @@
                     <span>Velocità scorrimento</span>
                     <input type="range" id="setScrollSpeed" min="1" max="10" class="settings-range">
                 </div>
+            </div>
+            <div class="admins-panel members-panel" id="membersPanel">
+                <div class="settings-title">Membri <span class="members-count"></span></div>
+                <p class="admins-hint">Chi entra per la prima volta resta in attesa finché un amministratore non lo approva.</p>
+                <div id="membersPanelBody"></div>
             </div>
             <div class="admins-panel" id="adminsPanel">
                 <div class="settings-title">Amministratori</div>
@@ -783,6 +797,7 @@
     <script src="chords.js"></script>
     <script src="script.js"></script>
     <script src="scalette.js"></script>
+    <script src="membri.js"></script>
     <script src="projection.js"></script>
     <script src="dashboard.js"></script>
     <script>

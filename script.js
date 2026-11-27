@@ -227,6 +227,55 @@ document.getElementById('googleLoginBtn').addEventListener('click', (e) => withB
     }
 }));
 
+// --- ACCESSO SU APPROVAZIONE ---
+// Il database decide (funzione stato_accesso, vedi supabase-membri.sql): al primo ingresso
+// registra la richiesta e risponde "in_attesa", "approvato" o "rifiutato".
+async function statoAccesso() {
+    try {
+        const { data, error } = await supabaseClient.rpc('stato_accesso');
+        if (!error && typeof data === 'string') return data;
+        // funzione non ancora creata: l'app funziona come prima (i permessi veri sono nel database)
+        if (error && (error.code === 'PGRST202' || error.code === '42883')) return 'approvato';
+        console.warn('Stato accesso non disponibile', error);
+    } catch (e) { /* senza rete: si prova con i dati salvati */ }
+    return 'approvato';
+}
+let accessRecheckTimer = null;
+function mostraAttesaAccesso(user, stato) {
+    const meta = user.user_metadata || {};
+    const rifiutato = stato === 'rifiutato';
+    document.getElementById('loginScreen').querySelector('.login-card:not(.access-card)').classList.add('hidden');
+    document.getElementById('accessPendingCard').classList.remove('hidden');
+    document.getElementById('accessTitle').textContent = rifiutato ? 'Accesso non autorizzato' : 'Richiesta inviata';
+    document.getElementById('accessWho').textContent = [meta.full_name || meta.name, user.email].filter(Boolean).join(' · ');
+    document.getElementById('accessText').textContent = rifiutato
+        ? "Questo account non è stato approvato. Se pensi che sia un errore, parla con un responsabile della chiesa."
+        : "Un amministratore della chiesa deve approvare il tuo accesso. Appena succede, l'app si apre da sola.";
+    document.getElementById('accessRecheckBtn').classList.toggle('hidden', rifiutato);
+    if (meta.avatar_url) document.getElementById('accessAvatar').src = meta.avatar_url;
+    loginScreen.style.display = 'flex';
+    loginScreen.style.opacity = '1';
+    mainApp.classList.add('hidden');
+    clearInterval(accessRecheckTimer);
+    if (!rifiutato) accessRecheckTimer = setInterval(() => { if (!appShown) showApp(); }, 30000);
+}
+function nascondiAttesaAccesso() {
+    clearInterval(accessRecheckTimer);
+    accessRecheckTimer = null;
+    document.getElementById('accessPendingCard')?.classList.add('hidden');
+    document.getElementById('loginScreen')?.querySelector('.login-card:not(.access-card)')?.classList.remove('hidden');
+}
+document.getElementById('accessRecheckBtn').addEventListener('click', (e) => withBusyButton(e.currentTarget, async () => {
+    await showApp();
+    // la schermata è fuori dall'app: il riscontro compare sul pulsante stesso
+    if (!appShown) {
+        const btn = document.getElementById('accessRecheckBtn');
+        btn.innerHTML = '<i class="ri-time-line"></i> Non ancora approvato';
+        setTimeout(() => { btn.innerHTML = '<i class="ri-refresh-line"></i> Controlla di nuovo'; }, 2500);
+    }
+}));
+document.getElementById('accessLogoutBtn').addEventListener('click', () => handleLogout());
+
 // --- FUNZIONE LOGOUT CORRETTA E ROBUSTA ---
 async function handleLogout() {
     console.log("Logout chiamato");
@@ -259,6 +308,7 @@ async function handleLogout() {
     favoritesDB = [];
     localStorage.removeItem('favoritesDB');
     mainApp.classList.add('hidden');
+    nascondiAttesaAccesso();
     loginScreen.style.display = 'flex';
     loginScreen.style.opacity = '1';
     appShown = false;
@@ -591,6 +641,16 @@ async function showApp() {
     if (!user) { appShown = false; loginScreen.style.opacity = '1'; return; }
     currentUser = user;
     isAdmin = await resolveAdmin(user);
+    // Accesso su approvazione: chi non è ancora approvato resta sulla schermata di attesa
+    if (!isAdmin) {
+        const stato = await statoAccesso();
+        if (stato !== 'approvato') {
+            mostraAttesaAccesso(user, stato);
+            appShown = false;
+            return;
+        }
+    }
+    nascondiAttesaAccesso();
 
     loginScreen.style.opacity = '0';
     setTimeout(async () => {
@@ -742,6 +802,7 @@ async function showApp() {
 function openAccountModal() {
     document.getElementById('accountModal').classList.remove('hidden');
     if (isAdmin) loadAdmins();
+    if (isAdmin && typeof loadMembri === 'function') loadMembri();
 }
 
 // --- AMMINISTRATORI ---
@@ -866,6 +927,7 @@ async function loadCloudDataInner() {
         }
         await syncFavorites();
         if (typeof loadScalette === 'function') await loadScalette();
+        if (isAdmin && typeof aggiornaRichiesteMembri === 'function') aggiornaRichiesteMembri();
         renderNotes();
         updateDashboard();
     } catch (err) {
