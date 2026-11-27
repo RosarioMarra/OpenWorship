@@ -37,6 +37,7 @@ async function aggiornaRichiesteMembri() {
     const { error } = await caricaMembri();
     if (error) return;
     const n = aggiornaPallinoMembri();
+    apriMembriSeRichiesto();
     if (n && !membriRichiesteNotificate && typeof showVerseToast === 'function') {
         membriRichiesteNotificate = true;
         showVerseToast(n === 1 ? '1 nuova richiesta di accesso' : `${n} nuove richieste di accesso`);
@@ -128,3 +129,27 @@ document.getElementById('membersPanelBody')?.addEventListener('click', async (e)
         showVerseToast(stato === 'approvato' ? `${chi} può entrare` : (m.stato === 'rifiutato' ? `Accesso negato a ${chi}` : 'Fatto'));
     });
 });
+
+// ---------- dalla notifica "Nuova richiesta di accesso" ----------
+// App aperta: arriva un messaggio dal service worker. App chiusa: si apre con ?apri=membri
+(function membriDaLink() {
+    if (new URLSearchParams(location.search).get('apri') !== 'membri') return;
+    try { sessionStorage.setItem('apriMembri', '1'); } catch (e) { /* ignora */ }
+    history.replaceState(null, '', location.pathname);
+})();
+function apriMembriDaNotifica() {
+    if (!isAdmin) {
+        // l'app non ha ancora finito l'accesso: ci si riprova dopo il caricamento
+        try { sessionStorage.setItem('apriMembri', '1'); } catch (e) { /* ignora */ }
+        return;
+    }
+    try { sessionStorage.removeItem('apriMembri'); } catch (e) { /* ignora */ }
+    if (typeof closeHymnView === 'function' && !document.getElementById('hymnReaderView').classList.contains('hidden')) closeHymnView();
+    openAccountModal();
+    setTimeout(() => document.getElementById('membersPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+}
+function apriMembriSeRichiesto() {
+    let richiesto = false;
+    try { richiesto = sessionStorage.getItem('apriMembri') === '1'; } catch (e) { return; }
+    if (richiesto && isAdmin) apriMembriDaNotifica();
+}

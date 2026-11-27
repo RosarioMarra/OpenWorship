@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v21';
+const CACHE_NAME = 'open-worship-cache-v22';
 const urlsToCache = [
     './',
     './index.html',
@@ -50,16 +50,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('notificationclick', event => {
     event.notification.close();
     const avvisoId = event.notification.data && event.notification.data.avvisoId;
+    // richiesta di accesso: si apre la sezione Membri
+    const apri = event.notification.data && event.notification.data.apri;
     const appUrl = new URL('./', self.registration.scope).href;
     event.waitUntil((async () => {
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         const client = windows.find(c => c.url.startsWith(appUrl));
         if (client) {
             await client.focus();
-            client.postMessage({ type: 'open-avviso', id: avvisoId || null });
+            client.postMessage(apri === 'membri' ? { type: 'open-membri' } : { type: 'open-avviso', id: avvisoId || null });
             return;
         }
-        const target = avvisoId ? `${appUrl}?avviso=${encodeURIComponent(avvisoId)}` : appUrl;
+        const target = apri === 'membri' ? `${appUrl}?apri=membri`
+            : avvisoId ? `${appUrl}?avviso=${encodeURIComponent(avvisoId)}` : appUrl;
         await self.clients.openWindow(target);
     })());
 });
@@ -75,7 +78,8 @@ self.addEventListener('push', event => {
         ...(/Android/i.test(self.navigator.userAgent) ? {} : { icon: 'immagini/icon-192.png' }),
         badge: 'immagini/icon-badge.png',
         lang: 'it',
-        tag: d.avvisoId ? 'avviso-' + d.avvisoId : 'ow-push',
-        data: { avvisoId: d.avvisoId || null }
+        tag: d.tipo === 'richiesta' ? 'richieste-accesso' : (d.avvisoId ? 'avviso-' + d.avvisoId : 'ow-push'),
+        renotify: d.tipo === 'richiesta',
+        data: { avvisoId: d.avvisoId || null, apri: d.tipo === 'richiesta' ? 'membri' : null }
     }));
 });

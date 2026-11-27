@@ -496,6 +496,7 @@ function openAvvisoFromNotification(id) {
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'open-avviso') openAvvisoFromNotification(e.data.id);
+        if (e.data && e.data.type === 'open-membri' && typeof apriMembriDaNotifica === 'function') apriMembriDaNotifica();
     });
 }
 // Apertura dell'app da una notifica quando era chiusa (?avviso=ID)
