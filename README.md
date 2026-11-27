@@ -89,6 +89,11 @@ OpenWorship/
 
 L'app è statica: non richiede compilazione. È pubblicata con **GitHub Pages** dal ramo `main`; ogni modifica inviata su `main` viene messa online in pochi minuti.
 
+## Dati di terzi
+
+- **Riferimenti incrociati della Bibbia** (cartella `riferimenti/`): da [OpenBible.info – Cross References](https://www.openbible.info/labs/cross-references/), licenza [CC BY](https://creativecommons.org/licenses/by/4.0/). Per ogni versetto sono tenuti i 5 riferimenti più votati.
+- **Testi biblici**: letti in tempo reale da bolls.life (Nuova Riveduta) e getBible (Riveduta, Diodati).
+
 ## Autore
 
 Realizzata da **Rosario Marra** – [www.rosariomarra.it](https://www.rosariomarra.it)

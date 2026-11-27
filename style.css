@@ -6159,3 +6159,134 @@ body.is-admin .verse-action-buttons {
         padding-right: clamp(32px, 4vw, 64px);
     }
 }
+
+/* Cuore dei preferiti: stesso stile delle altre icone (cerchio colorato) */
+.favorite-btn {
+    background: var(--accent-soft);
+    color: var(--accent-color);
+}
+.favorite-btn:hover {
+    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+}
+.favorite-btn.active {
+    background: rgba(255, 45, 85, 0.12);
+    color: #ff2d55;
+}
+.favorite-btn.active:hover {
+    background: rgba(255, 45, 85, 0.2);
+}
+
+/* ---------- RIFERIMENTI INCROCIATI (Bibbia) ---------- */
+.xref-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15em;
+    height: 1.15em;
+    margin: 0 0.1em 0 0.15em;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-size: 0.62em;
+    vertical-align: 0.35em;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.xref-mark:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+.no-xrefs .xref-mark,
+.no-xrefs .xref-credit {
+    display: none;
+}
+.xref-credit {
+    margin: 28px 0 0;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    text-align: center;
+}
+.xref-credit a {
+    color: inherit;
+}
+.xref-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 14px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.xref-popover {
+    position: fixed;
+    z-index: 9500;
+    width: max-content;
+    max-width: min(360px, calc(100vw - 24px));
+    padding: 10px 12px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md), 0 18px 40px rgba(0, 0, 0, 0.18);
+    font-family: var(--font);
+    animation: fadeIn 0.12s ease;
+}
+.xref-pop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+.xref-pop-close {
+    display: flex;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+}
+.xref-pop-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.xref-go {
+    padding: 7px 12px;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.xref-go:hover {
+    background: var(--accent-color);
+    color: #fff;
+}
+@media (max-width: 768px) {
+    .xref-popover {
+        left: 12px !important;
+        right: 12px;
+        bottom: calc(96px + env(safe-area-inset-bottom));
+        top: auto !important;
+        width: auto;
+        max-width: none;
+    }
+}

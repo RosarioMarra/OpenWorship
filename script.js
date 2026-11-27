@@ -1004,7 +1004,6 @@ function renderAvvisi() {
                     <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
                     <div class="mobile-menu-dropdown hidden">
                         <button onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i> Condividi</button>
-                        ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('avvisi', null, { avvisoId: '${avviso.id}', title: 'Avviso' })"><i class="ri-projector-line"></i> Proietta</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
                     </div>
@@ -1014,7 +1013,6 @@ function renderAvvisi() {
             card.innerHTML = `
                 <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
                     <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
-                    ${isAdmin ? `<button class="icon-btn" title="Proietta questo avviso" onclick="event.stopPropagation(); askPresentationMode('avvisi', null, { avvisoId: '${avviso.id}', title: 'Avviso' })"><i class="ri-projector-line"></i></button>` : ''}
                     ${isAdmin ? `<button class="icon-btn" onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>` : ''}
                     ${isAdmin ? `<button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>` : ''}
                 </div>
@@ -1053,10 +1051,6 @@ function openAvvisoDetailModal(id) {
     document.getElementById('detailAvvisoDesc').textContent = avviso.desc;
     const shareBtn = document.getElementById('shareAvvisoDetailBtn');
     shareBtn.onclick = () => shareAvviso(id);
-    document.getElementById('projectAvvisoDetailBtn').onclick = () => {
-        closeAvvisoDetailModal();
-        askPresentationMode('avvisi', null, { avvisoId: id, title: avviso.title });
-    };
     document.getElementById('avvisoDetailModal').classList.remove('hidden');
 }
 
@@ -2049,6 +2043,7 @@ document.getElementById('fetchBibleBtn').addEventListener('click', async () => {
         reader.querySelectorAll('.bible-verse').forEach(el => {
             el.addEventListener('click', () => toggleVerseSelection(el));
         });
+        if (typeof aggiungiRiferimenti === 'function') aggiungiRiferimenti(reader, bookId, chapter);
         if (verse) {
             setTimeout(() => {
                 const targetVerse = document.getElementById(`verse-${verse}`);
@@ -2295,7 +2290,7 @@ const BIBLE_THEMES = [
     { id: 'sepia', name: 'Carta' },
     { id: 'night', name: 'Notte' }
 ];
-const DEFAULT_BIBLE_PREFS = { font: 'serif', size: 20, lineHeight: 1.75, numbers: true, justify: false, theme: 'default' };
+const DEFAULT_BIBLE_PREFS = { font: 'serif', size: 20, lineHeight: 1.75, numbers: true, justify: false, theme: 'default', crossrefs: true };
 function getBiblePrefs() {
     return { ...DEFAULT_BIBLE_PREFS, ...(appSettings.bible || {}) };
 }
@@ -2320,6 +2315,7 @@ function applyBiblePrefs() {
     reader.style.fontSize = `${prefs.size}px`;
     reader.classList.toggle('no-verse-numbers', !prefs.numbers);
     reader.classList.toggle('justify', !!prefs.justify);
+    reader.classList.toggle('no-xrefs', prefs.crossrefs === false);
     card.dataset.theme = prefs.theme;
 }
 
@@ -2359,6 +2355,7 @@ function renderBibleSettings(menu) {
         <div class="ps-toggles">
             <label class="ps-check"><input type="checkbox" data-b="numbers"> Numeri dei versetti</label>
             <label class="ps-check"><input type="checkbox" data-b="justify"> Giustificato</label>
+            <label class="ps-check"><input type="checkbox" data-b="crossrefs"> Riferimenti incrociati</label>
         </div>`;
     const set = (key, value) => {
         const prefs = getBiblePrefs();
@@ -2383,7 +2380,7 @@ function renderBibleSettings(menu) {
             };
         });
     });
-    ['numbers', 'justify'].forEach(key => {
+    ['numbers', 'justify', 'crossrefs'].forEach(key => {
         const box = menu.querySelector(`[data-b="${key}"]`);
         box.checked = !!p[key];
         box.onchange = () => set(key, box.checked);
