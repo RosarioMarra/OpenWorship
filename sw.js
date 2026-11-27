@@ -1,4 +1,4 @@
-const CACHE_NAME = 'open-worship-cache-v22';
+const CACHE_NAME = 'open-worship-cache-v23';
 const urlsToCache = [
     './',
     './index.html',
@@ -6,6 +6,7 @@ const urlsToCache = [
     './script.js',
     './scalette.js',
     './membri.js',
+    './chord-editor.js',
     './chords.js',
     './dashboard.js',
     './projection.js',

@@ -1846,7 +1846,10 @@ function setupReaderTools() {
     });
 
     document.getElementById('addChordsBtn').onclick = () => {
-        if (window.currentHymnId) openEditModal(window.currentHymnId);
+        if (window.currentHymnId) ChordEditor.open(window.currentHymnId);
+    };
+    document.getElementById('editChordsBtn').onclick = () => {
+        if (window.currentHymnId) ChordEditor.open(window.currentHymnId);
     };
 }
 

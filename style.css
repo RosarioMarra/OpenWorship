@@ -5654,3 +5654,312 @@ body.membri-in-attesa #desktopProfileBox.account-badge-host::after {
     left: 38px;
     right: auto;
 }
+
+/* ---------- EDITOR DEGLI ACCORDI ---------- */
+body.ce-open {
+    overflow: hidden;
+}
+.ce-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    animation: fadeIn 0.15s ease;
+}
+.ce-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 920px;
+    margin: 24px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: var(--bg-app);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+.ce-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+.ce-title {
+    flex: 1;
+    min-width: 0;
+}
+.ce-title h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+.ce-title p {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ce-head .btn-apple {
+    flex-shrink: 0;
+}
+.ce-head #ceUndo[disabled] {
+    opacity: 0.35;
+    pointer-events: none;
+}
+.ce-tools {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+.ce-key-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.ce-key-name {
+    font-size: 15px;
+}
+.ce-key-name b {
+    color: var(--accent-color);
+}
+.ce-mode .favorites-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* Pianoforte di un'ottava: tasti bianchi in fila, neri sovrapposti */
+.ce-piano {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    width: 100%;
+    max-width: 440px;
+    height: 104px;
+    margin: 0 auto 12px;
+    user-select: none;
+}
+.ce-key {
+    position: relative;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.08s ease;
+}
+.ce-key:active {
+    transform: translateY(1px);
+}
+.ce-key span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+.ce-white {
+    height: 100%;
+    margin: 0 1px;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    color: #3a3f4a;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.06);
+}
+.ce-black {
+    position: absolute;
+    top: 0;
+    left: calc((var(--after) + 1) * (100% / 7) - (100% / 7) * 0.3);
+    z-index: 2;
+    width: calc((100% / 7) * 0.6);
+    height: 60%;
+    border-radius: 0 0 6px 6px;
+    background: #23262d;
+    color: #c9ccd3;
+}
+.ce-black span {
+    bottom: 4px;
+    font-size: 9px;
+}
+/* note della scala: pallino; tonica: tasto blu */
+.ce-key.in-scale::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    opacity: 0.55;
+}
+.ce-black.in-scale::after {
+    bottom: 18px;
+    background: #8ec5ff;
+    opacity: 0.9;
+}
+.ce-key.is-root {
+    background: var(--accent-color);
+    color: #fff;
+}
+.ce-key.is-root::after {
+    background: #fff;
+    opacity: 1;
+}
+
+/* Tavolozza degli accordi */
+.ce-palette {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+.ce-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    min-width: 58px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-app);
+    color: var(--text-main);
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+.ce-chip b {
+    font-size: 15px;
+    font-weight: 700;
+}
+.ce-chip small {
+    margin-top: 1px;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+.ce-chip:hover {
+    border-color: var(--accent-color);
+}
+.ce-chip.active {
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.ce-chip.active small {
+    color: rgba(255, 255, 255, 0.85);
+}
+.ce-chip.ce-other b {
+    font-size: 13px;
+}
+.ce-chip.ce-eraser.active {
+    border-color: #ff3b30;
+    background: #ff3b30;
+}
+.ce-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+/* Testo: ogni lettera è un punto dove mettere l'accordo */
+.ce-lyrics {
+    flex: 1;
+    padding: 16px 20px 40px;
+    overflow-y: auto;
+    font-size: 18px;
+    line-height: 1.2;
+}
+.ce-line {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.ce-c {
+    position: relative;
+    display: inline-block;
+    padding-top: 1.35em;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.ce-c:hover {
+    background: var(--accent-soft);
+}
+.ce-chord {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    padding: 0 2px;
+    border-radius: 4px;
+    color: #111;
+    font-size: 0.82em;
+    font-style: normal;
+    font-weight: 800;
+    white-space: nowrap;
+    background: #ffe58a;
+}
+.ce-chord:hover {
+    background: #ffb3ad;
+    text-decoration: line-through;
+}
+.ce-c.has-chord {
+    color: var(--accent-color);
+}
+.ce-end {
+    min-width: 1.4em;
+    padding-left: 4px;
+}
+.ce-plus {
+    color: var(--text-muted);
+    opacity: 0.4;
+    font-size: 0.8em;
+}
+.ce-label {
+    margin: 14px 0 4px;
+    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.ce-gap {
+    height: 14px;
+}
+@media (max-width: 768px) {
+    .ce-sheet {
+        margin: 0;
+        border-radius: 0;
+    }
+    .ce-head {
+        padding: 10px 10px;
+        padding-top: max(10px, env(safe-area-inset-top));
+    }
+    .ce-tools {
+        padding: 10px 12px 8px;
+    }
+    .ce-piano {
+        height: 88px;
+        margin-bottom: 10px;
+    }
+    .ce-lyrics {
+        padding: 12px 14px 60px;
+        font-size: 17px;
+    }
+}

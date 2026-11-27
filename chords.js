@@ -141,6 +141,7 @@ const SongTools = (() => {
         if (meta.key) head.push(`{key: ${meta.key}}`);
         if (meta.tempo) head.push(`{tempo: ${meta.tempo}}`);
         if (meta.time) head.push(`{time: ${meta.time}}`);
+        if (meta.capo) head.push(`{capo: ${meta.capo}}`);
         return (head.length ? head.join('\n') + '\n\n' : '') + (body || '').trim();
     }
 
@@ -304,7 +305,12 @@ const SongTools = (() => {
         };
     }
 
-    return { parseChord, formatChord, parseSong, splitMeta, buildContent, hasChords, lyricSections, lyricsText, render, noteName };
+    // per l'editor degli accordi
+    const normalizeLines = normalizeChordOverLyrics;
+    const isLabelLine = line => LABEL_RE.test(line);
+    const isMetaLine = line => META_RE.test(line);
+
+    return { parseChord, formatChord, parseSong, splitMeta, buildContent, hasChords, lyricSections, lyricsText, render, noteName, normalizeLines, isLabelLine, isMetaLine };
 })();
 
 // ---------- METRONOMO (Web Audio, preciso) ----------
