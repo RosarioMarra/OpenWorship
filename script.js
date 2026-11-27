@@ -2605,7 +2605,7 @@ function renderHighlights() {
         const ref = `${h.bookName} ${h.chapter}:${h.verse}`;
         li.innerHTML = `
             <div class="highlight-ref">${escapeHtml(ref)}</div>
-            <p class="highlight-text">${escapeHtml(h.text)}</p>
+            <p class="highlight-text"><span class="hl-mark">${escapeHtml(h.text)}</span></p>
             <div class="highlight-actions">
                 <button data-act="insert" class="hl-insert" title="Inserisci nell'appunto aperto"><i class="ri-add-line"></i> Inserisci</button>
                 <button data-act="copy" title="Copia"><i class="ri-file-copy-line"></i></button>

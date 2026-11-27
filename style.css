@@ -6412,3 +6412,16 @@ body.is-admin .verse-action-buttons {
     align-items: center;
     gap: 6px;
 }
+
+/* Appunti: i versetti evidenziati hanno lo stesso colore usato nella Bibbia */
+.highlight-text .hl-mark {
+    padding: 1px 3px;
+    border-radius: 4px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+.highlight-card[data-hl="yellow"] .hl-mark { background: rgba(255, 214, 10, 0.38); }
+.highlight-card[data-hl="green"] .hl-mark  { background: rgba(52, 199, 89, 0.28); }
+.highlight-card[data-hl="blue"] .hl-mark   { background: rgba(10, 132, 255, 0.24); }
+.highlight-card[data-hl="pink"] .hl-mark   { background: rgba(255, 55, 135, 0.24); }
+.highlight-card[data-hl="orange"] .hl-mark { background: rgba(255, 149, 0, 0.3); }
