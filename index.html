@@ -113,6 +113,7 @@
                 <button class="nav-item" data-target="cantici" title="Cantici"><i class="ri-music-2-line"></i><span>Cantici</span></button>
                 <button class="nav-item" data-target="bibbia" title="Bibbia"><i class="ri-book-read-line"></i><span>Bibbia</span></button>
                 <button class="nav-item" data-target="appunti" title="Appunti"><i class="ri-file-text-line"></i><span>Appunti</span></button>
+                <button class="nav-item nav-admin" data-target="utenti" title="Utenti: membri e amministratori"><i class="ri-team-line"></i><span>Utenti</span><span class="members-count nav-badge"></span></button>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-profile-box account-badge-host" id="desktopProfileBox" role="button" tabindex="0" title="Account e impostazioni">
@@ -411,6 +412,22 @@
                     </div>
                 </div>
             </section>
+
+            <!-- UTENTI (computer, solo amministratori): membri e amministratori -->
+            <section id="utenti" class="content-section">
+                <header class="section-header">
+                    <div class="section-title-wrapper">
+                        <div>
+                            <h1 class="section-title">Utenti</h1>
+                            <p class="section-subtitle">Chi può entrare nell'app e chi la gestisce</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="section-body utenti-grid">
+                    <div class="utenti-card" id="utentiMembriSlot"></div>
+                    <div class="utenti-card" id="utentiAdminSlot"></div>
+                </div>
+            </section>
         </main>
 
         <!-- Barra di navigazione (telefono) -->
@@ -586,6 +603,7 @@
             <div class="modal-title-row">
                 <h2 id="detailAvvisoTitle">Titolo</h2>
                 <button class="icon-btn" id="shareAvvisoDetailBtn" title="Condividi"><i class="ri-share-line"></i></button>
+                <button class="icon-btn admin-only-controls" id="projectAvvisoDetailBtn" title="Proietta questo avviso"><i class="ri-projector-line"></i></button>
             </div>
             <p id="detailAvvisoDate" class="detail-date"></p>
             <p id="detailAvvisoDesc" class="detail-body"></p>
@@ -789,6 +807,7 @@
             <button type="button" data-act="share"><i class="ri-share-line"></i><span>Condividi</span></button>
             <button type="button" data-act="image"><i class="ri-image-line"></i><span>Immagine</span></button>
             <button type="button" data-act="note"><i class="ri-file-text-line"></i><span>Appunto</span></button>
+            <button type="button" data-act="project" class="admin-only-controls verse-project-btn"><i class="ri-projector-line"></i><span>Proietta</span></button>
         </div>
     </div>
     <div id="verseToast" class="verse-toast" role="status" aria-live="polite"></div>

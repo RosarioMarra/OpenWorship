@@ -143,6 +143,10 @@ const PROJ_SHARED_CSS = `
 .ps-lyrics,.ps-avviso{font-family:var(--ps-font);text-transform:var(--ps-case)}
 .ps-lyrics{font-weight:var(--ps-weight)}
 .ps-avviso .ps-title{font-weight:var(--ps-weight)}
+.ps-verse{font-family:var(--ps-font);text-align:center;text-shadow:0 .3cqw 1.2cqw rgba(0,0,0,.55)}
+.ps-verse-text{font-weight:var(--ps-weight);line-height:1.3;text-transform:var(--ps-case)}
+.ps-verse-num{font-size:.55em;vertical-align:super;opacity:.7;margin-right:.25em}
+.ps-verse-ref{margin-top:.9em;font-size:.5em;font-weight:600;opacity:.85;letter-spacing:.03em}
 @keyframes owIn-fade{from{opacity:0}to{opacity:1}}
 @keyframes owOut-fade{from{opacity:1}to{opacity:0}}
 @keyframes owIn-slide{from{opacity:0;transform:translateX(8%)}to{opacity:1;transform:none}}
@@ -211,9 +215,21 @@ function applyTextStyle(screen, style) {
 }
 
 // ---------- DIAPOSITIVE ----------
-function buildSlides(type, hymnId) {
+function buildSlides(type, hymnId, extra = {}) {
+    if (type === 'bibbia') {
+        // un versetto per diapositiva, con il riferimento sotto
+        return (extra.verses || []).map(v => ({
+            kind: 'verse',
+            label: `${extra.book} ${extra.chapter}:${v.num}`,
+            num: v.num,
+            body: v.text,
+            ref: `${extra.book} ${extra.chapter}:${v.num}${extra.version ? ` (${extra.version})` : ''}`,
+            text: v.text
+        }));
+    }
     if (type === 'avvisi') {
         return [...avvisiDB]
+            .filter(a => !extra.avvisoId || a.id === extra.avvisoId)
             .sort((a, b) => new Date(a.date) - new Date(b.date))
             .map(a => ({
                 kind: 'avviso',
@@ -236,6 +252,12 @@ function buildSlides(type, hymnId) {
 
 function slideInnerHtml(slide) {
     if (!slide) return '';
+    if (slide.kind === 'verse') {
+        return `<div class="ps-content ps-verse" data-base="4.6">
+            <div class="ps-verse-text">${escapeHtml(slide.body)}</div>
+            <div class="ps-verse-ref">${escapeHtml(slide.ref)}</div>
+        </div>`;
+    }
     if (slide.kind === 'avviso') {
         return `<div class="ps-content ps-avviso" data-base="3.4">
             <div class="ps-title">${escapeHtml(slide.title)}</div>
@@ -517,16 +539,16 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- SCELTA DELLA MODALITÀ ----------
-function askPresentationMode(type, hymnId = null) {
+function askPresentationMode(type, hymnId = null, extra = {}) {
     if (!isAdmin) return;
-    const slides = buildSlides(type, hymnId);
+    const slides = buildSlides(type, hymnId, extra);
     if (!slides.length) {
-        alert(type === 'avvisi' ? "Nessun avviso da proiettare." : "Il cantico non ha testo da proiettare.");
+        alert(type === 'avvisi' ? "Nessun avviso da proiettare." : type === 'bibbia' ? "Seleziona almeno un versetto da proiettare." : "Il cantico non ha testo da proiettare.");
         return;
     }
     ensureProjFonts();
     const hymn = hymnId ? hymnsDB.find(h => h.id === hymnId) : null;
-    const title = type === 'avvisi' ? 'Avvisi' : (hymn ? hymn.title : 'Cantico');
+    const title = extra.title || (type === 'avvisi' ? 'Avvisi' : (hymn ? hymn.title : 'Cantico'));
     let chosenBg = appSettings.projBg || 'black';
     let chosenStyle = getProjStyle();
     let previewIndex = 0;

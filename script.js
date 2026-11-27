@@ -952,6 +952,10 @@ document.querySelectorAll('.nav-item[data-target]').forEach(item => {
         if (target === 'bibbia') {
             updateBibleControlsVisibility();
         }
+        if (target === 'utenti' && isAdmin) {
+            if (typeof loadMembri === 'function') loadMembri();
+            loadAdmins();
+        }
     });
 });
 
@@ -1000,6 +1004,7 @@ function renderAvvisi() {
                     <button class="mobile-menu-btn" onclick="event.stopPropagation(); toggleMobileMenu(this)"><i class="ri-more-2-fill"></i></button>
                     <div class="mobile-menu-dropdown hidden">
                         <button onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i> Condividi</button>
+                        ${isAdmin ? `<button onclick="event.stopPropagation(); askPresentationMode('avvisi', null, { avvisoId: '${avviso.id}', title: 'Avviso' })"><i class="ri-projector-line"></i> Proietta</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i> Modifica</button>` : ''}
                         ${isAdmin ? `<button onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i> Elimina</button>` : ''}
                     </div>
@@ -1009,6 +1014,7 @@ function renderAvvisi() {
             card.innerHTML = `
                 <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
                     <button class="icon-btn" onclick="event.stopPropagation(); shareAvviso('${avviso.id}')"><i class="ri-share-line"></i></button>
+                    ${isAdmin ? `<button class="icon-btn" title="Proietta questo avviso" onclick="event.stopPropagation(); askPresentationMode('avvisi', null, { avvisoId: '${avviso.id}', title: 'Avviso' })"><i class="ri-projector-line"></i></button>` : ''}
                     ${isAdmin ? `<button class="icon-btn" onclick="event.stopPropagation(); openAvvisoModal('${avviso.id}')"><i class="ri-pencil-line"></i></button>` : ''}
                     ${isAdmin ? `<button class="icon-btn icon-danger" onclick="event.stopPropagation(); deleteAvviso('${avviso.id}')"><i class="ri-delete-bin-line"></i></button>` : ''}
                 </div>
@@ -1047,6 +1053,10 @@ function openAvvisoDetailModal(id) {
     document.getElementById('detailAvvisoDesc').textContent = avviso.desc;
     const shareBtn = document.getElementById('shareAvvisoDetailBtn');
     shareBtn.onclick = () => shareAvviso(id);
+    document.getElementById('projectAvvisoDetailBtn').onclick = () => {
+        closeAvvisoDetailModal();
+        askPresentationMode('avvisi', null, { avvisoId: id, title: avviso.title });
+    };
     document.getElementById('avvisoDetailModal').classList.remove('hidden');
 }
 
@@ -1140,30 +1150,107 @@ async function deleteAvviso(id) {
 // La proiezione (sfondi, stile, transizioni, regia) è in projection.js
 
 // --- CANTICI: XML PARSER E CLOUD SYNC ---
+// --- AVANZAMENTO IN TEMPO REALE (caricamento ed eliminazione dei cantici) ---
+function apriAvanzamento({ titolo, totale, fatto, icona }) {
+    const box = document.createElement('div');
+    box.className = 'modal progress-modal';
+    box.innerHTML = `
+        <div class="modal-content progress-card" role="status" aria-live="polite">
+            <div class="progress-head">
+                <span class="progress-icon"><i class="${icona}"></i></span>
+                <h2>${escapeHtml(titolo)}</h2>
+            </div>
+            <div class="progress-count"><b class="pc-done">0</b><span> di ${totale}</span></div>
+            <div class="progress-track"><span class="pc-bar"></span></div>
+            <p class="progress-current pc-current">Preparazione…</p>
+            <div class="progress-stats">
+                <span class="ps-ok"><i class="ri-checkbox-circle-fill"></i> <b class="pc-ok">0</b> ${escapeHtml(fatto)}</span>
+                <span class="ps-err"><i class="ri-error-warning-fill"></i> <b class="pc-err">0</b> errori</span>
+            </div>
+            <details class="progress-errors" hidden><summary>Vedi gli errori</summary><ul></ul></details>
+            <div class="progress-actions">
+                <button type="button" class="btn-secondary pc-stop">Interrompi</button>
+                <button type="button" class="btn-apple pc-close" hidden>Chiudi</button>
+            </div>
+        </div>`;
+    document.body.appendChild(box);
+    const q = sel => box.querySelector(sel);
+    const stato = { ok: 0, err: 0, done: 0, fermato: false };
+    q('.pc-stop').onclick = () => {
+        stato.fermato = true;
+        q('.pc-stop').disabled = true;
+        q('.pc-stop').textContent = 'Interruzione…';
+    };
+    q('.pc-close').onclick = () => box.remove();
+    const ridisegna = () => {
+        q('.pc-done').textContent = stato.done;
+        q('.pc-ok').textContent = stato.ok;
+        q('.pc-err').textContent = stato.err;
+        q('.pc-bar').style.width = (totale ? Math.round(stato.done / totale * 100) : 100) + '%';
+        box.querySelector('.ps-err').classList.toggle('has-errors', stato.err > 0);
+    };
+    return {
+        get fermato() { return stato.fermato; },
+        corrente(nome) { q('.pc-current').textContent = nome; },
+        riuscito(n = 1) { stato.ok += n; stato.done += n; ridisegna(); },
+        errore(nome, motivo, n = 1) {
+            stato.err += n; stato.done += n; ridisegna();
+            const det = q('.progress-errors');
+            det.hidden = false;
+            const li = document.createElement('li');
+            li.textContent = nome + (motivo ? ': ' + motivo : '');
+            det.querySelector('ul').appendChild(li);
+        },
+        fine(messaggio) {
+            ridisegna();
+            box.querySelector('.progress-card').classList.add('is-done', stato.err ? 'with-errors' : 'all-ok');
+            q('.pc-current').textContent = messaggio;
+            q('.pc-stop').hidden = true;
+            q('.pc-close').hidden = false;
+            q('.pc-close').focus();
+        },
+        get risultato() { return { ...stato }; }
+    };
+}
+
 document.getElementById('deleteAllHymnsBtn').addEventListener('click', async () => {
     if (hymnsDB.length === 0) return alert("Non ci sono cantici da cancellare.");
-    if (confirm("ATTENZIONE! Sei sicuro di voler cancellare TUTTI i cantici dal cloud?")) {
+    if (!confirm(`ATTENZIONE! Vuoi cancellare TUTTI i ${hymnsDB.length} cantici dal cloud? Non si potranno recuperare.`)) return;
+    const daEliminare = [...hymnsDB];
+    const av = apriAvanzamento({ titolo: 'Eliminazione dei cantici', totale: daEliminare.length, fatto: 'eliminati', icona: 'ri-delete-bin-line' });
+    const eliminati = new Set();
+    // a gruppi di 25: molto più veloce che uno alla volta
+    for (let i = 0; i < daEliminare.length && !av.fermato; i += 25) {
+        const gruppo = daEliminare.slice(i, i + 25);
+        av.corrente(gruppo[0].title + (gruppo.length > 1 ? ` … ${gruppo[gruppo.length - 1].title}` : ''));
         try {
-            for (let hymn of hymnsDB) {
-                await supabaseClient.from('cantici').delete().eq('id', hymn.id);
-            }
-            hymnsDB = [];
-            favoritesDB = [];
-            saveFavorites();
-            renderHymns();
-            updateDashboard();
+            const { error } = await supabaseClient.from('cantici').delete().in('id', gruppo.map(h => h.id));
+            if (error) throw error;
+            gruppo.forEach(h => eliminati.add(h.id));
+            av.riuscito(gruppo.length);
         } catch (e) {
-            alert("Errore durante l'eliminazione dei cantici: " + e.message);
+            av.errore(`Cantici ${i + 1}–${i + gruppo.length}`, e.message, gruppo.length);
         }
     }
+    hymnsDB = hymnsDB.filter(h => !eliminati.has(h.id));
+    favoritesDB = favoritesDB.filter(id => !eliminati.has(id));
+    saveFavorites();
+    renderHymns();
+    updateDashboard();
+    const r = av.risultato;
+    av.fine(av.fermato
+        ? `Interrotto: eliminati ${r.ok} cantici, ${hymnsDB.length} restano.`
+        : r.err ? `Fatto, ma ${r.err} cantici non sono stati eliminati.` : `Fatto: eliminati tutti i ${r.ok} cantici.`);
 });
 
 document.getElementById('xmlUpload').addEventListener('change', async (event) => {
     const files = Array.from(event.target.files);
-    const searchInput = document.getElementById('hymnSearch');
-    searchInput.placeholder = "Caricamento in corso...";
-    showSpinner('hymnsList');
+    event.target.value = ''; // così si possono ricaricare gli stessi file
+    if (!files.length) return;
+    const av = apriAvanzamento({ titolo: 'Caricamento dei cantici', totale: files.length, fatto: 'caricati', icona: 'ri-upload-cloud-2-line' });
     for (let file of files) {
+        if (av.fermato) break;
+        av.corrente(file.name);
         try {
             let text = await file.text();
             let title = file.name.replace(/\.[^/.]+$/, "");
@@ -1210,21 +1297,26 @@ document.getElementById('xmlUpload').addEventListener('change', async (event) =>
                     content = lyricsNode.textContent.trim();
                 }
             }
+            if (!String(content || '').trim()) throw new Error('il file non contiene il testo del cantico');
             const newHymn = { id: crypto.randomUUID(), title: title, content: content };
             const { error } = await supabaseClient.from('cantici').insert([newHymn]);
             if (error) {
-                alert(`Supabase ha bloccato il cantico '${title}'. Errore: ` + error.message);
+                av.errore(title, error.message);
             } else {
                 hymnsDB.push(newHymn);
+                av.riuscito();
             }
         } catch (e) {
             console.error("Errore lettura file:", e);
-            alert("Errore nella lettura del file " + file.name);
+            av.errore(file.name, e.message || 'file non leggibile');
         }
     }
-    searchInput.placeholder = "Cerca cantico...";
     renderHymns();
     updateDashboard();
+    const r = av.risultato;
+    av.fine(av.fermato
+        ? `Interrotto: caricati ${r.ok} cantici su ${files.length}.`
+        : r.err ? `Fatto: caricati ${r.ok} cantici, ${r.err} con errori.` : `Fatto: caricati tutti i ${r.ok} cantici.`);
 });
 
 function normalizeSearch(text) {
@@ -2137,6 +2229,11 @@ async function handleVerseAction(act) {
     } else if (act === 'note') {
         clearVerseSelection();
         insertIntoNote(`> "${info.text}"\n> [${info.ref}]`);
+    } else if (act === 'project') {
+        // un versetto per diapositiva, con sfondi e stile della proiezione
+        const verses = info.els.map(e => ({ num: e.dataset.verse, text: new DOMParser().parseFromString(e.dataset.text, 'text/html').body.textContent.trim() }));
+        clearVerseSelection();
+        askPresentationMode('bibbia', null, { verses, book: bibleChapterInfo.bookName, chapter: bibleChapterInfo.chapter, version: info.versionName, title: info.ref });
     } else if (act === 'unhighlight') {
         highlightSelection(null);
     } else if (act === 'close') {

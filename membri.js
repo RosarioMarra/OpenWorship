@@ -145,6 +145,11 @@ function apriMembriDaNotifica() {
     }
     try { sessionStorage.removeItem('apriMembri'); } catch (e) { /* ignora */ }
     if (typeof closeHymnView === 'function' && !document.getElementById('hymnReaderView').classList.contains('hidden')) closeHymnView();
+    // computer: pagina Utenti nel menu; telefono: impostazioni dell'account
+    if (vistaComputer()) {
+        document.querySelector('.nav-item[data-target="utenti"]')?.click();
+        return;
+    }
     openAccountModal();
     setTimeout(() => document.getElementById('membersPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
 }
@@ -153,3 +158,31 @@ function apriMembriSeRichiesto() {
     try { richiesto = sessionStorage.getItem('apriMembri') === '1'; } catch (e) { return; }
     if (richiesto && isAdmin) apriMembriDaNotifica();
 }
+
+// ---------- computer: Membri e Amministratori nella pagina "Utenti" ----------
+// Sul computer i due pannelli stanno nella pagina Utenti del menu laterale;
+// sul telefono restano nelle impostazioni dell'account. Si spostano gli stessi
+// elementi (con i loro pulsanti già collegati), niente doppioni.
+const mqComputer = window.matchMedia('(min-width: 769px)');
+function vistaComputer() { return mqComputer.matches; }
+function sistemaPannelliUtenti() {
+    const membri = document.getElementById('membersPanel');
+    const admin = document.getElementById('adminsPanel');
+    if (!membri || !admin) return;
+    if (vistaComputer()) {
+        document.getElementById('utentiMembriSlot')?.appendChild(membri);
+        document.getElementById('utentiAdminSlot')?.appendChild(admin);
+    } else {
+        const esci = document.getElementById('mobileLogoutBtnModal');
+        if (esci && membri.parentElement !== esci.parentElement) {
+            esci.parentElement.insertBefore(membri, esci);
+            esci.parentElement.insertBefore(admin, esci);
+        }
+        // se si era sulla pagina Utenti e lo schermo diventa stretto, si torna alla home
+        if (document.getElementById('utenti')?.classList.contains('active')) {
+            document.querySelector('.nav-item[data-target="dashboard"]')?.click();
+        }
+    }
+}
+sistemaPannelliUtenti();
+if (mqComputer.addEventListener) mqComputer.addEventListener('change', sistemaPannelliUtenti);
