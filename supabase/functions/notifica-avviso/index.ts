@@ -1,7 +1,13 @@
 // =====================================================================
-// OPEN WORSHIP - Funzione "notifica-avviso" (Supabase Edge Function)
+// OPEN WORSHIP - Funzione "notifica-avviso" (Supabase Edge Function,
+// pubblicata con il nome "hyper-responder")
 // Viene chiamata da un Database Webhook quando si inserisce un avviso
-// e invia una notifica push a tutti i dispositivi registrati.
+// e invia una notifica push ai membri approvati e agli amministratori.
+//
+// Non si fida della richiesta: rilegge l'avviso dal database e lo
+// notifica una volta sola (colonna avvisi.notificato_il). Così anche
+// chiamandola di proposito non si possono mandare notifiche finte
+// né ripetere quelle vere.
 //
 // Secrets richiesti (Supabase > Edge Functions > Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
@@ -14,17 +20,34 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
-  // Il webhook manda: { type: "INSERT", table: "avvisi", record: {...} }
-  let payload: { type?: string; table?: string; record?: Record<string, unknown> };
+  // Il webhook manda: { type: "INSERT", table: "avvisi", record: { id, ... } }
+  let payload: { type?: string; table?: string; record?: { id?: unknown } };
   try {
     payload = await req.json();
   } catch {
     return json({ errore: "Richiesta non valida" }, 400);
   }
-  const avviso = payload.record;
-  if (!avviso || payload.table !== "avvisi" || payload.type !== "INSERT") {
+  const avvisoId = payload.record?.id;
+  if (!avvisoId || payload.table !== "avvisi" || payload.type !== "INSERT") {
     return json({ ignorato: true });
   }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // Si "prenota" la notifica: riesce una volta sola, e solo per avvisi che esistono davvero.
+  // Titolo e testo arrivano dal database, non dalla richiesta.
+  const { data: righe, error } = await supabase
+    .from("avvisi")
+    .update({ notificato_il: new Date().toISOString() })
+    .eq("id", String(avvisoId))
+    .is("notificato_il", null)
+    .select("*");
+  if (error) return json({ errore: error.message }, 500);
+  if (!righe || !righe.length) return json({ ignorato: true, motivo: "avviso inesistente o già notificato" });
+  const avviso = righe[0];
 
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
@@ -32,14 +55,9 @@ Deno.serve(async (req) => {
   if (!publicKey || !privateKey) return json({ errore: "Chiavi VAPID mancanti nei Secrets" }, 500);
   webpush.setVapidDetails(subject, publicKey, privateKey);
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-  const { data: subs, error } = await supabase
-    .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth");
-  if (error) return json({ errore: error.message }, 500);
+  // Solo i dispositivi dei membri approvati e degli amministratori
+  const { data: subs, error: subsErr } = await supabase.rpc("push_membri");
+  if (subsErr) return json({ errore: subsErr.message }, 500);
 
   const desc = String(avviso.desc ?? "");
   const message = JSON.stringify({
@@ -49,7 +67,7 @@ Deno.serve(async (req) => {
   });
 
   const results = await Promise.allSettled(
-    (subs ?? []).map((s) =>
+    (subs ?? []).map((s: { endpoint: string; p256dh: string; auth: string }) =>
       webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         message,
@@ -62,7 +80,7 @@ Deno.serve(async (req) => {
   const scaduti: string[] = [];
   results.forEach((r, i) => {
     const code = r.status === "rejected" ? (r.reason as { statusCode?: number })?.statusCode : undefined;
-    if (code === 404 || code === 410) scaduti.push(subs![i].id);
+    if (code === 404 || code === 410) scaduti.push((subs as { id: string }[])[i].id);
   });
   if (scaduti.length) await supabase.from("push_subscriptions").delete().in("id", scaduti);
 

@@ -117,6 +117,12 @@ revoke all on function public.is_owner() from public;
 revoke all on function public.list_admins() from public;
 revoke all on function public.add_admin(text) from public;
 revoke all on function public.remove_admin(text) from public;
+-- Supabase dà accesso di base anche a chi non ha fatto l'accesso (anon): lo si toglie
+revoke execute on function public.is_admin() from anon;
+revoke execute on function public.is_owner() from anon;
+revoke execute on function public.list_admins() from anon;
+revoke execute on function public.add_admin(text) from anon;
+revoke execute on function public.remove_admin(text) from anon;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.is_owner() to authenticated;
 grant execute on function public.list_admins() to authenticated;
