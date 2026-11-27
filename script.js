@@ -827,6 +827,8 @@ async function loadAdmins() {
     }
     isOwner = owner === true;
     form.classList.toggle('hidden', !isOwner);
+    const backupBox = document.getElementById('backupBox');
+    if (backupBox) backupBox.hidden = !isOwner;
     hint.textContent = isOwner
         ? "Aggiungi l'email Google della persona: al prossimo accesso potrà modificare cantici e avvisi e usare la proiezione."
         : 'Solo il proprietario può aggiungere o togliere amministratori.';

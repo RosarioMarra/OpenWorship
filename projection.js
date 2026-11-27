@@ -477,7 +477,11 @@ function setPreview(index) {
 
 function setBlank(on) {
     Proj.blank = on;
-    if (Proj.mode === 'screen') { sendToScreen({ type: 'blank', on }); renderRegia(); }
+    if (Proj.mode === 'screen') {
+        sendToScreen({ type: 'blank', on });
+        if (attesaAttiva()) sendToScreen({ type: 'idle', on, ...specAttesa() });
+        renderRegia();
+    }
     else renderLocalPresentation();
 }
 
@@ -624,7 +628,7 @@ function askPresentationMode(type, hymnId = null, extra = {}) {
 }
 
 function startProjection(mode, type, title, slides, bg, style) {
-    closeProjection();
+    closeProjection({ mantieniSchermo: mode === 'screen' });
     Object.assign(Proj, {
         mode, type, title, slides, live: 0, preview: Math.min(1, slides.length - 1),
         blank: false, bg, style: style || getProjStyle()
@@ -636,15 +640,26 @@ function startProjection(mode, type, title, slides, bg, style) {
     else openSecondScreen();
 }
 
-function closeProjection() {
-    if (presentationWindow && !presentationWindow.closed) presentationWindow.close();
-    presentationWindow = null;
-    clearInterval(projCloseChecker);
+function closeProjection(opts = {}) {
+    // Con lo schermo di attesa la finestra resta aperta e mostra l'immagine
+    const mantieni = !!opts.mantieniSchermo && presentationWindow && !presentationWindow.closed;
+    if (mantieni) {
+        sendToScreen({ type: 'idle', on: true, ...specAttesa() });
+    } else {
+        if (presentationWindow && !presentationWindow.closed) presentationWindow.close();
+        presentationWindow = null;
+        clearInterval(projCloseChecker);
+    }
     document.getElementById('presentationOverlay').classList.add('hidden');
     document.getElementById('regiaPanel').classList.add('hidden');
     document.body.classList.remove('regia-open');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    Proj.mode = null;
+    Proj.mode = mantieni ? 'idle' : null;
+    aggiornaPillAttesa();
+}
+// Fine della proiezione dalla regia: se c'è lo schermo di attesa si torna all'immagine
+function terminaProiezione() {
+    closeProjection({ mantieniSchermo: Proj.mode === 'screen' && attesaAttiva() });
 }
 // Compatibilità con i richiami esistenti
 function hideRemoteBar() { if (Proj.mode === 'screen') closeProjection(); }
@@ -753,7 +768,9 @@ async function spostaSuSchermoEsterno(win) {
     try { win.postMessage({ type: 'fullscreen' }, '*'); } catch (e) { /* ignora */ }
 }
 
-function openSecondScreen() {
+let projAlPronto = () => {};
+function apriFinestraSecondoSchermo() {
+    if (presentationWindow && !presentationWindow.closed) return true;
     const target = screenEsterno(projScreenDetails);
     const features = target
         ? `popup,fullscreen,left=${target.availLeft},top=${target.availTop},width=${target.availWidth},height=${target.availHeight}`
@@ -762,13 +779,32 @@ function openSecondScreen() {
     if (presentationWindow && !target) spostaSuSchermoEsterno(presentationWindow);
     if (!presentationWindow) {
         alert("Il popup è stato bloccato. Consenti i popup per questo sito e riprova.");
-        Proj.mode = null;
-        return;
+        return false;
     }
     presentationWindow.document.open();
     presentationWindow.document.write(buildSecondScreenHtml());
     presentationWindow.document.close();
+    // La finestra conferma quando è pronta
+    window.removeEventListener('message', projMessageHandler);
+    projMessageHandler = (e) => {
+        if (!presentationWindow || e.source !== presentationWindow || !e.data) return;
+        if (e.data.type === 'ready') projAlPronto();
+        if (e.data.type === 'key' && Proj.mode === 'screen') handleProjectionKey(e.data.key);
+    };
+    window.addEventListener('message', projMessageHandler);
+    clearInterval(projCloseChecker);
+    projCloseChecker = setInterval(() => {
+        if (!presentationWindow || presentationWindow.closed) {
+            clearInterval(projCloseChecker);
+            presentationWindow = null;
+            if (Proj.mode === 'screen' || Proj.mode === 'idle') closeProjection();
+        }
+    }, 700);
+    return true;
+}
 
+function openSecondScreen() {
+    const giaAperta = presentationWindow && !presentationWindow.closed;
     const init = () => {
         sendToScreen({
             type: 'init',
@@ -779,27 +815,56 @@ function openSecondScreen() {
             title: Proj.title,
             style: screenStyle(Proj.style)
         });
+        sendToScreen({ type: 'idle', on: false });
     };
-    // La finestra conferma quando è pronta
-    window.removeEventListener('message', projMessageHandler);
-    projMessageHandler = (e) => {
-        if (!presentationWindow || e.source !== presentationWindow || !e.data) return;
-        if (e.data.type === 'ready') init();
-        if (e.data.type === 'key') handleProjectionKey(e.data.key);
-    };
-    window.addEventListener('message', projMessageHandler);
-    setTimeout(init, 300);
-
-    clearInterval(projCloseChecker);
-    projCloseChecker = setInterval(() => {
-        if (!presentationWindow || presentationWindow.closed) {
-            clearInterval(projCloseChecker);
-            presentationWindow = null;
-            if (Proj.mode === 'screen') closeProjection();
-        }
-    }, 700);
-
+    projAlPronto = init;
+    if (!apriFinestraSecondoSchermo()) { Proj.mode = null; return; }
+    if (giaAperta) init(); else setTimeout(init, 300);
+    aggiornaPillAttesa();
     openRegia();
+}
+
+// ---------- SCHERMO DI ATTESA (solo computer) ----------
+// Quando non si proietta niente il secondo schermo mostra un'immagine:
+// quella scelta nelle impostazioni, oppure il logo dell'app.
+const ATTESA_KEY = 'owImmagineAttesa';
+function immagineAttesa() {
+    try { return localStorage.getItem(ATTESA_KEY) || ''; } catch (e) { return ''; }
+}
+function attesaAttiva() {
+    return window.matchMedia('(min-width: 769px)').matches && appSettings.attesaAttiva !== false;
+}
+function specAttesa() {
+    const img = immagineAttesa();
+    return img
+        ? { img, fit: appSettings.attesaFit === 'contain' ? 'contain' : 'cover' }
+        : { img: new URL('immagini/icon-512.png', location.href).href, fit: 'logo' };
+}
+function apriSchermoAttesa() {
+    if (Proj.mode === 'screen') return; // c'è già una proiezione: l'immagine tornerà alla fine
+    const giaAperta = presentationWindow && !presentationWindow.closed;
+    const mostra = () => sendToScreen({ type: 'idle', on: true, ...specAttesa() });
+    projAlPronto = mostra;
+    if (!apriFinestraSecondoSchermo()) return;
+    Proj.mode = 'idle';
+    if (giaAperta) mostra(); else setTimeout(mostra, 300);
+    aggiornaPillAttesa();
+}
+function aggiornaSchermoAttesa() {
+    if (Proj.mode === 'idle' || (Proj.mode === 'screen' && Proj.blank)) sendToScreen({ type: 'idle', on: true, ...specAttesa() });
+}
+// Avviso in basso a destra mentre lo schermo di attesa è aperto
+function aggiornaPillAttesa() {
+    let pill = document.getElementById('attesaPill');
+    if (Proj.mode !== 'idle') { pill?.remove(); return; }
+    if (!pill) {
+        pill = document.createElement('div');
+        pill.id = 'attesaPill';
+        pill.className = 'attesa-pill';
+        pill.innerHTML = '<i class="ri-tv-2-line"></i><span>Schermo di attesa attivo</span><button type="button" title="Chiudi il secondo schermo">Chiudi</button>';
+        pill.querySelector('button').onclick = () => closeProjection();
+        document.body.appendChild(pill);
+    }
 }
 
 function buildSecondScreenHtml() {
@@ -820,13 +885,16 @@ function buildSecondScreenHtml() {
   .ps-desc{font-weight:500;line-height:1.45}
   .is-blank .proj-text,.is-blank .proj-bg{opacity:0}
   .hint{position:fixed;bottom:12px;right:16px;color:rgba(255,255,255,.35);font-size:12px;z-index:2;transition:opacity 1s}
-  .fs-ask{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);z-index:3;padding:14px 26px;border-radius:999px;background:rgba(0,122,255,.92);color:#fff;font-size:20px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap;display:none}
+  .idle{position:fixed;inset:0;z-index:5;background-color:#000;background-repeat:no-repeat;background-position:center;opacity:0;transition:opacity .6s;pointer-events:none}
+  .idle.on{opacity:1}
+  .fs-ask{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);z-index:6;padding:14px 26px;border-radius:999px;background:rgba(0,122,255,.92);color:#fff;font-size:20px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap;display:none}
   .fs-ask.show{display:block}
   ${PROJ_SHARED_CSS}
 </style></head>
 <body>
 <div class="proj-screen" id="screen"><div class="proj-bg" id="bg"></div><div class="proj-text" id="text"></div></div>
 <div class="hint" id="hint">Clic: schermo intero · Esc: esci · Frecce: cambia strofa</div>
+<div class="idle" id="idle"></div>
 <div class="fs-ask" id="fsAsk">Clicca una volta per lo schermo intero</div>
 <script>
   var slides = [], parentOrigin = '*', current = -1, timer = null;
@@ -877,6 +945,14 @@ function buildSecondScreenHtml() {
     else if (d.type === 'blank') screenEl.classList.toggle('is-blank', !!d.on);
     else if (d.type === 'style') { st = d.style; applyStyle(); fit(); }
     else if (d.type === 'fullscreen') goFullscreen();
+    else if (d.type === 'idle') {
+      var idle = document.getElementById('idle');
+      if (d.img) {
+        idle.style.backgroundImage = 'url("' + d.img + '")';
+        idle.style.backgroundSize = d.fit === 'logo' ? 'min(36vw,36vh)' : (d.fit === 'contain' ? 'contain' : 'cover');
+      }
+      idle.classList.toggle('on', !!d.on);
+    }
   });
   // Schermo intero: si prova da sola; se il browser vuole un clic, lo si chiede ben visibile
   var fsAsk = document.getElementById('fsAsk');
@@ -906,7 +982,7 @@ function openRegia() {
     panel.classList.remove('hidden');
     document.body.classList.add('regia-open');
     document.getElementById('regiaTitle').textContent = Proj.title;
-    document.getElementById('regiaClose').onclick = closeProjection;
+    document.getElementById('regiaClose').onclick = terminaProiezione;
     document.getElementById('regiaPrev').onclick = () => setLive(Proj.live - 1);
     document.getElementById('regiaNext').onclick = () => setLive(Proj.live + 1);
     document.getElementById('regiaGoLive').onclick = () => setLive(Proj.preview);
@@ -953,3 +1029,76 @@ function renderRegia(rebuildList, animateLive) {
 
 window.askPresentationMode = askPresentationMode;
 window.startHymnPresentation = startHymnPresentation;
+
+// ---------- IMPOSTAZIONE: immagine dello schermo di attesa ----------
+function renderAttesaSettings() {
+    const box = document.getElementById('attesaSettings');
+    if (!box) return;
+    const img = immagineAttesa();
+    document.getElementById('attesaAttiva').checked = appSettings.attesaAttiva !== false;
+    document.getElementById('attesaFit').value = appSettings.attesaFit === 'contain' ? 'contain' : 'cover';
+    document.getElementById('attesaFit').disabled = !img;
+    document.getElementById('attesaLogo').hidden = !img;
+    const prev = document.getElementById('attesaPreview');
+    prev.style.backgroundImage = `url("${img || 'immagini/icon-512.png'}")`;
+    prev.className = 'attesa-preview ' + (img ? (appSettings.attesaFit === 'contain' ? 'is-contain' : 'is-cover') : 'is-logo');
+}
+// L'immagine si ridimensiona (max 1920×1080) e si salva su questo computer
+function preparaImmagineAttesa(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const im = new Image();
+        im.onload = () => {
+            const k = Math.min(1, 1920 / im.width, 1080 / im.height);
+            const c = document.createElement('canvas');
+            c.width = Math.round(im.width * k);
+            c.height = Math.round(im.height * k);
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(im, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve(c.toDataURL('image/jpeg', 0.86));
+        };
+        im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Immagine non leggibile')); };
+        im.src = url;
+    });
+}
+(function setupAttesaSettings() {
+    if (!document.getElementById('attesaSettings')) return;
+    document.getElementById('attesaAttiva').onchange = (e) => {
+        appSettings.attesaAttiva = e.target.checked;
+        saveSettings();
+    };
+    document.getElementById('attesaFit').onchange = (e) => {
+        appSettings.attesaFit = e.target.value;
+        saveSettings();
+        renderAttesaSettings();
+        aggiornaSchermoAttesa();
+    };
+    document.getElementById('attesaScegli').onclick = () => document.getElementById('attesaFile').click();
+    document.getElementById('attesaFile').onchange = async (e) => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        try {
+            const data = await preparaImmagineAttesa(file);
+            localStorage.setItem(ATTESA_KEY, data);
+        } catch (err) {
+            alert('Non è stato possibile usare questa immagine: ' + (err.message || 'troppo grande'));
+            return;
+        }
+        renderAttesaSettings();
+        aggiornaSchermoAttesa();
+    };
+    document.getElementById('attesaLogo').onclick = () => {
+        try { localStorage.removeItem(ATTESA_KEY); } catch (e) { /* ignora */ }
+        renderAttesaSettings();
+        aggiornaSchermoAttesa();
+    };
+    document.getElementById('attesaApri').onclick = () => {
+        if (typeof closeAccountModal === 'function') closeAccountModal();
+        apriSchermoAttesa();
+    };
+    renderAttesaSettings();
+})();

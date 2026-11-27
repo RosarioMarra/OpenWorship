@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:">
+    <title>Informativa sulla privacy · Open Worship</title>
+    <link rel="icon" href="immagini/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f5f8;
+            --card: #ffffff;
+            --text: #14161b;
+            --muted: #5b6270;
+            --border: #e3e6ec;
+            --accent: #007aff;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f1115;
+                --card: #181b21;
+                --text: #eef0f4;
+                --muted: #9aa1ad;
+                --border: #2a2e36;
+                --accent: #0a84ff;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 28px 16px 60px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        header img {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+        }
+        h1 {
+            margin: 0;
+            font-size: 26px;
+            line-height: 1.2;
+        }
+        .updated {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .card {
+            margin-bottom: 14px;
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--card);
+        }
+        h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+        p, ul { margin: 0 0 10px; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 4px; }
+        a { color: var(--accent); }
+        .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 18px;
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        small { color: var(--muted); }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="./">← Torna all'app</a>
+    <header>
+        <img src="immagini/icon-192.png" alt="">
+        <div>
+            <h1>Informativa sulla privacy</h1>
+            <p class="updated">Open Worship · aggiornata il 27 novembre 2026</p>
+        </div>
+    </header>
+
+    <section class="card">
+        <h2>Chi tratta i dati</h2>
+        <p>Open Worship è l'app della chiesa per cantici, Bibbia, avvisi, servizi e appunti. I dati sono gestiti dagli <b>amministratori della chiesa</b> che usano l'app. La realizzazione e la gestione tecnica sono di <b>Rosario Marra</b> (<a href="https://www.rosariomarra.it" target="_blank" rel="noopener">www.rosariomarra.it</a>).</p>
+        <p>Per qualsiasi domanda o richiesta sui tuoi dati puoi rivolgerti agli amministratori della chiesa oppure scrivere tramite il sito indicato sopra.</p>
+    </section>
+
+    <section class="card">
+        <h2>Quali dati raccogliamo</h2>
+        <ul>
+            <li><b>Dati del tuo account Google</b>, usati per l'accesso: nome, indirizzo email e foto del profilo.</li>
+            <li><b>Stato del tuo accesso</b>: se la richiesta è in attesa, approvata o rifiutata, con le relative date, e se sei amministratore.</li>
+            <li><b>I tuoi contenuti personali</b>: gli appunti e i cantici preferiti. Li vedi solo tu.</li>
+            <li><b>Notifiche</b>, solo se le attivi: un codice che identifica il tuo dispositivo per ricevere gli avvisi, e il tipo di browser.</li>
+            <li><b>Contenuti della chiesa</b> inseriti dagli amministratori: cantici, avvisi e servizi.</li>
+        </ul>
+        <p>Alcune informazioni restano <b>solo sul tuo dispositivo</b>, nella memoria del browser, e non vengono inviate a noi: impostazioni dell'app, versetti evidenziati, cantici aperti di recente, bozze degli appunti e, per gli amministratori, l'immagine dello schermo di attesa.</p>
+    </section>
+
+    <section class="card">
+        <h2>Perché li usiamo</h2>
+        <ul>
+            <li><b>Farti usare l'app</b>: accesso, appunti, preferiti, servizi. Base giuridica: esecuzione del servizio che richiedi.</li>
+            <li><b>Riservare l'app ai membri della chiesa</b>: gli amministratori approvano chi entra per la prima volta. Base giuridica: legittimo interesse della chiesa.</li>
+            <li><b>Mandarti le notifiche degli avvisi</b>, solo se le attivi. Base giuridica: consenso, che puoi ritirare in ogni momento dalle impostazioni dell'app o del telefono.</li>
+        </ul>
+        <p>Non usiamo i dati per pubblicità, non li vendiamo e non facciamo profilazione.</p>
+    </section>
+
+    <section class="card">
+        <h2>Dove sono conservati e chi li riceve</h2>
+        <ul>
+            <li><b>Supabase</b>: database e gestione dell'accesso, con server nell'Unione Europea (Irlanda).</li>
+            <li><b>Google</b>: accesso con il tuo account Google.</li>
+            <li><b>GitHub Pages</b>: pubblica il sito dell'app; come ogni sito, può registrare l'indirizzo IP nei propri log tecnici.</li>
+            <li><b>Servizi per le notifiche</b> del tuo browser o telefono (Google, Apple, Mozilla), che recapitano gli avvisi al tuo dispositivo.</li>
+            <li><b>Servizi esterni usati dall'app</b>, che ricevono solo l'indirizzo IP e la richiesta tecnica: bolls.life e getBible (testi della Bibbia), Unsplash, Pexels, Pixabay e Mixkit (immagini e video di sfondo), Google Fonts e jsDelivr (caratteri e componenti del sito).</li>
+        </ul>
+        <p>Alcuni di questi fornitori hanno sede fuori dall'Unione Europea e trattano i dati secondo le garanzie previste dal GDPR.</p>
+    </section>
+
+    <section class="card">
+        <h2>Per quanto tempo</h2>
+        <p>Conserviamo i dati finché usi l'app. Se chiedi di cancellare il tuo account, eliminiamo i tuoi dati personali (accesso, appunti, preferiti, dispositivi per le notifiche). Le copie di sicurezza scaricate dagli amministratori vengono aggiornate o eliminate periodicamente.</p>
+    </section>
+
+    <section class="card">
+        <h2>I tuoi diritti</h2>
+        <p>Puoi chiedere in ogni momento di <b>vedere</b> i tuoi dati, <b>correggerli</b>, <b>cancellarli</b>, <b>limitarne l'uso</b>, <b>opporti</b> al trattamento o <b>riceverli</b> in un formato leggibile. Puoi anche presentare un reclamo al <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">Garante per la protezione dei dati personali</a>.</p>
+    </section>
+
+    <section class="card">
+        <h2>Cookie e memoria del browser</h2>
+        <p>L'app non usa cookie pubblicitari né strumenti di tracciamento. Usa solo la memoria del browser per tenerti collegato e ricordare le tue impostazioni.</p>
+    </section>
+
+    <p><small>Questa informativa può essere aggiornata; la data in alto indica l'ultima modifica.</small></p>
+</main>
+</body>
+</html>

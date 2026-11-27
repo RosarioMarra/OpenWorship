@@ -86,7 +86,7 @@
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="">
                 Continua con Google
             </button>
-            <p class="login-footer-text">powered by Rosario Marra · <a href="https://www.rosariomarra.it" target="_blank" rel="noopener">www.rosariomarra.it</a></p>
+            <p class="login-footer-text">powered by Rosario Marra · <a href="https://www.rosariomarra.it" target="_blank" rel="noopener">www.rosariomarra.it</a> · <a href="privacy.html">Privacy</a></p>
         </div>
         <!-- Nuovo utente in attesa che un amministratore approvi l'accesso -->
         <div class="login-card access-card hidden" id="accessPendingCard" role="status" aria-live="polite">
@@ -96,6 +96,7 @@
             <p class="login-subtitle access-text" id="accessText"></p>
             <button type="button" class="btn-google" id="accessRecheckBtn"><i class="ri-refresh-line"></i> Controlla di nuovo</button>
             <button type="button" class="btn-text access-logout" id="accessLogoutBtn"><i class="ri-logout-box-r-line"></i> Esci</button>
+            <p class="login-footer-text"><a href="privacy.html">Informativa sulla privacy</a></p>
         </div>
     </div>
 
@@ -522,6 +523,27 @@
                     <input type="range" id="setScrollSpeed" min="1" max="10" class="settings-range">
                 </div>
             </div>
+            <!-- Schermo di attesa della proiezione (solo computer, amministratori) -->
+            <div class="attesa-settings" id="attesaSettings">
+                <div class="settings-title">Proiezione · schermo di attesa</div>
+                <div class="settings-row">
+                    <span>Immagine quando non si proietta<small>sul secondo schermo, tra un cantico e l'altro</small></span>
+                    <label class="switch"><input type="checkbox" id="attesaAttiva"><span class="slider round"></span></label>
+                </div>
+                <div class="attesa-box">
+                    <div class="attesa-preview" id="attesaPreview"></div>
+                    <div class="attesa-actions">
+                        <input type="file" id="attesaFile" accept="image/*" hidden>
+                        <button type="button" class="btn-secondary" id="attesaScegli"><i class="ri-image-add-line"></i> Scegli immagine</button>
+                        <button type="button" class="btn-text" id="attesaLogo">Usa il logo</button>
+                        <select id="attesaFit" class="apple-select settings-select">
+                            <option value="cover">Riempi lo schermo</option>
+                            <option value="contain">Immagine intera</option>
+                        </select>
+                        <button type="button" class="btn-apple" id="attesaApri"><i class="ri-tv-2-line"></i> Apri schermo di attesa</button>
+                    </div>
+                </div>
+            </div>
             <div class="admins-panel members-panel" id="membersPanel">
                 <div class="settings-title">Membri <span class="members-count"></span></div>
                 <p class="admins-hint">Chi entra per la prima volta resta in attesa finché un amministratore non lo approva.</p>
@@ -535,7 +557,18 @@
                     <input type="email" id="adminsEmailInput" class="apple-select field" placeholder="email@gmail.com" required>
                     <button type="submit" class="btn-apple" id="adminsAddBtn"><i class="ri-user-add-line"></i> Aggiungi</button>
                 </form>
+                <!-- Copia di sicurezza (solo il proprietario) -->
+                <div class="backup-box" id="backupBox" hidden>
+                    <div class="settings-title">Copia di sicurezza</div>
+                    <p class="admins-hint" id="backupInfo"></p>
+                    <div class="backup-actions">
+                        <button type="button" class="btn-apple" id="backupDownloadBtn"><i class="ri-download-cloud-2-line"></i> Scarica copia</button>
+                        <button type="button" class="btn-secondary" id="backupRestoreBtn"><i class="ri-history-line"></i> Ripristina da copia</button>
+                        <input type="file" id="backupFile" accept=".json,application/json" hidden>
+                    </div>
+                </div>
             </div>
+            <a class="privacy-link" href="privacy.html" target="_blank" rel="noopener"><i class="ri-shield-user-line"></i> Informativa sulla privacy</a>
             <button id="mobileLogoutBtnModal" class="btn-logout"><i class="ri-logout-box-r-line"></i> Esci</button>
             <button class="btn-secondary btn-block" onclick="closeAccountModal()">Chiudi</button>
         </div>
@@ -819,6 +852,8 @@
     <script src="membri.js"></script>
     <script src="chord-editor.js"></script>
     <script src="riferimenti.js"></script>
+    <script src="backup.js"></script>
+    <script src="indietro.js"></script>
     <script src="projection.js"></script>
     <script src="dashboard.js"></script>
     <script>
